@@ -1,32 +1,38 @@
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { appDataDir, join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 
-const SETTINGS_FILENAME = "settings.json";
+export type SpotifyTokens = {
+  access_token: string | null;
+  refresh_token: string | null;
+};
 
-async function getSettingsPath(): Promise<string> {
-  const dir = await appDataDir();
-  return join(dir, SETTINGS_FILENAME);
-}
+export type Settings = {
+  first_boot_done: boolean;
+  spotify: SpotifyTokens;
+  layout: string;
+  theme: string;
+};
 
-export async function readSettings(): Promise<any> {
+export async function readSettings(): Promise<Settings> {
   try {
-    const path = await getSettingsPath();
-    const raw = await readTextFile(path);
-    return JSON.parse(raw);
+    const settings: Settings = await invoke("read_settings");
+    return settings;
   } catch (err) {
-    console.warn("Failed to read settings, returning default:", err);
+    console.warn("Failed to read settings via Tauri, using defaults:", err);
     return {
-      firstBootDone: false,
-      spotify: { accessToken: null, refreshToken: null },
+      first_boot_done: false,
+      spotify: { access_token: null, refresh_token: null },
       layout: "LayoutA",
-      theme: "dark"
+      theme: "dark",
     };
   }
 }
 
-export async function writeSettings(update: any): Promise<void> {
-  const path = await getSettingsPath();
-  const current = await readSettings();
-  const merged = { ...current, ...update }; 
-  await writeTextFile(path, JSON.stringify(merged, null, 2));
+export async function writeSettings(update: Partial<Settings>): Promise<void> {
+  try {
+    const current = await readSettings();
+    const merged: Settings = { ...current, ...update };
+    await invoke("write_settings", { settings: merged });
+  } catch (err) {
+    console.error("Failed to write settings via Tauri:", err);
+  }
 }

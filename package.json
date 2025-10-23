@@ -14,6 +14,7 @@
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-opener": "^2",
+    "dotenv": "^17.2.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "spotify-web-api-node": "^5.0.2",

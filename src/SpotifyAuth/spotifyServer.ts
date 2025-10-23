@@ -1,8 +1,10 @@
 /// <reference types="bun-types" />
 
-import { serve, type BunRequest, write, file } from "bun";
-import { join } from "path";
-import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import { serve, type BunRequest } from "bun";
+import path from "path";
+
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 const PORT = 3000;
 let codeVerifier = "";
 let cachedTokens: any = null;
@@ -24,6 +26,7 @@ async function generateCodeChallenge(verifier: string) {
 }
 
 const CLIENT_ID = process.env.CLIENT_ID || "";
+console.log("CLIENT_ID:", process.env.CLIENT_ID);
 const REDIRECT_URI = "http://127.0.0.1:3000/callback";
 const SCOPES = [
   "user-read-playback-state",
@@ -31,8 +34,6 @@ const SCOPES = [
   "user-read-currently-playing",
   "playlist-read-private"
 ];
-
-const settingsPath = join(fileURLToPath(new URL("../config/settings.json", import.meta.url)));
 
 serve({
   port: PORT,
@@ -85,14 +86,6 @@ serve({
       cachedTokens = await tokenRes.json();
       console.log("Erhaltene Tokens:", cachedTokens);
 
-      const settings = await file(settingsPath).json();
-
-      settings.spotify.accessToken = cachedTokens.access_token;
-      settings.spotify.refreshToken = cachedTokens.refresh_token;
-      settings.spotify.expiresAt = Date.now() + cachedTokens.expires_in * 1000;
-      settings.spotify.scope = cachedTokens.scope;
-
-      await write(settingsPath, JSON.stringify(settings, null, 2));
       console.log("Spotify-Tokens in settings.json aktualisiert!");
 
  return new Response(

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import "./global.css";
 import Boot from "./views/Boot";
+import { readSettings, writeSettings } from "./settingLib";
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
-import { readSettings, writeSettings } from "./settingLib";
 
 export default function App() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
@@ -14,7 +14,7 @@ export default function App() {
   useEffect(() => {
     async function loadSettings() {
       const settings = await readSettings();
-      setFirstBootDone(settings.firstBootDone || false);
+      setFirstBootDone(settings.first_boot_done || false);
       setLayout(settings.layout || "LayoutA");
       setTheme(settings.theme || "dark");
     }
@@ -25,19 +25,18 @@ export default function App() {
 
   if (!firstBootDone)
     return (
-        <Boot
+      <Boot
         onComplete={async (selectedLayout, selectedTheme, spotifyTokens) => {
-            await writeSettings({
-                firstBootDone: true,
-                layout: selectedLayout,
-                theme: selectedTheme,
-                spotify: spotifyTokens,
-            });
-            setLayout(selectedLayout);
-            setTheme(selectedTheme);
-            setFirstBootDone(true);
+          await writeSettings({
+            first_boot_done: true,
+            layout: selectedLayout,
+            theme: selectedTheme,
+            spotify: spotifyTokens,
+          });
+          setLayout(selectedLayout);
+          setTheme(selectedTheme);
+          setFirstBootDone(true);
         }}
-
       />
     );
 
