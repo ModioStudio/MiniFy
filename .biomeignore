@@ -1,12 +1,8 @@
 node_modules
 dist
-dist-ssr
-*.local
+build
 .turbo
-.DS_Store
-
 apps/*/dist
-apps/*/dist-ssr
 apps/*/build
 apps/*/src-tauri/target
-apps/*/.DS_Store
+

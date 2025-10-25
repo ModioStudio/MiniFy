@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+body {
+  background-color: rgba(10, 10, 10, 0.2);
+  -webkit-app-region: drag;
+  user-select: none;
+  margin: 0;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+button,
+input,
+a,
+textarea {
+  -webkit-app-region: no-drag;
+}
