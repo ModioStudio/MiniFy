@@ -52,7 +52,7 @@ export function PlayerControls({
   }, [busy, isPlaying, onTogglePlaying]);
 
   return (
-    <div className={`flex items-center gap-5 ${className}`}>
+    <div className={`flex items-center gap-0 ${className}`}>
       <button
         type="button"
         onClick={handlePrev}

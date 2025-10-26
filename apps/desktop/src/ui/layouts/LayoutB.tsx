@@ -30,22 +30,21 @@ function LayoutB() {
   const duration = state?.item?.duration_ms ?? 0;
 
   return (
-    <div className="px-3 pt-3 pb-12 text-white bg-black/70 rounded-xl shadow-lg h-full w-full flex flex-col">
-      <TrackInfo track={state?.item ?? null} className="mb-3" />
-      <div className="mt-auto flex flex-col gap-6 pb-10">
-        <div className="flex items-center justify-center">
-          <PlayerControls
-            isPlaying={isPlaying}
-            onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
-          />
-        </div>
-        <PlaybackBar
-          durationMs={duration}
-          progressMs={progress}
+    <div className="h-full w-full flex flex-col rounded-xl bg-black/70 px-3 pt-4 pb-6 text-white shadow-lg">
+      <TrackInfo track={state?.item ?? null} className="mb-4" />
+      <div className="flex-1 flex items-center justify-center min-h-0">
+        <PlayerControls
           isPlaying={isPlaying}
-          onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
+          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
         />
       </div>
+      <PlaybackBar
+        durationMs={duration}
+        progressMs={progress}
+        isPlaying={isPlaying}
+        onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
+        className="mt-2"
+      />
     </div>
   );
 }
