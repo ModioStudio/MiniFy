@@ -52,3 +52,9 @@ pub fn write_settings(settings: Settings) -> bool {
     fs::write(&path, serde_json::to_string_pretty(&settings).unwrap()).is_ok()
 }
 
+#[tauri::command]
+pub fn clear_settings() -> bool {
+    let path = get_settings_path();
+    fs::remove_file(&path).is_ok()
+}
+

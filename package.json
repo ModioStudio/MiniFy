@@ -9,8 +9,9 @@
     "lint": "turbo run lint",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "desktop:dev": "pnpm --filter desktop dev",
-    "desktop:build": "pnpm --filter desktop build"
+    "desktop:dev": "pnpm --filter desktop tauri dev",
+    "desktop:build": "pnpm --filter desktop build",
+    "desktop:clear": "pnpm --filter desktop clear"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

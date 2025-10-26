@@ -1,0 +1,65 @@
+---
+description: Codebase Structure Guidelines for this monorepo
+globs:
+alwaysApply: false
+---
+
+# Codebase Structure
+
+## Monorepo Layout
+- Root workspace manages tooling and shared scripts
+- Desktop app lives under `apps/desktop`
+- Backend for desktop is Tauri (Rust) under `apps/desktop/src-tauri`
+- Frontend for desktop is React + TypeScript under `apps/desktop/src`
+
+## Desktop App Structure
+
+### Frontend (React + TS)
+- Entry: `apps/desktop/src/main.tsx`
+- UI root: `apps/desktop/src/ui/index.tsx`
+- Views: `apps/desktop/src/ui/views/*`
+- Layouts: `apps/desktop/src/ui/layouts/*`
+- Components: `apps/desktop/src/ui/components/*`
+- Settings helper: `apps/desktop/src/ui/settingLib.ts`
+- Themes: `apps/desktop/src/themes/*.json`
+- Global styles: `apps/desktop/src/ui/global.css`
+
+### Tauri Backend (Rust)
+- Config: `apps/desktop/src-tauri/tauri.conf.json`
+- Entry: `apps/desktop/src-tauri/src/main.rs`
+- Library crate: `apps/desktop/src-tauri/src/lib.rs`
+- Settings module: `apps/desktop/src-tauri/src/settings.rs`
+- Spotify auth module: `apps/desktop/src-tauri/src/spotify_auth.rs`
+- CLI utility: `apps/desktop/src-tauri/src/bin/clear.rs`
+- Capabilities: `apps/desktop/src-tauri/capabilities/*.json`
+
+## Commands and Invokes
+- Settings: `read_settings`, `write_settings`, `clear_settings`
+- Auth: `save_client_id`, `get_client_id`, `has_client_id`, `get_tokens`, `has_valid_tokens`, `start_oauth_flow`, `refresh_access_token`, `clear_credentials`
+
+## Scripts
+- Workspace:
+  - `desktop:dev`: start desktop dev (Tauri + Vite)
+  - `desktop:build`: build desktop
+  - `desktop:clear`: wipe desktop settings and keychain
+- App (desktop):
+  - `dev`: Vite
+  - `build`: TypeScript compile + Vite build
+  - `clear`: run Rust clear bin
+
+## Conventions
+- TypeScript strict types; avoid `any`
+- Static imports at top of files
+- Keep React components focused with typed props
+- Use Tauri commands for frontend-backend interactions
+- Store secrets/tokens in OS keychain via `keyring`
+- App settings persisted under platform config dir as JSON
+
+## Key Data Paths
+- Settings JSON path resolved via `dirs::config_dir()` to `spotify-mini-player/settings.json`
+- Tokens and client id stored in system keychain under service `spotify-mini-player`
+
+## Related Rules
+- See [010-git-conventions.mdc](mdc:.cursor/rules/010-git-conventions.mdc)
+- See [999-mdc-format.mdc](mdc:.cursor/rules/999-mdc-format.mdc)
+
