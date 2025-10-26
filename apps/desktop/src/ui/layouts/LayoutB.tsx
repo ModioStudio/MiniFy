@@ -32,8 +32,8 @@ function LayoutB() {
   return (
     <div className="px-3 pt-3 pb-12 text-white bg-black/70 rounded-xl shadow-lg h-full w-full flex flex-col">
       <TrackInfo track={state?.item ?? null} className="mb-3" />
-      <div className="mt-auto mb-4">
-        <div className="flex items-center justify-center mb-0">
+      <div className="mt-auto flex flex-col gap-6 pb-10">
+        <div className="flex items-center justify-center">
           <PlayerControls
             isPlaying={isPlaying}
             onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
@@ -44,7 +44,6 @@ function LayoutB() {
           progressMs={progress}
           isPlaying={isPlaying}
           onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
-          className="mb-6"
         />
       </div>
     </div>
