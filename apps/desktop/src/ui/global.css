@@ -16,3 +16,24 @@ a,
 textarea {
   -webkit-app-region: no-drag;
 }
+
+@font-face {
+  font-family: "CircularSpotifyText";
+  src: url("../font/CircularSpotifyText-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CircularSpotifyText";
+  src: url("../font/CircularSpotifyText-BookItalic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+.font-circular {
+  font-family: "CircularSpotifyText", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+}
