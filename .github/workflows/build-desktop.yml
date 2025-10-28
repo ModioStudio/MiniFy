@@ -53,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-          tauriScript: tauri
+          tauriScript: pnpm
           args: --bundles app
           tagName: v${{ steps.app_version.outputs.version }}
           releaseName: MiniFy v${{ steps.app_version.outputs.version }}
