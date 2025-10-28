@@ -1,13 +1,14 @@
-import { PlusCircle } from "@phosphor-icons/react";
+import { GearSix, PlusCircle } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import { type SimplifiedTrack, getLargestImageUrl, saveTrackToLibrary } from "../spotifyClient";
 
 type TrackInfoProps = {
   track: SimplifiedTrack | null;
   className?: string;
+  onOpenSettings?: () => void;
 };
 
-export function TrackInfo({ track, className = "" }: TrackInfoProps) {
+export function TrackInfo({ track, className = "", onOpenSettings }: TrackInfoProps) {
   const [busy, setBusy] = useState(false);
   const cover = track ? getLargestImageUrl(track.album.images) : null;
 
@@ -40,15 +41,37 @@ export function TrackInfo({ track, className = "" }: TrackInfoProps) {
               {track ? track.artists.map((a) => a.name).join(", ") : ""}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            aria-label="Add to Library"
-            className="cursor-pointer text-white/90 hover:text-white rounded-full w-10 h-10 flex items-center justify-center active:scale-[0.98] focus:outline-none"
-            disabled={busy || !track}
-          >
-            <PlusCircle size={24} weight="fill" />
-          </button>
+          {onOpenSettings ? (
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                aria-label="Open Settings"
+                className="cursor-pointer text-white/90 hover:text-white rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.98] focus:outline-none"
+              >
+                <GearSix size={20} weight="fill" />
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                aria-label="Add to Library"
+                className="cursor-pointer text-white/90 hover:text-white rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.98] focus:outline-none"
+                disabled={busy || !track}
+              >
+                <PlusCircle size={20} weight="fill" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSave}
+              aria-label="Add to Library"
+              className="cursor-pointer text-white/90 hover:text-white rounded-full w-10 h-10 flex items-center justify-center active:scale-[0.98] focus:outline-none"
+              disabled={busy || !track}
+            >
+              <PlusCircle size={24} weight="fill" />
+            </button>
+          )}
         </div>
       </div>
     </div>

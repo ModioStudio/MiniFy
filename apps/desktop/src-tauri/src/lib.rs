@@ -1,5 +1,6 @@
 pub mod settings;
 pub mod spotify_auth;
+pub mod debug;
 
 pub fn run() {
     let app = tauri::Builder::default()
@@ -16,7 +17,8 @@ pub fn run() {
             spotify_auth::has_valid_tokens,
             spotify_auth::start_oauth_flow,
             spotify_auth::refresh_access_token,
-            spotify_auth::clear_credentials
+            spotify_auth::clear_credentials,
+            debug::open_webview_devtools
         ])
         .setup(|app| {
             spotify_auth::spawn_token_refresh_task(app.handle().clone());

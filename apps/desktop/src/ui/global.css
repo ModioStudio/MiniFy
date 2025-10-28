@@ -10,6 +10,79 @@ body {
   width: 100%;
 }
 
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.drag-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18px;
+  -webkit-app-region: drag;
+}
+
+/* App scrollbar styling */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Theming bridge: map Tailwind utility classes used in UI to theme variables */
+:root {
+  --panel-bg: rgba(0, 0, 0, 0.7);
+  --panel-bg-50: rgba(0, 0, 0, 0.5);
+  --panel-bg-40: rgba(0, 0, 0, 0.4);
+  --text-color: #ffffff;
+  --text-color-90: rgba(255, 255, 255, 0.9);
+  --text-color-70: rgba(255, 255, 255, 0.7);
+}
+
+.theme-scope .bg-black\/70 {
+  background-color: var(--panel-bg) !important;
+}
+.theme-scope .bg-black\/50 {
+  background-color: var(--panel-bg-50) !important;
+}
+.theme-scope .bg-black\/40 {
+  background-color: var(--panel-bg-40) !important;
+}
+
+.theme-scope .text-white {
+  color: var(--text-color) !important;
+}
+.theme-scope .text-white\/90 {
+  color: var(--text-color-90) !important;
+}
+.theme-scope .text-white\/70 {
+  color: var(--text-color-70) !important;
+}
+
 button,
 input,
 a,
