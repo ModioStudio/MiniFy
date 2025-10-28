@@ -13,7 +13,7 @@ use tauri::Emitter;
 use keyring::Entry;
 use tokio::time::sleep;
 
-const KEYRING_SERVICE: &str = "spotify-mini-player";
+const KEYRING_SERVICE: &str = "minify";
 const CLIENT_ID_KEY: &str = "client_id";
 const ACCESS_TOKEN_KEY: &str = "access_token";
 const REFRESH_TOKEN_KEY: &str = "refresh_token";

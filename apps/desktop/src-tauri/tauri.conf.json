@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "spotify-mini-player",
+  "productName": "MiniFy",
   "version": "0.1.0",
-  "identifier": "com.jaron.spotify-mini-player",
+  "identifier": "com.modiostudio.minify",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Spotify Mini",
+        "title": "MiniFy",
         "decorations": false,
         "width": 400,
         "height": 200,

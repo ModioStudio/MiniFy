@@ -111,7 +111,7 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
                 <button
                   type="button"
                   className="underline text-white/90 hover:text-white"
-                  onClick={() => openUrl("https://github.com/J4ron/spotify-mini-player")}
+                  onClick={() => openUrl("https://github.com/ModioStudio/MiniFy")}
                 >
                   View source code
                 </button>

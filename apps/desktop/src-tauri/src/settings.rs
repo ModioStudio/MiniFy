@@ -30,7 +30,7 @@ impl Default for Settings {
 
 fn get_settings_path() -> PathBuf {
     let mut path = config_dir().unwrap_or_else(|| PathBuf::from("."));
-    path.push("spotify-mini-player");
+    path.push("MiniFy");
     fs::create_dir_all(&path).ok();
     path.push("settings.json");
     path

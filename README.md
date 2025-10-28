@@ -1,6 +1,6 @@
-# 🎧 Spotify Mini Player – Modern Overlay Rework
+# 🎧 MiniFy – Modern Overlay Rework
 
-> A sleek, themeable, and fully customizable **Spotify Mini Player** built with **Tauri**, **React**, and **TypeScript** — designed as a modern overhaul of Spotify’s native mini overlay.
+> A sleek, themeable, and fully customizable **MiniFy** built with **Tauri**, **React**, and **TypeScript** — designed as a modern overhaul of Spotify’s native mini overlay.
 
 ![Preview](./assets/preview.png)
 
@@ -34,5 +34,5 @@
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/devjaron/spotify-mini-player.git
-cd spotify-mini-player
+git clone https://github.com/ModioStudio/MiniFy.git
+cd MiniFy

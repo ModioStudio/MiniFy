@@ -1,17 +1,17 @@
 [package]
-name = "spotify-mini-player"
+name = "minify"
 version = "0.1.0"
-description = "Better Mini Player"
+description = "MiniFy"
 authors = ["you"]
 edition = "2021"
-default-run = "spotify-mini-player"
+default-run = "minify"
 
 [lib]
-name = "spotify_mini_player_lib"
+name = "minify_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "spotify-mini-player"
+name = "minify"
 path = "src/main.rs"
 
 [[bin]]
