@@ -14,14 +14,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "minify"
 path = "src/main.rs"
 
-[[bin]]
+[[example]]
 name = "clear"
 path = "src/bin/clear.rs"
-required-features = ["dev-bin"]
-
-[features]
-default = []
-dev-bin = []
 
 [build-dependencies]
 tauri-build = { version = "2.0", features = [] }
