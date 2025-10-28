@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "biome check .",
-    "clear": "cargo run --bin clear --manifest-path ./src-tauri/Cargo.toml"
+    "clear": "cargo run --bin clear --manifest-path ./src-tauri/Cargo.toml --features dev-bin"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
