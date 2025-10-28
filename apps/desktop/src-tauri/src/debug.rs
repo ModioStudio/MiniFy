@@ -1,10 +1,8 @@
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn open_webview_devtools(app: AppHandle) {
-    if let Some(win) = app.get_webview_window("main") {
-        let _ = win.open_devtools();
-    }
+    let _ = app; // no-op on Tauri v2
 }
 
 
