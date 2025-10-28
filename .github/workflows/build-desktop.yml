@@ -57,7 +57,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tauriScript: tauri
-          args: --bundles app
+          args: --bundles nsis
           tagName: v${{ steps.app_version.outputs.version }}
           releaseName: MiniFy v${{ steps.app_version.outputs.version }}
           releaseBody: Automated release for MiniFy v${{ steps.app_version.outputs.version }}
