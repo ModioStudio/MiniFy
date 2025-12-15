@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { TrackInfo } from "../components/LayoutTrackInfo/TrackInfoLayoutB";
 import PlaybackBar from "../components/PlaybackBar";
 import PlayerControls from "../components/PlayerControls";
-import TrackInfo from "../components/TrackInfo";
 import { type CurrentlyPlaying, fetchCurrentlyPlaying } from "../spotifyClient";
 
 function LayoutB() {
@@ -30,20 +30,22 @@ function LayoutB() {
   const duration = state?.item?.duration_ms ?? 0;
 
   return (
-    <div className="h-full w-full flex flex-col rounded-xl bg-black/70 px-3 pt-4 pb-6 text-white shadow-lg">
-      <TrackInfo track={state?.item ?? null} className="mb-4" />
-      <div className="flex-1 flex items-center justify-center min-h-0">
+    <div className="h-full w-full rounded-xl bg-black/70 px-3 pt-4 pb-6 text-white shadow-lg grid grid-rows-[auto_1fr_auto]">
+      <TrackInfo track={state?.item ?? null} />
+
+      <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
           onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
         />
       </div>
+
       <PlaybackBar
         durationMs={duration}
         progressMs={progress}
         isPlaying={isPlaying}
         onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
-        className="mt-2"
+        className="-mt-3"
       />
     </div>
   );
