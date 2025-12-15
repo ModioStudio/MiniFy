@@ -1,13 +1,17 @@
 import { ArrowLeft, GearSix, GithubLogo, ShieldCheck, SquaresFour } from "@phosphor-icons/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { writeSettings } from "../settingLib";
+import useWindowLayout from "../hooks/useWindowLayout";
 
 type SettingsProps = {
   onBack: () => void;
   onUpdateLayout?: (layout: string) => void;
   onUpdateTheme?: (theme: string) => void;
 };
+
+ const { setLayout } = useWindowLayout(); 
+
 
 const categories = [
   { key: "appearance", label: "Appearance", icon: GearSix },
@@ -27,6 +31,11 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
     await writeSettings({ theme });
     onUpdateTheme?.(theme);
   };
+  
+    useEffect(() => {
+    setLayout("Settings");
+  }, []);
+
 
   return (
     <div className="h-full w-full p-4 text-white">

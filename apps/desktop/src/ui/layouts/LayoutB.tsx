@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { TrackInfo } from "../components/LayoutTrackInfo/TrackInfoLayoutB";
 import PlaybackBar from "../components/PlaybackBar";
-import PlayerControls from "../components/PlayerControls";
+import PlayerControls from "../components/TrackDataComponent/TrackControls";
 import { type CurrentlyPlaying, fetchCurrentlyPlaying } from "../spotifyClient";
+import useWindowLayout from "../hooks/useWindowLayout";
 
 function LayoutB() {
   const [state, setState] = useState<CurrentlyPlaying | null>(null);
@@ -28,6 +29,12 @@ function LayoutB() {
   const isPlaying = state?.is_playing ?? false;
   const progress = state?.progress_ms ?? 0;
   const duration = state?.item?.duration_ms ?? 0;
+
+ const { setLayout } = useWindowLayout(); 
+
+  useEffect(() => {
+    setLayout("B");
+  }, []);
 
   return (
     <div className="h-full w-full rounded-xl bg-black/70 px-3 pt-4 pb-6 text-white shadow-lg grid grid-rows-[auto_1fr_auto]">

@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import TrackInfoLayoutA from "../components/LayoutTrackInfo/TrackInfoLayoutA";
-import { TrackCover } from "../components/TrackCover";
+import { TrackCover } from "../components/TrackDataComponent/TrackCover";
 import { type CurrentlyPlaying, fetchCurrentlyPlaying, getLargestImageUrl } from "../spotifyClient";
+import useWindowLayout from "../hooks/useWindowLayout";
 
 function LayoutA() {
   const [state, setState] = useState<CurrentlyPlaying | null>(null);
+
+ const { setLayout } = useWindowLayout(); 
+
+  useEffect(() => {
+    setLayout("A");
+  }, []);
 
   useEffect(() => {
     let mounted = true;

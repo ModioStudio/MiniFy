@@ -1,7 +1,7 @@
 import type { TrackInfoProps } from "../../TrackInfoProps";
-import { TrackActions } from "../TrackAction";
-import { TrackCover } from "../TrackCover";
-import { TrackMeta } from "../TrackMeta";
+import { TrackActions } from "../TrackDataComponent/TrackAction";
+import { TrackCover } from "../TrackDataComponent/TrackCover";
+import { TrackMeta } from "../TrackDataComponent/TrackMeta";
 
 import { getLargestImageUrl, saveTrackToLibrary } from "../../spotifyClient";
 

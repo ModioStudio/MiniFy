@@ -1,18 +1,18 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
-import { nextTrack, pause, play, previousTrack } from "../spotifyClient";
+import { nextTrack, pause, play, previousTrack } from "../../spotifyClient";
 
-type PlayerControlsProps = {
+type TrackControlsProps = {
   isPlaying: boolean;
   onTogglePlaying?: (playing: boolean) => void;
   className?: string;
 };
 
-export function PlayerControls({
+export function TrackControls({
   isPlaying,
   onTogglePlaying,
   className = "",
-}: PlayerControlsProps) {
+}: TrackControlsProps) {
   const [busy, setBusy] = useState(false);
 
   const handlePrev = useCallback(async () => {
@@ -85,4 +85,4 @@ export function PlayerControls({
   );
 }
 
-export default PlayerControls;
+export default TrackControls;

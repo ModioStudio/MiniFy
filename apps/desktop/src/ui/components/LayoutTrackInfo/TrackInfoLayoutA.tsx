@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type CurrentlyPlaying, fetchCurrentlyPlaying } from "../../spotifyClient";
 import PlaybackBar from "../PlaybackBar";
-import { TrackMeta } from "../TrackMeta";
+import { TrackMeta } from "../TrackDataComponent/TrackMeta";
 
 export default function TrackInfoLayoutA() {
   const [state, setState] = useState<CurrentlyPlaying | null>(null);
