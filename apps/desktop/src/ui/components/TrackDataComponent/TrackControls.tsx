@@ -8,11 +8,7 @@ type TrackControlsProps = {
   className?: string;
 };
 
-export function TrackControls({
-  isPlaying,
-  onTogglePlaying,
-  className = "",
-}: TrackControlsProps) {
+export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: TrackControlsProps) {
   const [busy, setBusy] = useState(false);
 
   const handlePrev = useCallback(async () => {
