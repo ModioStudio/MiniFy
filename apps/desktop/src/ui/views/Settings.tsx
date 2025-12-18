@@ -1,7 +1,7 @@
 import { ArrowLeft, GearSix, GithubLogo, ShieldCheck, SquaresFour } from "@phosphor-icons/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
-import useWindowLayout from "../hooks/useWindowLayout";
+import useWindowLayout from "../../hooks/useWindowLayout";
 import { writeSettings } from "../settingLib";
 
 type SettingsProps = {

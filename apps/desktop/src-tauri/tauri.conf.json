@@ -14,10 +14,11 @@
       {
         "title": "MiniFy",
         "decorations": false,
-        "width": 400,
-        "height": 200,
+        "minWidth": 400,
+        "minHeight": 200,
         "resizable": false,
-        "transparent": true
+        "transparent": true,
+        "alwaysOnTop": true
       }
     ],
     "security": {

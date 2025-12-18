@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { seek } from "../spotifyClient";
+import { seek } from "../../spotifyClient";
 
 type PlaybackBarProps = {
   durationMs: number;
