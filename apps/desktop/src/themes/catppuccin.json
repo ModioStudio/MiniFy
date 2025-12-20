@@ -1,9 +1,54 @@
 {
   "name": "catppuccin",
-  "panel": "rgba(30, 30, 46, 0.78)",
-  "panel50": "rgba(30, 30, 46, 0.55)",
-  "panel40": "rgba(30, 30, 46, 0.45)",
-  "text": "#CDD6F4",
-  "text90": "rgba(205, 214, 244, 0.90)",
-  "text70": "rgba(205, 214, 244, 0.70)"
+
+  "base": {
+    "panelBg": "rgba(30, 30, 46, 0.78)",
+    "panelBgSoft": "rgba(30, 30, 46, 0.55)",
+    "panelBgSubtle": "rgba(30, 30, 46, 0.45)",
+    "text": "#F8F8F2",
+    "textMuted": "rgba(205, 214, 244, 0.70)",
+    "textSoft": "rgba(205, 214, 244, 0.40)"
+  },
+
+  "panel": {
+    "background": "rgba(30, 30, 46, 0.78)",
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.55)"
+  },
+
+  "controls": {
+    "iconColor": "#CDD6F4",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.06)"
+  },
+
+  "playbar": {
+    "trackBg": "rgba(255, 255, 255, 0.16)",
+    "trackFill": "linear-gradient(90deg, #74C7EC 0%, #89B4FA 100%)",
+    "thumbColor": "#FFFFFF",
+    "timeTextColor": "rgba(205, 214, 244, 0.70)"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#FF79C6",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.04)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.10)"
+  },
+
+  "cover": {
+    "borderColor": "rgba(255, 255, 255, 0.20)",
+    "borderRadius": 12
+  }
 }

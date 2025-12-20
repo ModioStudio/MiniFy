@@ -1,9 +1,55 @@
 {
   "name": "light",
-  "panel": "rgba(248, 248, 248, 0.95)",
-  "panel50": "rgba(248, 248, 248, 0.85)",
-  "panel40": "rgba(248, 248, 248, 0.80)",
-  "text": "#111111",
-  "text90": "rgba(17, 17, 17, 0.90)",
-  "text70": "rgba(17, 17, 17, 0.70)"
+
+  "panel": {
+    "background": "rgba(255, 255, 255, 0.88)",
+    "borderRadius": 18,
+    "shadow": "0 12px 30px rgba(0, 0, 0, 0.18)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(255, 255, 255, 0.85)",
+    "panelBorder": "rgba(0, 0, 0, 0.10)",
+    "text": "#000000",
+    "textMuted": "rgba(80, 80, 80, 0.70)",
+    "itemHover": "rgba(0, 0, 0, 0.04)",
+    "itemActive": "rgba(0, 0, 0, 0.08)",
+    "accent": "#007BFF"
+  },
+
+  "controls": {
+    "iconColor": "#1A1A1A",
+    "iconColorActive": "#000000",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(0, 0, 0, 0.06)"
+  },
+
+  "playbar": {
+    "trackBg": "rgba(0, 0, 0, 0.14)",
+    "trackFill": "linear-gradient(90deg, #444444 0%, #000000 100%)",
+    "thumbColor": "#000000",
+    "timeTextColor": "rgba(26, 26, 26, 0.65)"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#000000",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "rgba(26, 26, 26, 0.65)",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#000000",
+    "iconBackground": "rgba(0, 0, 0, 0.04)",
+    "iconBackgroundHover": "rgba(0, 0, 0, 0.10)"
+  },
+
+  "cover": {
+    "borderColor": "rgba(0, 0, 0, 0.18)",
+    "borderRadius": 12
+  }
 }

@@ -7,7 +7,6 @@ import PlayerControls from "../components/TrackControls/TrackControls";
 
 function LayoutB() {
   const { setLayout } = useWindowLayout();
-
   const { track, isPlaying, progress, duration, setState } = useCurrentlyPlaying();
 
   useEffect(() => {
@@ -15,23 +14,49 @@ function LayoutB() {
   }, [setLayout]);
 
   return (
-    <div className="h-full w-full rounded-xl bg-black/70 px-3 pt-4 pb-6 text-white shadow-lg grid grid-rows-[auto_1fr_auto]">
-      <TrackInfoLayout track={track} variant="title" />
+    <div
+      className="
+        h-full w-full
+        grid grid-rows-[auto_1fr_auto]
+        px-3 pt-4 pb-6
+      "
+      style={{
+        background: "var(--player-panel-bg)",
+        color: "var(--text-color)",
+        boxShadow: "var(--player-panel-shadow)",
+      }}
+    >
+      {/* Track Info */}
+      <div className="flex gap-4">
+        <TrackInfoLayout track={track} variant="cover" size={86} />
 
+        <div className="flex flex-col justify-center">
+          <TrackInfoLayout track={track} variant="title" />
+          <TrackInfoLayout track={track} variant="artist" />
+        </div>
+      </div>
+
+      {/* Controls */}
       <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
-          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
+          onTogglePlaying={(playing) =>
+            setState((s) => (s ? { ...s, is_playing: playing } : s))
+          }
         />
       </div>
 
+      {/* Playback */}
+      <div className="-mt-7">
       <PlaybackBar
         durationMs={duration}
         progressMs={progress}
         isPlaying={isPlaying}
-        onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
-        className="-mt-3"
-      />
+        onSeek={(ms) =>
+            setState((s) => (s ? { ...s, progressMs: ms } : s))
+        }
+        />
+        </div>
     </div>
   );
 }

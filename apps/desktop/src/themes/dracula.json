@@ -1,9 +1,55 @@
 {
   "name": "dracula",
-  "panel": "rgba(40, 42, 54, 0.78)",
-  "panel50": "rgba(40, 42, 54, 0.55)",
-  "panel40": "rgba(40, 42, 54, 0.45)",
-  "text": "#EDEDF6",
-  "text90": "rgba(237, 237, 246, 0.90)",
-  "text70": "rgba(237, 237, 246, 0.70)"
+
+  "panel": {
+    "background": "rgba(40, 42, 54, 0.82)",
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.60)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(40, 42, 54, 0.55)",
+    "panelBorder": "rgba(255, 255, 255, 0.10)",
+    "text": "#F8F8F2",
+    "textMuted": "rgba(180, 180, 255, 0.70)",
+    "itemHover": "rgba(255, 255, 255, 0.08)",
+    "itemActive": "rgba(255, 255, 255, 0.14)",
+    "accent": "#6272A4"
+  },
+
+  "controls": {
+    "iconColor": "#F8F8F2",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.08)"
+  },
+
+  "playbar": {
+    "trackBg": "rgba(255, 255, 255, 0.18)",
+    "trackFill": "linear-gradient(90deg, #BD93F9 0%, #FF79C6 100%)",
+    "thumbColor": "#FFFFFF",
+    "timeTextColor": "rgba(248, 248, 242, 0.70)"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#FF79C6",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.06)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.14)"
+  },
+
+  "cover": {
+    "borderColor": "rgba(255, 255, 255, 0.22)",
+    "borderRadius": 12
+  }
 }

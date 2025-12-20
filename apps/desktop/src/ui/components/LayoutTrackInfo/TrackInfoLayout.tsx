@@ -5,7 +5,7 @@ import { TrackMeta } from "../TrackDataComponent/TrackMeta";
 
 import { getLargestImageUrl, saveTrackToLibrary } from "../../spotifyClient";
 
-type Variant = "cover" | "title" | "description" | "actions";
+type Variant = "cover" | "title" | "artist" | "description" | "actions";
 type Size = number;
 
 interface Props extends TrackInfoProps {
@@ -23,7 +23,10 @@ export function TrackInfoLayout({ track, variant, size }: Props) {
       );
 
     case "title":
-      return <TrackMeta title={track.name} artists={track.artists.map((a) => a.name).join(", ")} />;
+      return <TrackMeta title={track.name} />;
+
+    case "artist":
+      return <TrackMeta artists={track.artists.map((a) => a.name).join(", ")} />;
 
     case "description":
       return <p className="text-sm text-white/60 line-clamp-2">{track.album.name}</p>;

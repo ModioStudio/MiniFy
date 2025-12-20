@@ -12,7 +12,12 @@ export function TrackCover({ src, size = 72 }: TrackCoverProps) {
       style={{ width: dimension, height: dimension }}
     >
       {src ? (
-        <img src={src} alt="Track cover" className="w-full h-full object-cover" loading="lazy" />
+        <img
+          src={src}
+          alt="Track cover"
+          className="w-full h-full object-cover border-black border"
+          loading="lazy"
+        />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-xs text-white/40">
           No Cover
