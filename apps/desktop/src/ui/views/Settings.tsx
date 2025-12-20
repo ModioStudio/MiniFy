@@ -2,7 +2,7 @@ import { ArrowLeft, GearSix, GithubLogo, ShieldCheck, SquaresFour } from "@phosp
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import { writeSettings, readSettings } from "../settingLib";
+import { readSettings, writeSettings } from "../settingLib";
 
 type SettingsProps = {
   onBack: () => void;
@@ -111,7 +111,9 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="font-medium">Theme</div>
-                <span className="text-xs text-[--settings-text-muted]">Current: {currentTheme}</span>
+                <span className="text-xs text-[--settings-text-muted]">
+                  Current: {currentTheme}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {["catppuccin", "dark", "dracula", "light"].map((t) => (
@@ -121,7 +123,10 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
                     onClick={() => applyTheme(t)}
                     className="px-3 py-2 rounded-lg border border-white/10 flex items-center justify-center gap-2 transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.03] active:scale-[0.97]"
                     style={{
-                      background: currentTheme === t ? "var(--settings-item-active)" : "var(--settings-panel-bg)",
+                      background:
+                        currentTheme === t
+                          ? "var(--settings-item-active)"
+                          : "var(--settings-panel-bg)",
                     }}
                   >
                     <span
@@ -151,7 +156,10 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
                     onClick={() => applyLayout(l)}
                     className="px-3 py-2 rounded-lg border border-white/10 transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.03] active:scale-[0.97]"
                     style={{
-                      background: currentLayout === l ? "var(--settings-item-active)" : "var(--settings-panel-bg)",
+                      background:
+                        currentLayout === l
+                          ? "var(--settings-item-active)"
+                          : "var(--settings-panel-bg)",
                     }}
                   >
                     {l.replace("Layout", "Layout ")}

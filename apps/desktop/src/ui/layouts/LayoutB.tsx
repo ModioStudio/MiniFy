@@ -40,23 +40,19 @@ function LayoutB() {
       <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
-          onTogglePlaying={(playing) =>
-            setState((s) => (s ? { ...s, is_playing: playing } : s))
-          }
+          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
         />
       </div>
 
       {/* Playback */}
       <div className="-mt-7">
-      <PlaybackBar
-        durationMs={duration}
-        progressMs={progress}
-        isPlaying={isPlaying}
-        onSeek={(ms) =>
-            setState((s) => (s ? { ...s, progressMs: ms } : s))
-        }
+        <PlaybackBar
+          durationMs={duration}
+          progressMs={progress}
+          isPlaying={isPlaying}
+          onSeek={(ms) => setState((s) => (s ? { ...s, progressMs: ms } : s))}
         />
-        </div>
+      </div>
     </div>
   );
 }

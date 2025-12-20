@@ -39,19 +39,19 @@ export type ThemeConfig = {
   coverBorderColor?: string;
   coverRadius?: number;
 
-    // Settings
-    settings?: {
-      panelBg?: string;
-      panelBorder?: string;
-      text?: string;
-      textMuted?: string;
-      itemHover?: string;
-      itemActive?: string;
-      accent?: string;
-    };  
+  // Settings
+  settings?: {
+    panelBg?: string;
+    panelBorder?: string;
+    text?: string;
+    textMuted?: string;
+    itemHover?: string;
+    itemActive?: string;
+    accent?: string;
+  };
 };
 
-function transformTheme(theme: any): ThemeConfig {
+function transformTheme(theme: Record<string, any>): ThemeConfig {
   return {
     name: theme.name,
     panel: theme.panel?.background || theme.settings?.panelBg || "#000000",
@@ -73,8 +73,6 @@ function transformTheme(theme: any): ThemeConfig {
     settings: theme.settings,
   };
 }
-
-
 
 export const THEMES: Record<string, ThemeConfig> = {
   dark: transformTheme(dark),
@@ -103,7 +101,10 @@ export function applyThemeByName(themeName: string): void {
     t.playbarTrackFill ?? "linear-gradient(90deg, #74C7EC 0%, #89B4FA 100%)"
   );
   root.style.setProperty("--player-playbar-thumb-color", t.playbarThumbColor ?? "#ffffff");
-  root.style.setProperty("--player-playbar-time-color", t.playbarTimeColor ?? t.text70 ?? "#b0b0b0");
+  root.style.setProperty(
+    "--player-playbar-time-color",
+    t.playbarTimeColor ?? t.text70 ?? "#b0b0b0"
+  );
 
   // Typography
   root.style.setProperty("--player-song-title-color", t.songTitleColor ?? "#ffffff");
@@ -115,16 +116,18 @@ export function applyThemeByName(themeName: string): void {
   root.style.setProperty("--player-actions-bg-hover", t.actionsBgHover ?? "rgba(255,255,255,0.10)");
 
   // Cover
-  root.style.setProperty("--player-cover-border-color", t.coverBorderColor ?? "rgba(255,255,255,0.20)");
+  root.style.setProperty(
+    "--player-cover-border-color",
+    t.coverBorderColor ?? "rgba(255,255,255,0.20)"
+  );
   root.style.setProperty("--player-cover-radius", `${t.coverRadius ?? 12}px`);
 
   // Settings
-    root.style.setProperty("--settings-panel-bg", t.settings?.panelBg ?? "#000000");
-    root.style.setProperty("--settings-panel-border", t.settings?.panelBorder ?? "#ffffff1a");
-    root.style.setProperty("--settings-text", t.settings?.text ?? "#ffffff");
-    root.style.setProperty("--settings-text-muted", t.settings?.textMuted ?? "#e0e0e0");
-    root.style.setProperty("--settings-item-hover", t.settings?.itemHover ?? "#ffffff14");
-    root.style.setProperty("--settings-item-active", t.settings?.itemActive ?? "#ffffff24");
-    root.style.setProperty("--settings-accent", t.settings?.accent ?? "#74C7EC");
-
+  root.style.setProperty("--settings-panel-bg", t.settings?.panelBg ?? "#000000");
+  root.style.setProperty("--settings-panel-border", t.settings?.panelBorder ?? "#ffffff1a");
+  root.style.setProperty("--settings-text", t.settings?.text ?? "#ffffff");
+  root.style.setProperty("--settings-text-muted", t.settings?.textMuted ?? "#e0e0e0");
+  root.style.setProperty("--settings-item-hover", t.settings?.itemHover ?? "#ffffff14");
+  root.style.setProperty("--settings-item-active", t.settings?.itemActive ?? "#ffffff24");
+  root.style.setProperty("--settings-accent", t.settings?.accent ?? "#74C7EC");
 }
