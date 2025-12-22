@@ -8,8 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "biome check .",
-    "clear": "cargo run --example clear --manifest-path ./src-tauri/Cargo.toml"
+    "lint": "biome check ."
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
