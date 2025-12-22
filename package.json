@@ -11,7 +11,6 @@
     "check": "biome check --write .",
     "desktop:dev": "pnpm --filter desktop tauri dev",
     "desktop:build": "pnpm --filter desktop build",
-    "desktop:clear": "pnpm --filter desktop clear",
     "www:dev": "pnpm --filter www dev",
     "www:build": "pnpm --filter www build"
   },

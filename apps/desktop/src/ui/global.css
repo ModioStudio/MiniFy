@@ -2,7 +2,7 @@
 
 body {
   background-color: rgba(10, 10, 10, 0.2);
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
   user-select: none;
   margin: 0;
   overflow: hidden;
@@ -19,8 +19,20 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 18px;
+  height: 40px;
   -webkit-app-region: drag;
+  cursor: grab !important;
+  pointer-events: auto;
+  background: transparent;
+  z-index: 50;
+}
+
+.drag-area:hover {
+  cursor: grab !important;
+}
+
+.drag-area:active {
+  cursor: grabbing !important;
 }
 
 /* App scrollbar styling */

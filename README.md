@@ -102,7 +102,6 @@ MiniFy is a lightweight Spotify mini player built with Tauri. It lives as a fram
 - `pnpm dev` — run workspace dev tasks via Turborepo.
 - `pnpm desktop:dev` — launch the Tauri app in dev mode.
 - `pnpm desktop:build` — create a production desktop bundle.
-- `pnpm desktop:clear` — clear app data and cached tokens.
 - `pnpm www:dev` — start the Next.js site.
 - `pnpm www:build` — build the Next.js site.
 - `pnpm lint` — run Biome checks across the workspace.
