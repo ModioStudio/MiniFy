@@ -51,7 +51,26 @@ export type ThemeConfig = {
   };
 };
 
-function transformTheme(theme: Record<string, any>): ThemeConfig {
+type RawTheme = {
+  name: string;
+  panel?: { background?: string; borderRadius?: number; shadow?: string };
+  controls?: { iconColor?: string; iconColorActive?: string };
+  playbar?: { trackBg?: string; trackFill?: string; thumbColor?: string; timeTextColor?: string };
+  typography?: { songTitle?: { color?: string }; songArtist?: { color?: string } };
+  actions?: { iconColor?: string; iconBackground?: string; iconBackgroundHover?: string };
+  cover?: { borderColor?: string; borderRadius?: number };
+  settings?: {
+    panelBg?: string;
+    panelBorder?: string;
+    text?: string;
+    textMuted?: string;
+    itemHover?: string;
+    itemActive?: string;
+    accent?: string;
+  };
+};
+
+function transformTheme(theme: RawTheme): ThemeConfig {
   return {
     name: theme.name,
     panel: theme.panel?.background || theme.settings?.panelBg || "#000000",
