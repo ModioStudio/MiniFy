@@ -7,7 +7,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <div
       className="h-screen w-screen"
       style={{
-        backgroundColor: "rgba(10, 10, 10, 0.6)",
+        backgroundColor: "transparent",
         backdropFilter: "blur(5px)",
       }}
     >

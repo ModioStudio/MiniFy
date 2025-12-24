@@ -26,7 +26,6 @@ function LayoutB() {
         boxShadow: "var(--player-panel-shadow)",
       }}
     >
-      {/* Track Info */}
       <div className="flex gap-4">
         <TrackInfoLayout track={track} variant="cover" size={86} />
 
@@ -36,7 +35,6 @@ function LayoutB() {
         </div>
       </div>
 
-      {/* Controls */}
       <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
@@ -44,7 +42,6 @@ function LayoutB() {
         />
       </div>
 
-      {/* Playback */}
       <div className="-mt-7">
         <PlaybackBar
           durationMs={duration}

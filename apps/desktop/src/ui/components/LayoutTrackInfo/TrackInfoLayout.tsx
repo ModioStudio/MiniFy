@@ -1,4 +1,4 @@
-import type { TrackInfoProps } from "../../../lib/TrackInfoProps";
+import type { TrackInfoProps } from "../../../lib/trackInfoProps";
 import { TrackActions } from "../TrackDataComponent/TrackAction";
 import { TrackCover } from "../TrackDataComponent/TrackCover";
 import { TrackMeta } from "../TrackDataComponent/TrackMeta";

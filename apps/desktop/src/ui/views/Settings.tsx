@@ -59,7 +59,8 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
           type="button"
           onClick={onBack}
           aria-label="Back"
-          className="cursor-pointer rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.95] transition-transform duration-150 hover:bg-[rgba(255,255,255,0.08)]"
+          // Bug Report, DragArea grab cursor collision with Settings Nav (Urgent 2 fix)
+          className="mt-3 rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.95] transition-transform duration-150 hover:bg-[rgba(255,255,255,0.08)]"
         >
           <ArrowLeft size={20} weight="bold" />
         </button>
