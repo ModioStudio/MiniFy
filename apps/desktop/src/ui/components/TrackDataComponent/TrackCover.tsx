@@ -15,7 +15,7 @@ export function TrackCover({ src, size = 72 }: TrackCoverProps) {
         <img
           src={src}
           alt="Track cover"
-          className="w-full h-full object-cover border-black border"
+          className="w-full h-full object-cover border-(--player-cover-border-color)/70 border rounded-md"
           loading="lazy"
         />
       ) : (

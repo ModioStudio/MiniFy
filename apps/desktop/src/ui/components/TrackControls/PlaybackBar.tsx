@@ -102,15 +102,16 @@ export function PlaybackBar({
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-white/90 text-base tabular-nums font-circular">
+        <span className="text-(--player-playbar-time-color) text-base tabular-nums font-circular italic">
           {msToTime(localProgress)}
         </span>
-        <span className="text-white/90 text-base tabular-nums font-circular">
+        <span className="text-(--player-playbar-time-color) text-base tabular-nums font-circular italic">
           {msToTime(durationMs)}
         </span>
       </div>
       <div
-        className="relative h-2 w-full bg-white/20 rounded-full cursor-pointer hover:cursor-ew-resize select-none"
+        className="relative h-2 w-full rounded-full cursor-pointer hover:cursor-ew-resize select-none"
+        style={{ background: "var(--player-playbar-track-bg)" }}
         role="slider"
         aria-valuemin={0}
         aria-valuemax={durationMs}
@@ -135,12 +136,19 @@ export function PlaybackBar({
         }}
       >
         <div
-          className="absolute left-0 top-0 h-full bg-white/80 rounded-full"
-          style={{ width: `${pct}%` }}
+          className="absolute left-0 top-0 h-full rounded-full    "
+          style={{
+            width: `${pct}%`,
+            background: "var(--player-playbar-track-fill)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+          }}
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 -ml-1 h-3 w-3 bg-white rounded-full shadow"
-          style={{ left: `${pct}%` }}
+          className="absolute top-1/2 -translate-y-1/2 -ml-1 h-3 w-3 rounded-full shadow"
+          style={{
+            left: `${pct}%`,
+            background: "var(--player-playbar-thumb-color)",
+          }}
         />
       </div>
     </div>

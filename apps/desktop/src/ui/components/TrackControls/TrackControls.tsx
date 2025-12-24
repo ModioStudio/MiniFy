@@ -47,35 +47,65 @@ export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: Tr
     }
   }, [busy, isPlaying, onTogglePlaying]);
 
+  const buttonStyle = {
+    cursor: "pointer",
+    background: "transparent",
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+  };
+
+  const [hovered, setHovered] = useState({
+    prev: false,
+    play: false,
+    next: false,
+  });
+
+  const getIconColor = (type: "prev" | "play" | "next") =>
+    hovered[type] ? "var(--player-controls-color-active)" : "var(--player-controls-color)";
+
   return (
     <div className={`flex items-center gap-0 ${className}`}>
+      {/* Previous */}
       <button
         type="button"
         onClick={handlePrev}
         aria-label="Previous"
-        className="cursor-pointer text-white/90 hover:text-white rounded-full w-16 h-16 flex items-center justify-center active:scale-[0.98] focus:outline-none"
+        style={buttonStyle}
+        onMouseEnter={() => setHovered((s) => ({ ...s, prev: true }))}
+        onMouseLeave={() => setHovered((s) => ({ ...s, prev: false }))}
       >
-        <SkipBack size={36} weight="fill" />
+        <SkipBack size={36} weight="fill" color={getIconColor("prev")} />
       </button>
+
+      {/* Play / Pause */}
       <button
         type="button"
         onClick={handleToggle}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className="cursor-pointer text-white rounded-full w-[72px] h-[72px] flex items-center justify-center active:scale-[0.98] focus:outline-none"
+        style={{ ...buttonStyle, width: 72, height: 72 }}
+        onMouseEnter={() => setHovered((s) => ({ ...s, play: true }))}
+        onMouseLeave={() => setHovered((s) => ({ ...s, play: false }))}
       >
         {isPlaying ? (
-          <PauseCircle size={40} weight="fill" />
+          <PauseCircle size={40} weight="fill" color={getIconColor("play")} />
         ) : (
-          <PlayCircle size={40} weight="fill" />
+          <PlayCircle size={40} weight="fill" color={getIconColor("play")} />
         )}
       </button>
+
+      {/* Next */}
       <button
         type="button"
         onClick={handleNext}
         aria-label="Next"
-        className="cursor-pointer text-white/90 hover:text-white rounded-full w-16 h-16 flex items-center justify-center active:scale-[0.98] focus:outline-none"
+        style={buttonStyle}
+        onMouseEnter={() => setHovered((s) => ({ ...s, next: true }))}
+        onMouseLeave={() => setHovered((s) => ({ ...s, next: false }))}
       >
-        <SkipForward size={36} weight="fill" />
+        <SkipForward size={36} weight="fill" color={getIconColor("next")} />
       </button>
     </div>
   );
