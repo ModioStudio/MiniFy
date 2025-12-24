@@ -1,4 +1,4 @@
-import type { SimplifiedTrack } from "./spotifyClient";
+import type { SimplifiedTrack } from "../ui/spotifyClient";
 
 type TrackInfoProps = {
   track: SimplifiedTrack | null;

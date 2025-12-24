@@ -2,8 +2,8 @@ import { SpotifyLogo } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
+import { type SpotifyTokens, readSettings, writeSettings } from "../../lib/settingLib";
 import { Button } from "../components/Button";
-import { type SpotifyTokens, readSettings, writeSettings } from "../settingLib";
 
 type BootProps = {
   onComplete: (layout: string, theme: string, spotifyTokens: SpotifyTokens) => void;

@@ -4,11 +4,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { readSettings, writeSettings } from "../lib/settingLib.ts";
+import { applyThemeByName } from "../loader/themeLoader.ts";
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
-import { readSettings, writeSettings } from "./settingLib";
-import { applyThemeByName } from "./themeLoader";
 import Boot from "./views/Boot";
 import Settings from "./views/Settings.tsx";
 

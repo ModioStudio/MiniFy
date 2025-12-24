@@ -13,21 +13,38 @@ function LayoutA() {
   }, [setLayout]);
 
   return (
-    <div className="h-full w-full flex gap-4 px-3 pt-4 pb-6 text-white">
-      <div className="mt-4">
-        <TrackInfoLayout track={track} variant="cover" size={128} />
-      </div>
+    <div className="h-full w-full pt-4 text-white">
+      <div className="mt-5 flex gap-5">
+        {/* Cover links */}
+        <div className="shrink-0">
+          <TrackInfoLayout track={track} variant="cover" size={128} />
+        </div>
 
-      <div className="flex-1 mt-4">
-        <TrackInfoLayout track={track} variant="title" />
+        {/* Alles andere rechts */}
+        <div
+          className="flex-1 flex flex-col justify-start rounded-sm"
+          style={{
+            background: "var(--player-panel-bg)",
+            color: "var(--text-color)",
+            boxShadow: "var(--player-panel-shadow)",
+          }}
+        >
+          {/* Titel */}
+          <div className="ml-4  mt-8">
+            <TrackInfoLayout track={track} variant="title" />
+            <TrackInfoLayout track={track} variant="artist" />
+          </div>
 
-        <PlaybackBar
-          durationMs={duration}
-          progressMs={progress}
-          isPlaying={isPlaying}
-          onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
-          className="mt-7"
-        />
+          {/* Playbar */}
+          <div className="ml-4 mt-6 w-80">
+            <PlaybackBar
+              durationMs={duration}
+              progressMs={progress}
+              isPlaying={isPlaying}
+              onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

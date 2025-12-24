@@ -2,7 +2,7 @@ import { ArrowLeft, GearSix, GithubLogo, ShieldCheck, SquaresFour } from "@phosp
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import { readSettings, writeSettings } from "../settingLib";
+import { readSettings, writeSettings } from "../../lib/settingLib";
 
 type SettingsProps = {
   onBack: () => void;
