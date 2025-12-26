@@ -24,3 +24,5 @@ Thank you for your interest in improving MiniFy. Please follow these guidelines 
 - Be concise and respectful.
 - If something blocks you, describe what you tried and where you are stuck.
 
+
+
