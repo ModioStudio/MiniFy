@@ -14,7 +14,7 @@ function LayoutA() {
 
   return (
     <div className="h-full w-full pt-4 text-white">
-      <div className="mt-5 flex gap-5">
+      <div className="-mt-1.5 flex gap-5">
         <div className="shrink-0">
           <TrackInfoLayout track={track} variant="cover" size={128} />
         </div>

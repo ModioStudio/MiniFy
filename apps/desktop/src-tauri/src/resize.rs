@@ -13,7 +13,7 @@ pub enum Layout {
 #[tauri::command]
 pub fn set_layout(window: WebviewWindow, layout: Layout) {
     let size = match layout {
-        Layout::A => LogicalSize { width: 500.0, height: 200.0 },
+        Layout::A => LogicalSize { width: 500.0, height: 150.0 },
         Layout::B => LogicalSize { width: 400.0, height: 200.0 },
         Layout::C => LogicalSize { width: 400.0, height: 200.0 },
         Layout::D => LogicalSize { width: 400.0, height: 200.0 },

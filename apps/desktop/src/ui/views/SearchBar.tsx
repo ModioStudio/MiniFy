@@ -1,6 +1,6 @@
-import useWindowLayout from "../../hooks/useWindowLayout";
-import { useEffect } from "react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { useEffect } from "react";
+import useWindowLayout from "../../hooks/useWindowLayout";
 
 export default function SearchBar({}) {
   const { setLayout } = useWindowLayout();

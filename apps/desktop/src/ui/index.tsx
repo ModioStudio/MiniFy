@@ -14,8 +14,8 @@ import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
 
 import Boot from "./views/Boot";
-import Settings from "./views/Settings";
 import SearchBar from "./views/SearchBar";
+import Settings from "./views/Settings";
 
 type AppView = "app" | "settings" | "search";
 
