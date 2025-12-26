@@ -2,7 +2,10 @@ node_modules
 dist
 build
 .turbo
+.next
+apps/*/.next
 apps/*/dist
 apps/*/build
 apps/*/src-tauri/target
+
 

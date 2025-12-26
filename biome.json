@@ -12,8 +12,15 @@
       "dist",
       "build",
       ".turbo",
+      ".next",
+      "apps/*/.next",
+      "tmp",
+      "components/ui/**",
+      "styles/**",
       "apps/*/dist",
       "apps/*/build",
+      "apps/www/components/ui/**",
+      "apps/www/styles/**",
       "apps/*/src-tauri/target"
     ]
   },

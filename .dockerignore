@@ -1,0 +1,13 @@
+node_modules
+.pnpm-store
+.turbo
+dist
+build
+tmp
+apps/*/node_modules
+apps/*/.next
+apps/*/dist
+apps/*/build
+apps/*/src-tauri/target
+.git
+
