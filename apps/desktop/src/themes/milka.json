@@ -1,0 +1,54 @@
+{
+  "name": "milka",
+
+  "panel": {
+    "background": "#2B1B3F",
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.55)"
+  },
+
+  "settings": {
+  "panelBg": "rgba(43, 27, 63, 0.55)",
+  "panelBorder": "rgba(228, 193, 255, 0.10)",
+  "text": "#E6D9FF",
+  "textMuted": "rgba(230, 217, 255, 0.7)",
+  "itemHover": "rgba(255, 255, 255, 0.08)",
+  "itemActive": "rgba(255, 255, 255, 0.14)",
+  "accent": "#E4C1FF"
+},
+
+  "controls": {
+    "iconColor": "#E6D9FF",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.08)"
+  },
+
+  "playbar": {
+    "trackBg": "#3A255C",
+    "trackFill": "linear-gradient(90deg, #A97CFF 0%, #E4C1FF 100%)",
+    "thumbColor": "#E4C1FF",
+    "timeTextColor": "#E4C1FF"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#D5B8FF",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.06)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.14)"
+  },
+
+  "cover": {
+    "borderColor": "#E4C1FF",
+    "borderRadius": 14
+  }
+}

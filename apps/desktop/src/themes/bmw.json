@@ -1,0 +1,54 @@
+{
+  "name": "bmw",
+
+  "panel": {
+    "background": "#E6E6E7",
+    "shadow": "0 18px 45px rgba(0, 0, 0, 0.7)"
+  },
+
+  "settings": {
+  "panelBg": "rgba(230, 230, 231, 0.55)",
+  "panelBorder": "rgba(197, 43, 48, 0.10)",
+  "text": "#373485",
+  "textMuted": "rgba(55, 52, 133, 0.7)",
+  "itemHover": "rgba(55, 52, 133, 0.06)",
+  "itemActive": "rgba(55, 52, 133, 0.12)",
+  "accent": "#C52B30"
+},
+
+  "controls": {
+    "iconColor": "#373485",
+    "iconColorActive": "#373485",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(55, 52, 133, 0.06)"
+  },
+
+  "playbar": {
+    "trackBg": "#1A1D23",
+    "trackFill": "linear-gradient(90deg, #00AEEF 0%, #0033A0 50%, #E10600 100%)",
+    "thumbColor": "#FFFFFF",
+    "timeTextColor": "#C52B30"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#373485",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#C52B30CC",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#373485",
+    "iconBackground": "rgba(55, 52, 133, 0.04)",
+    "iconBackgroundHover": "rgba(55, 52, 133, 0.12)"
+  },
+
+  "cover": {
+    "borderColor": "#C52B30",
+    "borderRadius": 8
+  }
+}

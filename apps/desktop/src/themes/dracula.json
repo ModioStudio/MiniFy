@@ -2,54 +2,53 @@
   "name": "dracula",
 
   "panel": {
-    "background": "rgba(40, 42, 54, 0.82)",
-    "borderRadius": 18,
-    "shadow": "0 14px 40px rgba(0, 0, 0, 0.60)"
+    "background": "#f8f8f2",
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.2)"
   },
 
   "settings": {
-    "panelBg": "rgba(40, 42, 54, 0.55)",
-    "panelBorder": "rgba(255, 255, 255, 0.10)",
-    "text": "#F8F8F2",
-    "textMuted": "rgba(180, 180, 255, 0.70)",
-    "itemHover": "rgba(255, 255, 255, 0.08)",
-    "itemActive": "rgba(255, 255, 255, 0.14)",
-    "accent": "#6272A4"
-  },
+  "panelBg": "rgba(248, 248, 242, 0.55)",
+  "panelBorder": "rgba(33, 34, 44, 0.10)",
+  "text": "#21222c",
+  "textMuted": "rgba(33, 34, 44, 0.7)",
+  "itemHover": "rgba(139, 233, 253, 0.05)",
+  "itemActive": "rgba(139, 233, 253, 0.15)",
+  "accent": "#BD93F9"
+},
 
   "controls": {
-    "iconColor": "#F8F8F2",
-    "iconColorActive": "#FFFFFF",
+    "iconColor": "#50fa7b",
+    "iconColorActive": "#21222c",
     "iconBackground": "transparent",
-    "iconBackgroundHover": "rgba(255, 255, 255, 0.08)"
+    "iconBackgroundHover": "rgba(80, 250, 123, 0.1)"
   },
 
   "playbar": {
-    "trackBg": "rgba(255, 255, 255, 0.18)",
-    "trackFill": "linear-gradient(90deg, #BD93F9 0%, #FF79C6 100%)",
-    "thumbColor": "#FFFFFF",
-    "timeTextColor": "rgba(248, 248, 242, 0.70)"
+    "trackBg": "#e6e6e7",
+    "trackFill": "#bd93f9",
+    "thumbColor": "#ff79c6",
+    "timeTextColor": "#21222c"
   },
 
   "typography": {
     "songTitle": {
-      "color": "#FFFFFF",
+      "color": "#21222c",
       "weight": 600
     },
     "songArtist": {
-      "color": "#FF79C6",
+      "color": "#ff5d5d",
       "weight": 400
     }
   },
 
   "actions": {
-    "iconColor": "#FFFFFF",
-    "iconBackground": "rgba(255, 255, 255, 0.06)",
-    "iconBackgroundHover": "rgba(255, 255, 255, 0.14)"
+    "iconColor": "#8be9fd",
+    "iconBackground": "rgba(139, 233, 253, 0.05)",
+    "iconBackgroundHover": "rgba(139, 233, 253, 0.15)"
   },
 
   "cover": {
-    "borderColor": "rgba(255, 255, 255, 0.22)",
+    "borderColor": "#21222c",
     "borderRadius": 12
   }
 }

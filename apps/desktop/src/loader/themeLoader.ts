@@ -2,6 +2,10 @@ import catppuccin from "../themes/catppuccin.json" assert { type: "json" };
 import dark from "../themes/dark.json" assert { type: "json" };
 import dracula from "../themes/dracula.json" assert { type: "json" };
 import light from "../themes/light.json" assert { type: "json" };
+import milka from "../themes/milka.json" assert { type: "json" };
+import bmw from "../themes/bmw.json" assert { type: "json" };
+import youtube from "../themes/youtube.json" assert { type: "json" };
+import chatgpt from "../themes/chatgpt.json" assert { type: "json" };
 
 export type ThemeConfig = {
   name: string;
@@ -98,6 +102,10 @@ export const THEMES: Record<string, ThemeConfig> = {
   light: transformTheme(light),
   dracula: transformTheme(dracula),
   catppuccin: transformTheme(catppuccin),
+  milka: transformTheme(milka),
+  bmw: transformTheme(bmw),
+  youtube: transformTheme(youtube),
+  chatgpt: transformTheme(chatgpt),
 };
 
 export function applyThemeByName(themeName: string): void {

@@ -5,6 +5,16 @@
     "background": "#323443",
     "shadow": "0 14px 40px rgba(0, 0, 0, 0.55)"
   },
+  
+  "settings": {
+  "panelBg": "rgba(50, 52, 67, 0.55)",
+  "panelBorder": "rgba(189, 147, 249, 0.10)",
+  "text": "#CDD6F4",
+  "textMuted": "rgba(205, 214, 244, 0.7)",
+  "itemHover": "rgba(255, 255, 255, 0.06)",
+  "itemActive": "rgba(255, 255, 255, 0.10)",
+  "accent": "#BD93F9"
+},
 
   "controls": {
     "iconColor": "#CDD6F4",
