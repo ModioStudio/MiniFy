@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { ArrowRight, Download, Github } from "lucide-react";
+import PlayerMockLayoutB from "./playerMock";
 
 export function HeroSection() {
   const { t } = useLanguage();
@@ -13,14 +14,15 @@ export function HeroSection() {
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 backdrop-blur-sm">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1DB954] opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[#1DB954]" />
             </span>
             <span className="text-sm font-medium">{t.hero.badge}</span>
           </div>
-          <h1 className="mb-6 bg-linear-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-7xl text-center">
+
+          <h1 className="md:-mt-15 mb-6 bg-linear-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-7xl text-center">
             <span>{t.hero.titleBefore} </span>
 
             <span className="inline-flex items-baseline whitespace-nowrap">
@@ -51,9 +53,7 @@ export function HeroSection() {
             <span>{t.hero.titleAfter}</span>
           </h1>
 
-          <p className="mb-10 text-lg text-muted-foreground md:text-xl">
-            {t.hero.description}
-          </p>
+          <p className="mb-10 text-lg text-muted-foreground md:text-xl">{t.hero.description}</p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button
@@ -80,14 +80,8 @@ export function HeroSection() {
             </Button>
           </div>
 
-          <div className="mt-16">
-            <div className="relative mx-auto max-w-5xl rounded-xl border border-border/40 bg-gradient-to-br from-muted/30 to-muted/10 p-2 shadow-2xl backdrop-blur-sm">
-              <img
-                src="https://github.com/ModioStudio/MiniFy/raw/main/.docs/assets/layouta.png"
-                alt="MiniFy Screenshot"
-                className="w-full rounded-lg"
-              />
-            </div>
+          <div className="mt-16 flex justify-center">
+            <PlayerMockLayoutB />
           </div>
         </div>
       </div>

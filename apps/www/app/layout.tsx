@@ -11,23 +11,22 @@ export const metadata: Metadata = {
   title: "MiniFy - Lightweight Spotify Mini Player",
   description:
     "A beautiful desktop mini player for Spotify. Built with Tauri + React, featuring OAuth authentication, multiple layouts, and customizable themes.",
-  generator: "v0.app",
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/logo.png",
         media: "(prefers-color-scheme: light)",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/logo.png",
         media: "(prefers-color-scheme: dark)",
       },
       {
-        url: "/icon.svg",
+        url: "/logo.png",
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/logo.png",
   },
 };
 

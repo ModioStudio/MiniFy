@@ -23,10 +23,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-linear-to-br from-[#1DB954] to-[#1ed760]">
-            <span className="text-lg font-bold text-white">M</span>
-          </div>
-          <span className="text-xl font-bold">MiniFy</span>
+          <img src="/logo.png" alt="logo" className="w-32 h-32" />
         </div>
 
         <nav className="hidden items-center gap-6 md:flex">
