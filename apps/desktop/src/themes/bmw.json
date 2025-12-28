@@ -7,14 +7,14 @@
   },
 
   "settings": {
-  "panelBg": "rgba(230, 230, 231, 0.55)",
-  "panelBorder": "rgba(197, 43, 48, 0.10)",
-  "text": "#373485",
-  "textMuted": "rgba(55, 52, 133, 0.7)",
-  "itemHover": "rgba(55, 52, 133, 0.06)",
-  "itemActive": "rgba(55, 52, 133, 0.12)",
-  "accent": "#C52B30"
-},
+    "panelBg": "rgba(230, 230, 231, 0.55)",
+    "panelBorder": "rgba(197, 43, 48, 0.10)",
+    "text": "#373485",
+    "textMuted": "rgba(55, 52, 133, 0.7)",
+    "itemHover": "rgba(55, 52, 133, 0.06)",
+    "itemActive": "rgba(55, 52, 133, 0.12)",
+    "accent": "#C52B30"
+  },
 
   "controls": {
     "iconColor": "#373485",

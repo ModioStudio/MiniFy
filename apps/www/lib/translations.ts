@@ -6,12 +6,13 @@ export const translations = {
       opensource: "Open Source",
     },
     hero: {
-      badge: "Open Source • Spotify Mini Player",
-      title: "Your Spotify, Beautifully Minimized",
-      description:
+    badge: "Open Source",
+    titleBefore: "Your",
+    titleAfter: ", Beautifully Minimized",
+    description:
         "A lightweight desktop mini player for Spotify. Built with Tauri + React, featuring OAuth authentication, multiple layouts, and a native feel.",
-      downloadButton: "Download Now",
-      githubButton: "View on GitHub",
+    downloadButton: "Download Now",
+    githubButton: "View on GitHub",
     },
     features: {
       sectionTitle: "Powerful Features",
@@ -82,6 +83,7 @@ export const translations = {
       allRightsReserved: "All rights reserved.",
     },
   },
+
   de: {
     nav: {
       features: "Features",
@@ -89,12 +91,13 @@ export const translations = {
       opensource: "Open Source",
     },
     hero: {
-      badge: "Open Source • Spotify Mini Player",
-      title: "Dein Spotify, Wunderschön Minimiert",
-      description:
+    badge: "Open Source",
+    titleBefore: "Dein",
+    titleAfter: ", Wunderschön Minimiert",
+    description:
         "Ein leichtgewichtiger Desktop-Mini-Player für Spotify. Mit Tauri + React gebaut, bietet OAuth-Authentifizierung, mehrere Layouts und ein natives Gefühl.",
-      downloadButton: "Jetzt Herunterladen",
-      githubButton: "Auf GitHub ansehen",
+    downloadButton: "Jetzt Herunterladen",
+    githubButton: "Auf GitHub ansehen",
     },
     features: {
       sectionTitle: "Leistungsstarke Features",

@@ -24,7 +24,7 @@ const themeColors: Record<string, string> = {
   milka: "#C399FF",
   bmw: "#C52B30",
   youtube: "#FF0000",
-  chatgpt: "#10A37F"
+  chatgpt: "#10A37F",
 };
 
 export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: SettingsProps) {
@@ -121,7 +121,16 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {["catppuccin", "dark", "dracula", "light", "bmw", "youtube", "milka", "chatgpt"].map((t) => (
+                {[
+                  "catppuccin",
+                  "dark",
+                  "dracula",
+                  "light",
+                  "bmw",
+                  "youtube",
+                  "milka",
+                  "chatgpt",
+                ].map((t) => (
                   <button
                     key={t}
                     type="button"

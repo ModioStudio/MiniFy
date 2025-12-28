@@ -9,7 +9,7 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1DB954]/10 via-transparent to-[#1ed760]/10 dark:from-[#1DB954]/5 dark:to-[#1ed760]/5" />
+      <div className="absolute inset-0 bg-linear-to-br from-[#1DB954]/10 via-transparent to-[#1ed760]/10 dark:from-[#1DB954]/5 dark:to-[#1ed760]/5" />
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
@@ -20,19 +20,45 @@ export function HeroSection() {
             </span>
             <span className="text-sm font-medium">{t.hero.badge}</span>
           </div>
+          <h1 className="mb-6 bg-linear-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-7xl text-center">
+            <span>{t.hero.titleBefore} </span>
 
-          <h1 className="mb-6 bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-5xl font-bold tracking-tight text-transparent text-balance md:text-7xl">
-            {t.hero.title}
+            <span className="inline-flex items-baseline whitespace-nowrap">
+              <span>Sp</span>
+
+              <img
+                src="/logo.png"
+                alt=""
+                aria-hidden="true"
+                className="
+                    -mx-4
+                    h-[1.6em] w-[1.6em]
+                    translate-y-[0.55em]
+
+                    sm:-mx-6
+                    sm:h-[1.9em] sm:w-[1.9em]
+                    sm:translate-y-[0.65em]
+
+                    md:-mx-10
+                    md:h-[2.0em] md:w-[2.0em]
+                    md:translate-y-[0.75em]
+                "
+              />
+
+              <span>tify</span>
+            </span>
+
+            <span>{t.hero.titleAfter}</span>
           </h1>
 
-          <p className="mb-10 text-lg text-muted-foreground text-balance md:text-xl">
+          <p className="mb-10 text-lg text-muted-foreground md:text-xl">
             {t.hero.description}
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button
               size="lg"
-              className="group bg-gradient-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+              className="group bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
               asChild
             >
               <a href="#download">
@@ -41,6 +67,7 @@ export function HeroSection() {
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
+
             <Button size="lg" variant="outline" asChild>
               <a
                 href="https://github.com/ModioStudio/MiniFy"
