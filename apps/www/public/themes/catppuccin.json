@@ -1,0 +1,56 @@
+{
+  "name": "catppuccin",
+
+  "panel": {
+    "background": "#323443",
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.55)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(50, 52, 67, 0.55)",
+    "panelBorder": "rgba(189, 147, 249, 0.10)",
+    "text": "#CDD6F4",
+    "textMuted": "rgba(205, 214, 244, 0.7)",
+    "itemHover": "rgba(255, 255, 255, 0.06)",
+    "itemActive": "rgba(255, 255, 255, 0.10)",
+    "accent": "#BD93F9"
+  },
+
+  "controls": {
+    "iconColor": "#CDD6F4",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.06)"
+  },
+
+  "playbar": {
+    "trackBg": "linear-gradient(to bottom, #3A3A3A 0%, #262626 5%, #000000 100%)",
+    "trackFill": "linear-gradient(30deg, hsl(231deg 15% 18%) 0%, hsl(231deg 16% 21%) 18%, hsl(230deg 18% 24%) 31%, hsl(229deg 19% 27%) 41%, hsl(229deg 20% 30%) 50%, hsl(228deg 21% 33%) 57%, hsl(228deg 22% 36%) 63%, hsl(227deg 23% 39%) 69%, hsl(227deg 23% 42%) 74%, hsl(226deg 24% 45%) 80%, hsl(226deg 25% 48%) 87%, hsl(225deg 27% 51%) 100%)",
+    "thumbColor": "linear-gradient(30deg, hsl(231deg 15% 18%) 0%, hsl(231deg 16% 21%) 18%, hsl(230deg 18% 24%) 31%, hsl(229deg 19% 27%) 41%, hsl(229deg 20% 30%) 50%, hsl(228deg 21% 33%) 57%, hsl(228deg 22% 36%) 63%, hsl(227deg 23% 39%) 69%, hsl(227deg 23% 42%) 74%, hsl(226deg 24% 45%) 80%, hsl(226deg 25% 48%) 87%, hsl(225deg 27% 51%) 100%)",
+    "timeTextColor": "#8BE9FD"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#FF79C6",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.04)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.10)"
+  },
+
+  "cover": {
+    "borderColor": "#BD93F9",
+    "borderRadius": 12
+  }
+}
+

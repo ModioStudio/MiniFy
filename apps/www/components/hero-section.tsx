@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { ArrowRight, Download, Github } from "lucide-react";
-import PlayerMockLayoutB from "./playerMock";
+import { PlayerPreview } from "./player";
 
 export function HeroSection() {
   const { t } = useLanguage();
@@ -81,7 +81,7 @@ export function HeroSection() {
           </div>
 
           <div className="mt-16 flex justify-center">
-            <PlayerMockLayoutB />
+            <PlayerPreview />
           </div>
         </div>
       </div>
