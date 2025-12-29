@@ -8,3 +8,9 @@ dist
 .DS_Store
 Thumbs.db
 
+# Monorepo files (should not be in docs context)
+turbo.json
+pnpm-workspace.yaml
+pnpm-lock.yaml
+biome.json
+lefthook.yml
