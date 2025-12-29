@@ -90,7 +90,6 @@ export function FeaturesSection() {
 
               {/* Playlist / Songs */}
               <div className="space-y-2">
-                // biome-ignore lint/suspicious/noArrayIndexKey
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}

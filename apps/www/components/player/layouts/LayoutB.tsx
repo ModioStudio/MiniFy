@@ -32,7 +32,7 @@ export function LayoutB({ theme }: LayoutBProps) {
           />
         </div>
 
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col">
           <div
             className="font-semibold text-xl truncate"
             style={{ color: theme.songTitleColor }}
@@ -40,12 +40,14 @@ export function LayoutB({ theme }: LayoutBProps) {
             Midnight Drive
           </div>
           <div
-            className="text-sm truncate opacity-80"
+            className="text-sm truncate opacity-80 md:-ml-13.5 -ml-13.5"
             style={{ color: theme.songArtistColor }}
           >
             Lunar Echoes
           </div>
         </div>
+
+
       </div>
 
       <div className="flex items-center justify-center gap-2">

@@ -7,7 +7,7 @@ type LayoutAProps = {
 
 export function LayoutA({ theme }: LayoutAProps) {
   return (
-    <div className="h-[180px] w-[480px] pt-4 flex gap-5">
+    <div className="h-[200px] w-[600px] pt-4 flex gap-5">
       <div className="shrink-0">
         <div
           className="overflow-hidden"
