@@ -1,0 +1,16 @@
+{
+  "themes": [
+    { "id": "light", "name": "Light", "file": "light.json" },
+    { "id": "dark", "name": "Dark", "file": "dark.json" },
+    { "id": "dracula", "name": "Dracula", "file": "dracula.json" },
+    { "id": "catppuccin", "name": "Catppuccin", "file": "catppuccin.json" },
+    { "id": "milka", "name": "Milka", "file": "milka.json" },
+    { "id": "bmw", "name": "BMW", "file": "bmw.json" },
+    { "id": "youtube", "name": "YouTube", "file": "youtube.json" },
+    { "id": "chatgpt", "name": "ChatGPT", "file": "chatgpt.json" }
+  ],
+  "layouts": ["A", "B", "C"],
+  "defaultTheme": "light",
+  "defaultLayout": "B"
+}
+

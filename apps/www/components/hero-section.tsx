@@ -3,7 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { ArrowRight, Download, Github } from "lucide-react";
-import PlayerMockLayoutB from "./playerMock";
+import { PlayerPreview } from "./player";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export function HeroSection() {
   const { t } = useLanguage();
@@ -14,15 +20,27 @@ export function HeroSection() {
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 backdrop-blur-sm">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 backdrop-blur-sm"
+          >
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1DB954] opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[#1DB954]" />
             </span>
             <span className="text-sm font-medium">{t.hero.badge}</span>
-          </div>
+          </motion.div>
 
-          <h1 className="md:-mt-15 mb-6 bg-linear-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-7xl text-center">
+          <motion.h1
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="md:-mt-15 mb-6 bg-linear-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-7xl text-center"
+          >
             <span>{t.hero.titleBefore} </span>
 
             <span className="inline-flex items-baseline whitespace-nowrap">
@@ -33,17 +51,18 @@ export function HeroSection() {
                 alt=""
                 aria-hidden="true"
                 className="
-                    -mx-4
-                    h-[1.6em] w-[1.6em]
-                    translate-y-[0.55em]
+                  -mx-4
+                  h-[1.6em] w-[1.6em]
+                  translate-y-[0.55em]
+                  dark:invert-0 invert
 
-                    sm:-mx-6
-                    sm:h-[1.9em] sm:w-[1.9em]
-                    sm:translate-y-[0.65em]
+                  sm:-mx-6
+                  sm:h-[1.9em] sm:w-[1.9em]
+                  sm:translate-y-[0.65em]
 
-                    md:-mx-10
-                    md:h-[2.0em] md:w-[2.0em]
-                    md:translate-y-[0.75em]
+                  md:-mx-10
+                  md:h-[2.0em] md:w-[2.0em]
+                  md:translate-y-[0.75em]
                 "
               />
 
@@ -51,11 +70,25 @@ export function HeroSection() {
             </span>
 
             <span>{t.hero.titleAfter}</span>
-          </h1>
+          </motion.h1>
 
-          <p className="mb-10 text-lg text-muted-foreground md:text-xl">{t.hero.description}</p>
+          <motion.p
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="mb-10 text-lg text-muted-foreground md:text-xl"
+          >
+            {t.hero.description}
+          </motion.p>
 
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+          >
             <Button
               size="lg"
               className="group bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
@@ -78,11 +111,17 @@ export function HeroSection() {
                 {t.hero.githubButton}
               </a>
             </Button>
-          </div>
+          </motion.div>
 
-          <div className="mt-16 flex justify-center">
-            <PlayerMockLayoutB />
-          </div>
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ duration: 0.7, delay: 0.45, ease: "easeOut" }}
+            className="mt-16 flex justify-center"
+          >
+            <PlayerPreview />
+          </motion.div>
         </div>
       </div>
     </section>
