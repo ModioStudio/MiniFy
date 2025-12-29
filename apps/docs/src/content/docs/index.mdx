@@ -1,0 +1,110 @@
+---
+title: MiniFy Documentation
+description: Complete documentation for MiniFy - the lightweight Spotify mini player for your desktop.
+template: splash
+hero:
+  tagline: Beautiful, lightweight Spotify mini player for your desktop. Built with Tauri + React.
+  image:
+    file: ../../assets/logo.png
+  actions:
+    - text: Get Started
+      link: /guides/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/ModioStudio/MiniFy
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<div class="badge">Open Source & Free Forever</div>
+
+## Why MiniFy?
+
+MiniFy transforms how you interact with Spotify. No more switching windows or cluttering your screen – just pure music control at your fingertips.
+
+<CardGrid stagger>
+  <Card title="Lightning Fast" icon="rocket">
+    Built with Tauri and Rust for native performance. Minimal memory footprint, maximum speed.
+  </Card>
+  <Card title="Beautiful Themes" icon="seti:svg">
+    Choose from carefully crafted themes like Catppuccin, Dracula, and more. Or create your own.
+  </Card>
+  <Card title="Multiple Layouts" icon="laptop">
+    Switch between compact, standard, and expanded layouts to fit your workflow.
+  </Card>
+  <Card title="Keyboard First" icon="setting">
+    Control everything with customizable keyboard shortcuts. Never touch your mouse.
+  </Card>
+</CardGrid>
+
+## Quick Links
+
+<CardGrid>
+  <LinkCard
+    title="Installation Guide"
+    description="Get MiniFy running on Windows, macOS, or Linux in minutes."
+    href="/guides/installation/"
+  />
+  <LinkCard
+    title="Themes Gallery"
+    description="Explore all available themes and learn how to customize them."
+    href="/desktop/themes/"
+  />
+  <LinkCard
+    title="Keyboard Shortcuts"
+    description="Master MiniFy with powerful keyboard shortcuts."
+    href="/desktop/shortcuts/"
+  />
+  <LinkCard
+    title="Contributing"
+    description="Help make MiniFy better. We welcome all contributions!"
+    href="/dev/contributing/"
+  />
+</CardGrid>
+
+## Features at a Glance
+
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">🎵</div>
+    <h3>Now Playing</h3>
+    <p>Always see what's playing with album art, track info, and playback progress.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🎨</div>
+    <h3>Theming</h3>
+    <p>8 built-in themes including popular developer favorites. Full customization support.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⌨️</div>
+    <h3>Shortcuts</h3>
+    <p>Global hotkeys for play, pause, skip, and volume. Works even when minimized.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🔒</div>
+    <h3>Privacy First</h3>
+    <p>Open source. No tracking. Your data stays on your device.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">💻</div>
+    <h3>Cross Platform</h3>
+    <p>Native apps for Windows, macOS, and Linux. Same great experience everywhere.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🚀</div>
+    <h3>Lightweight</h3>
+    <p>Under 10MB download. Uses less than 50MB RAM while running.</p>
+  </div>
+</div>
+
+---
+
+<div style="text-align: center; margin-top: 3rem;">
+  <p style="color: var(--sl-color-gray-3); font-size: 0.9375rem;">
+    Made with ♥ by the <a href="https://github.com/ModioStudio" style="color: var(--sl-color-accent);">ModioStudio</a> team
+  </p>
+</div>
+

@@ -2,7 +2,8 @@
   "nav": {
     "features": "Características",
     "download": "Descargar",
-    "opensource": "Código Abierto"
+    "opensource": "Código Abierto",
+    "docs": "Docs"
   },
   "hero": {
     "badge": "Código Abierto",

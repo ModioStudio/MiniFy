@@ -2,7 +2,8 @@
   "nav": {
     "features": "功能",
     "download": "下载",
-    "opensource": "开源"
+    "opensource": "开源",
+    "docs": "文档"
   },
   "hero": {
     "badge": "开源",

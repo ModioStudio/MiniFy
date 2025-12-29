@@ -12,7 +12,10 @@
     "desktop:dev": "pnpm --filter desktop tauri dev",
     "desktop:build": "pnpm --filter desktop build",
     "www:dev": "pnpm --filter www dev",
-    "www:build": "pnpm --filter www build"
+    "www:build": "pnpm --filter www build",
+    "docs:dev": "pnpm --filter docs dev",
+    "docs:build": "pnpm --filter docs build",
+    "docs:preview": "pnpm --filter docs preview"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

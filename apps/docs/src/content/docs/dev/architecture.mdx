@@ -1,0 +1,240 @@
+---
+title: Architecture
+description: Technical architecture overview of MiniFy.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Architecture
+
+This document provides an overview of MiniFy's technical architecture, helping developers understand how the different parts of the application work together.
+
+## High-Level Overview
+
+MiniFy is a monorepo containing multiple applications:
+
+```
+MiniFy/
+├── apps/
+│   ├── desktop/     # Tauri + React desktop application
+│   ├── www/         # Next.js marketing website
+│   └── docs/        # Starlight documentation site
+├── package.json     # Root package with workspace scripts
+└── turbo.json       # Turborepo configuration
+```
+
+## Desktop Application
+
+The desktop app is the core of MiniFy, built with Tauri 2.0.
+
+### Frontend (React)
+
+```
+apps/desktop/src/
+├── ui/
+│   ├── components/     # Reusable UI components
+│   ├── layouts/        # Layout components (A, B, C)
+│   └── views/          # Full page views
+├── hooks/              # React hooks
+├── lib/                # Utility functions
+├── loader/             # Theme and config loaders
+└── themes/             # Theme JSON files
+```
+
+### Backend (Rust)
+
+```
+apps/desktop/src-tauri/
+├── src/
+│   ├── main.rs         # Application entry point
+│   ├── lib.rs          # Library exports
+│   ├── spotify_auth.rs # Spotify OAuth handling
+│   ├── settings.rs     # Settings management
+│   └── resize.rs       # Window resize handling
+├── capabilities/       # Tauri capability configurations
+└── icons/              # Application icons
+```
+
+## Data Flow
+
+### Spotify Authentication
+
+```
+┌─────────┐    ┌─────────────┐    ┌─────────────┐
+│  User   │───▶│   MiniFy    │───▶│   Browser   │
+└─────────┘    └─────────────┘    └─────────────┘
+                     │                   │
+                     │                   ▼
+                     │            ┌─────────────┐
+                     │            │  Spotify    │
+                     │            │  Auth Page  │
+                     │            └─────────────┘
+                     │                   │
+                     ▼                   ▼
+              ┌─────────────┐    ┌─────────────┐
+              │   Callback  │◀───│  Redirect   │
+              │   Handler   │    │  with Code  │
+              └─────────────┘    └─────────────┘
+                     │
+                     ▼
+              ┌─────────────┐
+              │   Token     │
+              │   Storage   │
+              └─────────────┘
+```
+
+### Playback State
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│  React State    │◀────────│  Spotify API    │
+│  (playerState)  │         │  (Polling)      │
+└─────────────────┘         └─────────────────┘
+        │
+        ▼
+┌─────────────────┐
+│  UI Components  │
+│  (re-render)    │
+└─────────────────┘
+```
+
+## Key Technologies
+
+### Tauri 2.0
+
+Tauri provides the native shell for the application:
+- **Webview**: Renders the React UI
+- **IPC**: Communicates between frontend and backend
+- **Native APIs**: File system, window management, etc.
+
+### React
+
+The frontend uses modern React patterns:
+- Functional components with hooks
+- CSS variables for theming
+- Vite for fast development
+
+### Rust
+
+The backend handles:
+- OAuth token management
+- Secure storage
+- Window management
+- System integration
+
+## State Management
+
+MiniFy uses React's built-in state management:
+
+```typescript
+// Player state (simplified)
+interface PlayerState {
+  isPlaying: boolean;
+  currentTrack: Track | null;
+  progress: number;
+  volume: number;
+}
+
+// Theme state
+interface ThemeState {
+  current: string;
+  colors: ColorScheme;
+}
+```
+
+<Aside type="note">
+  We intentionally avoid heavy state management libraries to keep the bundle size small.
+</Aside>
+
+## Communication Patterns
+
+### Frontend → Backend (Tauri Commands)
+
+```typescript
+// Frontend call
+import { invoke } from '@tauri-apps/api/core';
+
+const settings = await invoke<Settings>('get_settings');
+```
+
+```rust
+// Backend handler
+#[tauri::command]
+fn get_settings() -> Result<Settings, Error> {
+    // Load and return settings
+}
+```
+
+### Backend → Frontend (Events)
+
+```rust
+// Backend emit
+window.emit("auth_complete", payload)?;
+```
+
+```typescript
+// Frontend listener
+import { listen } from '@tauri-apps/api/event';
+
+await listen('auth_complete', (event) => {
+  // Handle auth completion
+});
+```
+
+## Build Process
+
+### Development
+
+```bash
+pnpm desktop:dev
+```
+
+This starts:
+1. Vite dev server (hot reload)
+2. Tauri development window
+3. Rust compilation in debug mode
+
+### Production
+
+```bash
+pnpm desktop:build
+```
+
+This creates:
+1. Optimized React bundle
+2. Platform-specific installer
+3. Code signing (if configured)
+
+## Monorepo Structure
+
+We use pnpm workspaces with Turborepo:
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+```
+
+```json
+// turbo.json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
+
+## Performance Considerations
+
+- **Bundle size**: React app is < 200KB gzipped
+- **Memory usage**: Target < 50MB RAM
+- **Startup time**: Target < 1 second
+- **API polling**: Optimized intervals based on playback state
+

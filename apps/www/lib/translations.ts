@@ -25,6 +25,7 @@ export interface Translations {
     features: string;
     download: string;
     opensource: string;
+    docs: string;
   };
   hero: {
     badge: string;
