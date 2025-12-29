@@ -11,18 +11,23 @@ FROM base AS builder
 
 ENV LEFTHOOK=0
 
-COPY package.json .npmrc* ./
+# Copy workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/docs/package.json ./apps/docs/package.json
 
-RUN pnpm install --no-frozen-lockfile
+# Install only docs dependencies
+RUN pnpm install --frozen-lockfile --filter docs...
 
-COPY . .
+# Copy docs source
+COPY apps/docs ./apps/docs
 
-RUN pnpm build
+# Build docs
+RUN pnpm --filter docs build
 
 FROM nginx:alpine AS runner
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/apps/docs/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/docs/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3002
 
