@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "features": "Возможности",
+    "download": "Скачать",
+    "opensource": "Открытый код"
+  },
+  "hero": {
+    "badge": "Открытый код",
+    "titleBefore": "Ваш",
+    "titleAfter": ", Красиво Минимизирован",
+    "description": "Легкий настольный мини-плеер для Spotify. Создан с помощью Tauri + React, с OAuth-аутентификацией, несколькими макетами и нативным ощущением.",
+    "downloadButton": "Скачать сейчас",
+    "githubButton": "Смотреть на GitHub"
+  },
+  "features": {
+    "sectionTitle": "Мощные возможности",
+    "sectionDescription": "Всё, что нужно для идеального мини-плеера Spotify",
+    "spotify": {
+      "title": "Интеграция Spotify",
+      "description": "Бесшовная OAuth-аутентификация с автоматическим обновлением токенов и полным контролем воспроизведения."
+    },
+    "layouts": {
+      "title": "Несколько макетов",
+      "description": "Выбирайте из трёх красивых макетов (A, B, C), подходящих вашему рабочему процессу и стилю."
+    },
+    "themes": {
+      "title": "Настраиваемые темы",
+      "description": "Переключайтесь между темами и настраивайте цвета, чтобы сделать MiniFy своим."
+    },
+    "performance": {
+      "title": "Молниеносная скорость",
+      "description": "Создан с Tauri и Rust для исключительной производительности и минимального потребления ресурсов."
+    },
+    "secure": {
+      "title": "Безопасный и приватный",
+      "description": "Токены надёжно хранятся на диске с OAuth-потоком и без сбора данных."
+    },
+    "customizable": {
+      "title": "Полностью настраиваемый",
+      "description": "Горячие клавиши, области перетаскивания и нативные контекстные меню для полного контроля."
+    }
+  },
+  "download": {
+    "sectionTitle": "Скачать MiniFy",
+    "sectionDescription": "Начните бесплатно с MiniFy. Доступно для Windows и Linux.",
+    "latestVersion": "Последняя версия",
+    "loading": "Загрузка информации о релизе...",
+    "windowsDescription": "Windows 10/11 (64-bit)",
+    "linuxDescription": "Ubuntu, Debian, Fedora (64-bit)",
+    "downloadButton": "Скачать",
+    "viewReleases": "Все релизы",
+    "systemRequirements": "Системные требования и инструкции по установке",
+    "learnMore": "Подробнее"
+  },
+  "downloadPage": {
+    "title": "Скачать MiniFy",
+    "subtitle": "Выберите платформу и начните с лучшим мини-плеером Spotify",
+    "recommended": "Рекомендуется",
+    "windows": {
+      "title": "Windows",
+      "description": "Для Windows 10 и Windows 11 (64-bit)",
+      "features": ["Автоматические обновления", "Нативная интеграция Windows", "Поддержка горячих клавиш"],
+      "size": "Размер: 45 МБ | Подписано и проверено"
+    },
+    "macos": {
+      "title": "macOS",
+      "description": "Для macOS 11+ (Intel и Apple Silicon)",
+      "features": ["Universal Binary (Intel + M1/M2/M3)", "Нативная интеграция macOS", "Touch Bar и Media Keys"],
+      "size": "Размер: 48 МБ | Нотаризовано и подписано"
+    },
+    "linux": {
+      "title": "Linux",
+      "description": "Для Ubuntu, Debian, Fedora и других (64-bit)",
+      "features": [".deb, .rpm и AppImage", "Поддержка Wayland и X11", "Интеграция с системным треем"],
+      "size": "Размер: 42 МБ | GPG подписано"
+    },
+    "latestVersion": "Последняя версия",
+    "releasedOn": "Выпущено",
+    "allReleases": "Все релизы",
+    "systemRequirements": "Системные требования",
+    "requirements": {
+      "os": "Операционная система",
+      "cpu": "Процессор",
+      "ram": "Память",
+      "other": "Прочее",
+      "minRam": "Мин: 4 ГБ RAM",
+      "recRam": "Рекомендуется: 8 ГБ+",
+      "usage": "Потребление: ~45 МБ",
+      "internet": "Интернет-соединение",
+      "spotifyAccount": "Аккаунт Spotify",
+      "storage": "100 МБ хранилища"
+    },
+    "installation": "Руководство по установке",
+    "installSteps": {
+      "windows": ["Скачайте .exe файл", "Запустите установщик", "Следуйте шагам установки", "Запустите MiniFy и войдите через Spotify"],
+      "macos": ["Скачайте .dmg файл", "Откройте DMG и перетащите MiniFy в Программы", "Откройте MiniFy из папки Программы", "При предупреждении: Системные настройки → Безопасность"],
+      "linux": {
+        "deb": "Debian/Ubuntu (.deb):",
+        "rpm": "Fedora/RHEL (.rpm):",
+        "appimage": "AppImage:"
+      }
+    },
+    "help": {
+      "title": "Нужна помощь?",
+      "description": "Ознакомьтесь с документацией или посетите репозиторий GitHub для поддержки.",
+      "docs": "Документация",
+      "issues": "Сообщить о проблеме"
+    }
+  },
+  "opensource": {
+    "title": "Открытый код и сообщество",
+    "description": "MiniFy создаётся открыто при участии разработчиков со всего мира. Присоединяйтесь к нам!",
+    "stars": "Звёзды",
+    "forks": "Форки",
+    "contributors": "Участники",
+    "starButton": "Поставить звезду",
+    "contributeButton": "Участвовать",
+    "license": "Лицензия",
+    "viewAll": "Все участники →"
+  },
+  "footer": {
+    "description": "Лёгкий мини-плеер Spotify, созданный с Tauri, React и любовью к музыке.",
+    "product": "Продукт",
+    "features": "Возможности",
+    "download": "Скачать",
+    "releases": "Релизы",
+    "community": "Сообщество",
+    "contributing": "Участие",
+    "codeOfConduct": "Кодекс поведения",
+    "madeWith": "Сделано с",
+    "byTeam": "командой MiniFy",
+    "allRightsReserved": "Все права защищены."
+  }
+}
+

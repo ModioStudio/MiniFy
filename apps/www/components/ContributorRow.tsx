@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/hooks/use-language";
 import { motion } from "framer-motion";
 
 const contributors = [
@@ -21,6 +22,8 @@ const contributors = [
 ];
 
 export function ContributorsRow() {
+  const { t } = useLanguage();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -28,7 +31,7 @@ export function ContributorsRow() {
       viewport={{ once: true }}
       className="mt-10 flex flex-col items-center gap-4"
     >
-      <p className="text-sm text-muted-foreground">Mitwirkende</p>
+      <p className="text-sm text-muted-foreground">{t.opensource.contributors}</p>
 
       <div className="flex items-center -space-x-3">
         {contributors.map((c) => (
@@ -53,7 +56,7 @@ export function ContributorsRow() {
           rel="noopener noreferrer"
           className="ml-4 text-sm text-primary hover:underline"
         >
-          Alle ansehen →
+          {t.opensource.viewAll}
         </a>
       </div>
     </motion.div>

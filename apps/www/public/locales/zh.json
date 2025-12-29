@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "features": "功能",
+    "download": "下载",
+    "opensource": "开源"
+  },
+  "hero": {
+    "badge": "开源",
+    "titleBefore": "你的",
+    "titleAfter": "，优雅极简",
+    "description": "轻量级 Spotify 桌面迷你播放器。采用 Tauri + React 构建，具有 OAuth 认证、多种布局和原生体验。",
+    "downloadButton": "立即下载",
+    "githubButton": "在 GitHub 查看"
+  },
+  "features": {
+    "sectionTitle": "强大功能",
+    "sectionDescription": "完美 Spotify 迷你播放器体验所需的一切",
+    "spotify": {
+      "title": "Spotify 集成",
+      "description": "无缝 OAuth 认证，自动刷新令牌，完全控制播放。"
+    },
+    "layouts": {
+      "title": "多种布局",
+      "description": "从三种精美布局（A、B、C）中选择，匹配你的工作流程和风格。"
+    },
+    "themes": {
+      "title": "可定制主题",
+      "description": "在主题预设之间切换并自定义颜色，让 MiniFy 真正属于你。"
+    },
+    "performance": {
+      "title": "闪电般快速",
+      "description": "采用 Tauri 和 Rust 构建，性能卓越，资源占用极低。"
+    },
+    "secure": {
+      "title": "安全私密",
+      "description": "令牌安全存储在磁盘上，采用 OAuth 流程，不收集数据。"
+    },
+    "customizable": {
+      "title": "完全可定制",
+      "description": "键盘快捷键、拖拽区域和原生上下文菜单，完全掌控。"
+    }
+  },
+  "download": {
+    "sectionTitle": "下载 MiniFy",
+    "sectionDescription": "免费开始使用 MiniFy。支持 Windows 和 Linux。",
+    "latestVersion": "最新版本",
+    "loading": "正在加载版本信息...",
+    "windowsDescription": "Windows 10/11 (64位)",
+    "linuxDescription": "Ubuntu, Debian, Fedora (64位)",
+    "downloadButton": "下载",
+    "viewReleases": "查看所有版本",
+    "systemRequirements": "系统要求和安装说明",
+    "learnMore": "了解更多"
+  },
+  "downloadPage": {
+    "title": "下载 MiniFy",
+    "subtitle": "选择你的平台，开始使用最好的 Spotify 迷你播放器",
+    "recommended": "推荐",
+    "windows": {
+      "title": "Windows",
+      "description": "适用于 Windows 10 和 Windows 11 (64位)",
+      "features": ["自动更新", "原生 Windows 集成", "快捷键支持"],
+      "size": "大小：45 MB | 已签名验证"
+    },
+    "macos": {
+      "title": "macOS",
+      "description": "适用于 macOS 11+ (Intel 和 Apple Silicon)",
+      "features": ["通用二进制 (Intel + M1/M2/M3)", "原生 macOS 集成", "Touch Bar 和媒体键"],
+      "size": "大小：48 MB | 已公证签名"
+    },
+    "linux": {
+      "title": "Linux",
+      "description": "适用于 Ubuntu、Debian、Fedora 等 (64位)",
+      "features": [".deb、.rpm 和 AppImage", "Wayland 和 X11 支持", "系统托盘集成"],
+      "size": "大小：42 MB | GPG 签名"
+    },
+    "latestVersion": "最新版本",
+    "releasedOn": "发布于",
+    "allReleases": "所有版本",
+    "systemRequirements": "系统要求",
+    "requirements": {
+      "os": "操作系统",
+      "cpu": "处理器",
+      "ram": "内存",
+      "other": "其他",
+      "minRam": "最低：4 GB RAM",
+      "recRam": "推荐：8 GB+",
+      "usage": "占用：约 45 MB",
+      "internet": "网络连接",
+      "spotifyAccount": "Spotify 账户",
+      "storage": "100 MB 存储空间"
+    },
+    "installation": "安装指南",
+    "installSteps": {
+      "windows": ["下载 .exe 文件", "运行安装程序", "按照安装步骤操作", "启动 MiniFy 并使用 Spotify 登录"],
+      "macos": ["下载 .dmg 文件", "打开 DMG 并将 MiniFy 拖到应用程序", "从应用程序文件夹打开 MiniFy", "如有警告：系统偏好设置 → 安全性"],
+      "linux": {
+        "deb": "Debian/Ubuntu (.deb):",
+        "rpm": "Fedora/RHEL (.rpm):",
+        "appimage": "AppImage:"
+      }
+    },
+    "help": {
+      "title": "需要帮助？",
+      "description": "查看我们的文档或访问 GitHub 仓库获取支持。",
+      "docs": "文档",
+      "issues": "报告问题"
+    }
+  },
+  "opensource": {
+    "title": "开源与社区驱动",
+    "description": "MiniFy 由全球开发者共同开源构建。加入我们，让它更好！",
+    "stars": "星标",
+    "forks": "分支",
+    "contributors": "贡献者",
+    "starButton": "Star",
+    "contributeButton": "贡献",
+    "license": "许可证",
+    "viewAll": "查看全部 →"
+  },
+  "footer": {
+    "description": "轻量级 Spotify 迷你播放器，采用 Tauri、React 和对音乐的热爱构建。",
+    "product": "产品",
+    "features": "功能",
+    "download": "下载",
+    "releases": "版本",
+    "community": "社区",
+    "contributing": "贡献",
+    "codeOfConduct": "行为准则",
+    "madeWith": "用",
+    "byTeam": "MiniFy 团队制作",
+    "allRightsReserved": "保留所有权利。"
+  }
+}
+

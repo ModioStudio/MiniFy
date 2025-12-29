@@ -1,174 +1,175 @@
-export const translations = {
-  en: {
-    nav: {
-      features: "Features",
-      download: "Download",
-      opensource: "Open Source",
-    },
-    hero: {
-      badge: "Open Source",
-      titleBefore: "Your",
-      titleAfter: ", Beautifully Minimized",
-      description:
-        "A lightweight desktop mini player for Spotify. Built with Tauri + React, featuring OAuth authentication, multiple layouts, and a native feel.",
-      downloadButton: "Download Now",
-      githubButton: "View on GitHub",
-    },
-    features: {
-      sectionTitle: "Powerful Features",
-      sectionDescription: "Everything you need for the perfect Spotify mini player experience",
-      spotify: {
-        title: "Spotify Integration",
-        description:
-          "Seamless OAuth authentication with automatic token refresh and full playback control.",
-      },
-      layouts: {
-        title: "Multiple Layouts",
-        description:
-          "Choose from three beautiful layouts (A, B, C) to match your workflow and style.",
-      },
-      themes: {
-        title: "Customizable Themes",
-        description:
-          "Switch between theme presets and customize colors to make MiniFy truly yours.",
-      },
-      performance: {
-        title: "Lightning Fast",
-        description:
-          "Built with Tauri and Rust for exceptional performance and minimal resource usage.",
-      },
-      secure: {
-        title: "Secure & Private",
-        description: "Tokens stored securely on disk with OAuth flow and no data collection.",
-      },
-      customizable: {
-        title: "Fully Customizable",
-        description: "Keyboard shortcuts, drag regions, and native context menus for full control.",
-      },
-    },
-    download: {
-      sectionTitle: "Download MiniFy",
-      sectionDescription: "Get started with MiniFy for free. Available for Windows and Linux.",
-      latestVersion: "Latest Version",
-      loading: "Loading release information...",
-      windowsDescription: "Windows 10/11 (64-bit)",
-      linuxDescription: "Ubuntu, Debian, Fedora (64-bit)",
-      downloadButton: "Download",
-      viewReleases: "View All Releases",
-      systemRequirements: "System requirements and installation instructions",
-      learnMore: "Learn more",
-    },
-    opensource: {
-      title: "Open Source & Community Driven",
-      description:
-        "MiniFy is built in the open with contributions from developers worldwide. Join us in making it better!",
-      stars: "Stars",
-      forks: "Forks",
-      contributors: "Contributors",
-      starButton: "Star on GitHub",
-      contributeButton: "Contribute",
-      license: "Licensed under",
-    },
-    footer: {
-      description: "A lightweight Spotify mini player built with Tauri, React, and love for music.",
-      product: "Product",
-      features: "Features",
-      download: "Download",
-      releases: "Releases",
-      community: "Community",
-      contributing: "Contributing",
-      codeOfConduct: "Code of Conduct",
-      madeWith: "Made with",
-      byTeam: "by the MiniFy team",
-      allRightsReserved: "All rights reserved.",
-    },
-  },
+import enTranslations from "@/public/locales/en.json";
+import deTranslations from "@/public/locales/de.json";
+import ruTranslations from "@/public/locales/ru.json";
+import esTranslations from "@/public/locales/es.json";
+import frTranslations from "@/public/locales/fr.json";
+import zhTranslations from "@/public/locales/zh.json";
+import jaTranslations from "@/public/locales/ja.json";
+import ptTranslations from "@/public/locales/pt.json";
 
-  de: {
-    nav: {
-      features: "Features",
-      download: "Download",
-      opensource: "Open Source",
-    },
-    hero: {
-      badge: "Open Source",
-      titleBefore: "Dein",
-      titleAfter: ", Wunderschön Minimiert",
-      description:
-        "Ein leichtgewichtiger Desktop-Mini-Player für Spotify. Mit Tauri + React gebaut, bietet OAuth-Authentifizierung, mehrere Layouts und ein natives Gefühl.",
-      downloadButton: "Jetzt Herunterladen",
-      githubButton: "Auf GitHub ansehen",
-    },
-    features: {
-      sectionTitle: "Leistungsstarke Features",
-      sectionDescription: "Alles, was du für das perfekte Spotify Mini-Player-Erlebnis brauchst",
-      spotify: {
-        title: "Spotify Integration",
-        description:
-          "Nahtlose OAuth-Authentifizierung mit automatischer Token-Aktualisierung und voller Wiedergabekontrolle.",
-      },
-      layouts: {
-        title: "Mehrere Layouts",
-        description:
-          "Wähle aus drei schönen Layouts (A, B, C), die zu deinem Workflow und Stil passen.",
-      },
-      themes: {
-        title: "Anpassbare Themes",
-        description:
-          "Wechsle zwischen Theme-Vorlagen und passe Farben an, um MiniFy zu deinem eigenen zu machen.",
-      },
-      performance: {
-        title: "Blitzschnell",
-        description:
-          "Mit Tauri und Rust für außergewöhnliche Performance und minimalen Ressourcenverbrauch gebaut.",
-      },
-      secure: {
-        title: "Sicher & Privat",
-        description:
-          "Tokens sicher auf der Festplatte gespeichert mit OAuth-Flow und ohne Datensammlung.",
-      },
-      customizable: {
-        title: "Vollständig Anpassbar",
-        description:
-          "Tastenkombinationen, Ziehbereiche und native Kontextmenüs für volle Kontrolle.",
-      },
-    },
-    download: {
-      sectionTitle: "MiniFy Herunterladen",
-      sectionDescription: "Starte kostenlos mit MiniFy. Verfügbar für Windows und Linux.",
-      latestVersion: "Neueste Version",
-      loading: "Lade Release-Informationen...",
-      windowsDescription: "Windows 10/11 (64-bit)",
-      linuxDescription: "Ubuntu, Debian, Fedora (64-bit)",
-      downloadButton: "Herunterladen",
-      viewReleases: "Alle Releases ansehen",
-      systemRequirements: "Systemanforderungen und Installationsanleitung",
-      learnMore: "Mehr erfahren",
-    },
-    opensource: {
-      title: "Open Source & Community Driven",
-      description:
-        "MiniFy wird offen entwickelt mit Beiträgen von Entwicklern weltweit. Mach mit und hilf uns, es besser zu machen!",
-      stars: "Stars",
-      forks: "Forks",
-      contributors: "Mitwirkende",
-      starButton: "Auf GitHub sternen",
-      contributeButton: "Mitwirken",
-      license: "Lizenziert unter",
-    },
-    footer: {
-      description:
-        "Ein leichtgewichtiger Spotify-Mini-Player, gebaut mit Tauri, React und Liebe zur Musik.",
-      product: "Produkt",
-      features: "Features",
-      download: "Download",
-      releases: "Releases",
-      community: "Community",
-      contributing: "Mitwirken",
-      codeOfConduct: "Verhaltenskodex",
-      madeWith: "Gemacht mit",
-      byTeam: "vom MiniFy-Team",
-      allRightsReserved: "Alle Rechte vorbehalten.",
-    },
-  },
+export type Language = "en" | "de" | "ru" | "es" | "fr" | "zh" | "ja" | "pt";
+
+export const LANGUAGES: { code: Language; name: string; flag: string }[] = [
+  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "ru", name: "Русский", flag: "🇷🇺" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "zh", name: "中文", flag: "🇨🇳" },
+  { code: "ja", name: "日本語", flag: "🇯🇵" },
+  { code: "pt", name: "Português", flag: "🇧🇷" },
+];
+
+export interface Translations {
+  nav: {
+    features: string;
+    download: string;
+    opensource: string;
+  };
+  hero: {
+    badge: string;
+    titleBefore: string;
+    titleAfter: string;
+    description: string;
+    downloadButton: string;
+    githubButton: string;
+  };
+  features: {
+    sectionTitle: string;
+    sectionDescription: string;
+    spotify: {
+      title: string;
+      description: string;
+    };
+    layouts: {
+      title: string;
+      description: string;
+    };
+    themes: {
+      title: string;
+      description: string;
+    };
+    performance: {
+      title: string;
+      description: string;
+    };
+    secure: {
+      title: string;
+      description: string;
+    };
+    customizable: {
+      title: string;
+      description: string;
+    };
+  };
+  download: {
+    sectionTitle: string;
+    sectionDescription: string;
+    latestVersion: string;
+    loading: string;
+    windowsDescription: string;
+    linuxDescription: string;
+    downloadButton: string;
+    viewReleases: string;
+    systemRequirements: string;
+    learnMore: string;
+  };
+  downloadPage: {
+    title: string;
+    subtitle: string;
+    recommended: string;
+    windows: {
+      title: string;
+      description: string;
+      features: string[];
+      size: string;
+    };
+    macos: {
+      title: string;
+      description: string;
+      features: string[];
+      size: string;
+    };
+    linux: {
+      title: string;
+      description: string;
+      features: string[];
+      size: string;
+    };
+    latestVersion: string;
+    releasedOn: string;
+    allReleases: string;
+    systemRequirements: string;
+    requirements: {
+      os: string;
+      cpu: string;
+      ram: string;
+      other: string;
+      minRam: string;
+      recRam: string;
+      usage: string;
+      internet: string;
+      spotifyAccount: string;
+      storage: string;
+    };
+    installation: string;
+    installSteps: {
+      windows: string[];
+      macos: string[];
+      linux: {
+        deb: string;
+        rpm: string;
+        appimage: string;
+      };
+    };
+    help: {
+      title: string;
+      description: string;
+      docs: string;
+      issues: string;
+    };
+  };
+  opensource: {
+    title: string;
+    description: string;
+    stars: string;
+    forks: string;
+    contributors: string;
+    starButton: string;
+    contributeButton: string;
+    license: string;
+    viewAll: string;
+  };
+  footer: {
+    description: string;
+    product: string;
+    features: string;
+    download: string;
+    releases: string;
+    community: string;
+    contributing: string;
+    codeOfConduct: string;
+    madeWith: string;
+    byTeam: string;
+    allRightsReserved: string;
+  };
+}
+
+export const translations: Record<Language, Translations> = {
+  en: enTranslations,
+  de: deTranslations,
+  ru: ruTranslations,
+  es: esTranslations,
+  fr: frTranslations,
+  zh: zhTranslations,
+  ja: jaTranslations,
+  pt: ptTranslations,
 };
+
+export function getTranslations(language: Language): Translations {
+  return translations[language];
+}
+
+export function isValidLanguage(lang: string): lang is Language {
+  return LANGUAGES.some((l) => l.code === lang);
+}

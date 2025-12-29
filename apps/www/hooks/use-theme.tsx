@@ -1,25 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { COOKIE_NAMES, getCookie, setCookie } from "@/lib/cookies";
+import { useCallback, useEffect, useState } from "react";
 
-export function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+export type Theme = "light" | "dark";
+
+function getBrowserTheme(): Theme {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getInitialTheme(): Theme {
+  const cookieTheme = getCookie(COOKIE_NAMES.THEME) as Theme | null;
+  if (cookieTheme && (cookieTheme === "light" || cookieTheme === "dark")) {
+    return cookieTheme;
+  }
+  return getBrowserTheme();
+}
+
+function applyTheme(theme: Theme): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.documentElement.classList.toggle("dark", theme === "dark");
+}
+
+export function useTheme(): {
+  theme: Theme;
+  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
+} {
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle("dark", initialTheme === "dark");
+    const initialTheme = getInitialTheme();
+    setThemeState(initialTheme);
+    applyTheme(initialTheme);
   }, []);
 
-  const toggleTheme = () => {
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+    applyTheme(newTheme);
+    setCookie(COOKIE_NAMES.THEME, newTheme);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-  };
+  }, [theme, setTheme]);
 
-  return { theme, toggleTheme };
+  return { theme, toggleTheme, setTheme };
 }

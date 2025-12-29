@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "features": "機能",
+    "download": "ダウンロード",
+    "opensource": "オープンソース"
+  },
+  "hero": {
+    "badge": "オープンソース",
+    "titleBefore": "あなたの",
+    "titleAfter": "、美しくミニマル",
+    "description": "Spotify用の軽量デスクトップミニプレーヤー。Tauri + Reactで構築、OAuth認証、複数のレイアウト、ネイティブな操作感を提供。",
+    "downloadButton": "今すぐダウンロード",
+    "githubButton": "GitHubで見る"
+  },
+  "features": {
+    "sectionTitle": "パワフルな機能",
+    "sectionDescription": "完璧なSpotifyミニプレーヤー体験に必要なすべて",
+    "spotify": {
+      "title": "Spotify連携",
+      "description": "シームレスなOAuth認証、自動トークン更新、完全な再生コントロール。"
+    },
+    "layouts": {
+      "title": "複数のレイアウト",
+      "description": "ワークフローとスタイルに合わせて、3つの美しいレイアウト（A、B、C）から選択。"
+    },
+    "themes": {
+      "title": "カスタマイズ可能なテーマ",
+      "description": "テーマプリセットを切り替え、色をカスタマイズして、MiniFyを自分だけのものに。"
+    },
+    "performance": {
+      "title": "超高速",
+      "description": "TauriとRustで構築、優れたパフォーマンスと最小限のリソース使用量。"
+    },
+    "secure": {
+      "title": "安全でプライベート",
+      "description": "OAuthフローでトークンを安全にディスクに保存、データ収集なし。"
+    },
+    "customizable": {
+      "title": "完全にカスタマイズ可能",
+      "description": "キーボードショートカット、ドラッグ領域、ネイティブコンテキストメニューで完全制御。"
+    }
+  },
+  "download": {
+    "sectionTitle": "MiniFyをダウンロード",
+    "sectionDescription": "MiniFyを無料で始めましょう。WindowsとLinuxで利用可能。",
+    "latestVersion": "最新バージョン",
+    "loading": "リリース情報を読み込み中...",
+    "windowsDescription": "Windows 10/11 (64ビット)",
+    "linuxDescription": "Ubuntu, Debian, Fedora (64ビット)",
+    "downloadButton": "ダウンロード",
+    "viewReleases": "すべてのリリースを見る",
+    "systemRequirements": "システム要件とインストール手順",
+    "learnMore": "詳細"
+  },
+  "downloadPage": {
+    "title": "MiniFyをダウンロード",
+    "subtitle": "プラットフォームを選択して、最高のSpotifyミニプレーヤーを始めましょう",
+    "recommended": "おすすめ",
+    "windows": {
+      "title": "Windows",
+      "description": "Windows 10およびWindows 11 (64ビット)対応",
+      "features": ["自動アップデート", "ネイティブWindows統合", "ホットキーサポート"],
+      "size": "サイズ：45 MB | 署名済み・検証済み"
+    },
+    "macos": {
+      "title": "macOS",
+      "description": "macOS 11+ (Intel・Apple Silicon)対応",
+      "features": ["ユニバーサルバイナリ (Intel + M1/M2/M3)", "ネイティブmacOS統合", "Touch Bar・メディアキー"],
+      "size": "サイズ：48 MB | 公証済み・署名済み"
+    },
+    "linux": {
+      "title": "Linux",
+      "description": "Ubuntu、Debian、Fedoraなど (64ビット)対応",
+      "features": [".deb、.rpm、AppImage", "Wayland・X11サポート", "システムトレイ統合"],
+      "size": "サイズ：42 MB | GPG署名"
+    },
+    "latestVersion": "最新バージョン",
+    "releasedOn": "リリース日",
+    "allReleases": "すべてのリリース",
+    "systemRequirements": "システム要件",
+    "requirements": {
+      "os": "オペレーティングシステム",
+      "cpu": "プロセッサ",
+      "ram": "メモリ",
+      "other": "その他",
+      "minRam": "最小：4 GB RAM",
+      "recRam": "推奨：8 GB+",
+      "usage": "使用量：約45 MB",
+      "internet": "インターネット接続",
+      "spotifyAccount": "Spotifyアカウント",
+      "storage": "100 MBのストレージ"
+    },
+    "installation": "インストールガイド",
+    "installSteps": {
+      "windows": [".exeファイルをダウンロード", "インストーラーを実行", "インストール手順に従う", "MiniFyを起動してSpotifyでログイン"],
+      "macos": [".dmgファイルをダウンロード", "DMGを開いてMiniFyをアプリケーションにドラッグ", "アプリケーションフォルダからMiniFyを開く", "警告時：システム環境設定 → セキュリティ"],
+      "linux": {
+        "deb": "Debian/Ubuntu (.deb):",
+        "rpm": "Fedora/RHEL (.rpm):",
+        "appimage": "AppImage:"
+      }
+    },
+    "help": {
+      "title": "ヘルプが必要ですか？",
+      "description": "ドキュメントをご覧になるか、GitHubリポジトリでサポートを受けてください。",
+      "docs": "ドキュメント",
+      "issues": "問題を報告"
+    }
+  },
+  "opensource": {
+    "title": "オープンソース＆コミュニティ主導",
+    "description": "MiniFyは世界中の開発者の貢献によりオープンに構築されています。一緒に改善しましょう！",
+    "stars": "スター",
+    "forks": "フォーク",
+    "contributors": "コントリビューター",
+    "starButton": "スターする",
+    "contributeButton": "貢献する",
+    "license": "ライセンス",
+    "viewAll": "すべて見る →"
+  },
+  "footer": {
+    "description": "Tauri、React、音楽への愛で構築された軽量Spotifyミニプレーヤー。",
+    "product": "製品",
+    "features": "機能",
+    "download": "ダウンロード",
+    "releases": "リリース",
+    "community": "コミュニティ",
+    "contributing": "貢献",
+    "codeOfConduct": "行動規範",
+    "madeWith": "で作られた",
+    "byTeam": "MiniFyチーム",
+    "allRightsReserved": "全著作権所有。"
+  }
+}
+

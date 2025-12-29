@@ -1,12 +1,46 @@
+# Dependencies
 node_modules
+.pnpm-store
+
+# Build outputs
 dist
 dist-ssr
-*.local
-.turbo
-.DS_Store
+build
+out
 
+# Turbo
+.turbo
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# IDE
+.idea
+.vscode
+*.sublime-*
+
+# Environment variables (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Planning/temp files
+tmp/
+
+# App-specific
 apps/*/dist
 apps/*/dist-ssr
 apps/*/build
+apps/*/out
 apps/*/src-tauri/target
 apps/*/.DS_Store

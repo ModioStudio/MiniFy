@@ -1,1 +1,23 @@
+# Build outputs
 /dist
+
+# Tauri
+/src-tauri/target
+/src-tauri/WixTools
+/src-tauri/*.exe
+/src-tauri/*.msi
+/src-tauri/*.dmg
+/src-tauri/*.AppImage
+/src-tauri/*.deb
+/src-tauri/*.rpm
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables (keep .env.example)
+.env
+.env.local
+.env.*.local

@@ -1,9 +1,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { LANGUAGES, type Language } from "@/lib/translations";
+import { Globe, Menu, Moon, Sun, X } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
@@ -11,12 +18,18 @@ export function Header() {
   const { t, language, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const currentLanguage = LANGUAGES.find((l) => l.code === language);
+
   const handleMobileNav = (target: string) => {
     const element = document.querySelector(target);
     if (element instanceof HTMLElement) {
       element.scrollIntoView({ behavior: "smooth" });
     }
     setMobileMenuOpen(false);
+  };
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
   };
 
   return (
@@ -50,14 +63,26 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLanguage(language === "en" ? "de" : "en")}
-            className="hidden sm:flex"
-          >
-            <span className="text-sm font-medium">{language === "en" ? "DE" : "EN"}</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="hidden sm:flex gap-2">
+                <Globe className="h-4 w-4" />
+                <span className="text-sm">{currentLanguage?.code.toUpperCase()}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => handleLanguageChange(lang.code)}
+                  className={`cursor-pointer ${language === lang.code ? "bg-accent" : ""}`}
+                >
+                  <span className="w-8 text-muted-foreground">{lang.code.toUpperCase()}</span>
+                  <span>{lang.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
@@ -77,21 +102,21 @@ export function Header() {
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
             <button
               type="button"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors hover:text-primary text-left"
               onClick={() => handleMobileNav("#features")}
             >
               {t.nav.features}
             </button>
             <button
               type="button"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors hover:text-primary text-left"
               onClick={() => handleMobileNav("#download")}
             >
               {t.nav.download}
             </button>
             <button
               type="button"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors hover:text-primary text-left"
               onClick={() => handleMobileNav("#opensource")}
             >
               {t.nav.opensource}
@@ -105,17 +130,25 @@ export function Header() {
             >
               GitHub
             </a>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setLanguage(language === "en" ? "de" : "en");
-                setMobileMenuOpen(false);
-              }}
-              className="w-fit"
-            >
-              {language === "en" ? "Deutsch" : "English"}
-            </Button>
+            <div className="border-t border-border/40 pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Language</p>
+              <div className="grid grid-cols-2 gap-2">
+                {LANGUAGES.map((lang) => (
+                  <Button
+                    key={lang.code}
+                    variant={language === lang.code ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      handleLanguageChange(lang.code);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="justify-start"
+                  >
+                    <span className="text-xs">{lang.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
           </nav>
         </div>
       )}
