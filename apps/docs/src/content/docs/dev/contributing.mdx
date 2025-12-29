@@ -1,0 +1,194 @@
+---
+title: Contributing
+description: Learn how to contribute to MiniFy.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+# Contributing
+
+Thank you for your interest in contributing to MiniFy! This guide will help you get started.
+
+## Ways to Contribute
+
+- 🐛 **Report bugs** - Found an issue? Let us know!
+- 💡 **Suggest features** - Have an idea? We'd love to hear it
+- 📖 **Improve docs** - Help make the documentation better
+- 🎨 **Create themes** - Design new themes for the community
+- 🔧 **Submit code** - Fix bugs or implement features
+
+## Getting Started
+
+<Steps>
+1. **Fork the repository**
+   
+   Click the "Fork" button on the [GitHub repository](https://github.com/ModioStudio/MiniFy).
+
+2. **Clone your fork**
+   
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/MiniFy.git
+   cd MiniFy
+   ```
+
+3. **Install dependencies**
+   
+   ```bash
+   pnpm install
+   ```
+
+4. **Create a branch**
+   
+   ```bash
+   git checkout -b feature/my-feature
+   ```
+
+5. **Make your changes**
+   
+   Write code, fix bugs, or update documentation.
+
+6. **Test your changes**
+   
+   ```bash
+   pnpm dev
+   ```
+
+7. **Submit a pull request**
+   
+   Push your changes and open a PR on GitHub.
+</Steps>
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm 10+
+- Rust (for Tauri development)
+- Platform-specific build tools
+
+### Running the Development Server
+
+```bash
+# Run the desktop app in development
+pnpm desktop:dev
+
+# Run the website in development
+pnpm www:dev
+
+# Run the docs in development  
+pnpm docs:dev
+```
+
+## Code Style
+
+We use [Biome](https://biomejs.dev/) for code formatting and linting:
+
+```bash
+# Format code
+pnpm format
+
+# Check for issues
+pnpm check
+```
+
+### Guidelines
+
+- Use TypeScript for all new code
+- Write meaningful commit messages (see below)
+- Add tests for new features when applicable
+- Keep pull requests focused and small
+- Update documentation when changing behavior
+
+## Commit Messages
+
+We use conventional commits:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+```
+
+### Types
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+### Examples
+
+```
+feat(desktop): add volume normalization option
+fix(auth): handle expired refresh tokens correctly
+docs(readme): update installation instructions
+```
+
+## Pull Request Process
+
+<Steps>
+1. **Update documentation**
+   
+   If your change affects user-facing features, update the relevant docs.
+
+2. **Run all checks**
+   
+   ```bash
+   pnpm check
+   pnpm build
+   ```
+
+3. **Write a clear description**
+   
+   Explain what your PR does and why.
+
+4. **Link related issues**
+   
+   Reference any issues your PR addresses: "Fixes #123"
+
+5. **Request review**
+   
+   A maintainer will review your PR and provide feedback.
+</Steps>
+
+## Reporting Bugs
+
+When reporting bugs, please include:
+
+- MiniFy version
+- Operating system and version
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Screenshots if applicable
+
+Use the [bug report template](https://github.com/ModioStudio/MiniFy/issues/new?template=bug_report.md) on GitHub.
+
+## Suggesting Features
+
+Feature suggestions are welcome! Please:
+
+- Check if the feature was already suggested
+- Provide a clear use case
+- Describe the expected behavior
+- Consider potential drawbacks
+
+Use the [feature request template](https://github.com/ModioStudio/MiniFy/issues/new?template=feature_request.md) on GitHub.
+
+<Aside type="tip">
+  Join our community discussions on GitHub to chat with other contributors!
+</Aside>
+
+## Code of Conduct
+
+We are committed to providing a welcoming and inclusive experience. Please read our [Code of Conduct](https://github.com/ModioStudio/MiniFy/blob/main/CODE_OF_CONDUCT.md).
+
+## License
+
+By contributing to MiniFy, you agree that your contributions will be licensed under the MIT License.
+

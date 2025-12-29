@@ -2,7 +2,8 @@
   "nav": {
     "features": "機能",
     "download": "ダウンロード",
-    "opensource": "オープンソース"
+    "opensource": "オープンソース",
+    "docs": "ドキュメント"
   },
   "hero": {
     "badge": "オープンソース",

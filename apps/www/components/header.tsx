@@ -10,8 +10,10 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import { LANGUAGES, type Language } from "@/lib/translations";
-import { Globe, Menu, Moon, Sun, X } from "lucide-react";
+import { BookOpen, Globe, Menu, Moon, Sun, X } from "lucide-react";
 import { useState } from "react";
+
+const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.minify.modio.studio";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -51,6 +53,15 @@ export function Header() {
             className="text-sm font-medium transition-colors hover:text-primary"
           >
             {t.nav.opensource}
+          </a>
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium transition-colors hover:text-primary inline-flex items-center gap-1"
+          >
+            <BookOpen className="h-4 w-4" />
+            {t.nav.docs}
           </a>
           <a
             href="https://github.com/ModioStudio/MiniFy"
@@ -121,6 +132,16 @@ export function Header() {
             >
               {t.nav.opensource}
             </button>
+            <a
+              href={DOCS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium transition-colors hover:text-primary inline-flex items-center gap-1"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <BookOpen className="h-4 w-4" />
+              {t.nav.docs}
+            </a>
             <a
               href="https://github.com/ModioStudio/MiniFy"
               target="_blank"

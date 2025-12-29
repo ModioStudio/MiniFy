@@ -2,7 +2,8 @@
   "nav": {
     "features": "Features",
     "download": "Download",
-    "opensource": "Open Source"
+    "opensource": "Open Source",
+    "docs": "Docs"
   },
   "hero": {
     "badge": "Open Source",
