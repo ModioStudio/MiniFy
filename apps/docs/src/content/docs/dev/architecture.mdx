@@ -124,26 +124,27 @@ The backend handles:
 
 ## State Management
 
-MiniFy uses React's built-in state management:
+MiniFy uses React's built-in state management with custom hooks:
 
 ```typescript
-// Player state (simplified)
-interface PlayerState {
+// useCurrentlyPlaying hook returns
+interface CurrentlyPlayingState {
+  track: SimplifiedTrack | null;
+  progress_ms: number;
+  duration: number;
   isPlaying: boolean;
-  currentTrack: Track | null;
-  progress: number;
-  volume: number;
 }
 
-// Theme state
-interface ThemeState {
-  current: string;
-  colors: ColorScheme;
+// useTheme hook returns
+interface ThemeHook {
+  theme: "light" | "dark";
+  toggleTheme: () => void;
+  setTheme: (theme: "light" | "dark") => void;
 }
 ```
 
 <Aside type="note">
-  We intentionally avoid heavy state management libraries to keep the bundle size small.
+  We intentionally avoid heavy state management libraries to keep the bundle size small. State is managed through React hooks and Spotify SDK types.
 </Aside>
 
 ## Communication Patterns
@@ -168,8 +169,12 @@ fn get_settings() -> Result<Settings, Error> {
 ### Backend → Frontend (Events)
 
 ```rust
-// Backend emit
-window.emit("auth_complete", payload)?;
+// Backend emit using AppHandle
+#[tauri::command]
+fn complete_auth(app: tauri::AppHandle, payload: AuthPayload) -> Result<(), Error> {
+    app.emit("auth_complete", &payload)?;
+    Ok(())
+}
 ```
 
 ```typescript
@@ -233,8 +238,8 @@ packages:
 
 ## Performance Considerations
 
-- **Bundle size**: React app is < 200KB gzipped
-- **Memory usage**: Target < 50MB RAM
-- **Startup time**: Target < 1 second
+- **Bundle size**: React app is less than 200KB gzipped
+- **Memory usage**: Target less than 50MB RAM
+- **Startup time**: Target under 1 second
 - **API polling**: Optimized intervals based on playback state
 

@@ -11,9 +11,9 @@ FROM base AS builder
 
 ENV LEFTHOOK=0
 
-COPY package.json ./
+COPY package.json .npmrc* ./
 
-RUN pnpm install
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 
