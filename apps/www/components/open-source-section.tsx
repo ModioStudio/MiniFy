@@ -35,7 +35,7 @@ export function OpenSourceSection() {
       className="relative overflow-hidden py-20 md:py-32"
     >
       {/* Background */}
-      <div className="absolute inset-0 bg-black/80 dark:bg-black/90" />
+      <div className="absolute inset-0 bg-muted/50 dark:bg-black/90" />
 
 
       <div className="container relative mx-auto px-4">

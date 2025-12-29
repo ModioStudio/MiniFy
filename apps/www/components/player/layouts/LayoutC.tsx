@@ -1,4 +1,3 @@
-import { SkipBack, Pause, SkipForward } from "@phosphor-icons/react";
 import type { ThemeConfig } from "@/lib/types/theme";
 
 type LayoutCProps = {
@@ -8,55 +7,35 @@ type LayoutCProps = {
 export function LayoutC({ theme }: LayoutCProps) {
   return (
     <div
-      className="h-[200px] w-[400px] grid grid-rows-[auto_1fr_auto] px-4 pt-4 pb-4"
+      className="w-[400px] p-4"
       style={{
         background: theme.panel,
         borderRadius: theme.panelRadius,
         boxShadow: theme.panelShadow,
       }}
     >
-      <div className="grid grid-cols-[auto_1fr] gap-4 h-full">
-        <div className="flex flex-col gap-2">
-          <div
-            className="overflow-hidden"
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: theme.coverRadius,
-              border: `1px solid ${theme.coverBorderColor}`,
-            }}
-          >
-            <img
-              src="/playerpreview.png"
-              alt="Track cover"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <div>
-            <div
-              className="font-semibold text-base truncate"
-              style={{ color: theme.songTitleColor }}
-            >
-              Midnight Drive
-            </div>
-            <div
-              className="text-xs truncate opacity-80"
-              style={{ color: theme.songArtistColor }}
-            >
-              Lunar Echoes
-            </div>
-          </div>
+      <div className="flex gap-4">
+        <div
+          className="shrink-0 overflow-hidden"
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: theme.coverRadius,
+            border: `1px solid ${theme.coverBorderColor}`,
+          }}
+        >
+          <img
+            src="/playerpreview.png"
+            alt="Track cover"
+            className="w-full h-full object-cover"
+          />
         </div>
 
-        <div className="flex flex-col justify-between">
-          <div className="mt-2">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span style={{ color: theme.playbarTimeColor }}>1:08</span>
-              <span style={{ color: theme.playbarTimeColor }}>3:34</span>
-            </div>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="flex items-center gap-3 text-sm mb-2">
+            <span style={{ color: theme.playbarTimeColor }}>1:08</span>
             <div
-              className="relative h-1.5 w-full rounded-full"
+              className="relative flex-1 h-1.5 rounded-full"
               style={{ background: theme.playbarTrackBg }}
             >
               <div
@@ -74,34 +53,23 @@ export function LayoutC({ theme }: LayoutCProps) {
                 }}
               />
             </div>
+            <span style={{ color: theme.playbarTimeColor }}>3:34</span>
           </div>
+        </div>
+      </div>
 
-          <div className="flex items-center justify-end gap-1">
-            <button
-              type="button"
-              className="p-2 rounded-full transition-colors"
-              style={{ color: theme.controlsColor }}
-            >
-              <SkipBack size={20} weight="fill" />
-            </button>
-            <button
-              type="button"
-              className="p-2 rounded-full transition-colors"
-              style={{
-                background: theme.actionsBg,
-                color: theme.controlsColor,
-              }}
-            >
-              <Pause size={24} weight="fill" />
-            </button>
-            <button
-              type="button"
-              className="p-2 rounded-full transition-colors"
-              style={{ color: theme.controlsColor }}
-            >
-              <SkipForward size={20} weight="fill" />
-            </button>
-          </div>
+      <div className="mt-3">
+        <div
+          className="font-semibold text-lg truncate"
+          style={{ color: theme.songTitleColor }}
+        >
+          Midnight Drive
+        </div>
+        <div
+          className="text-sm truncate opacity-80"
+          style={{ color: theme.songArtistColor }}
+        >
+          Lunar Echoes
         </div>
       </div>
     </div>

@@ -68,6 +68,7 @@ export interface Translations {
     latestVersion: string;
     loading: string;
     windowsDescription: string;
+    macosDescription: string;
     linuxDescription: string;
     downloadButton: string;
     viewReleases: string;

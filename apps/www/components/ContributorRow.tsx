@@ -5,19 +5,19 @@ import { motion } from "framer-motion";
 
 const contributors = [
   {
-    name: "Contributor 1",
+    name: "Jaron",
     avatar: "https://github.com/J4ron.png",
-    url: "https://github.com/username1",
+    url: "https://github.com/J4ron",
   },
   {
-    name: "Contributor 2",
+    name: "Skeptic-systems",
     avatar: "https://github.com/Skeptic-systems.png",
-    url: "https://github.com/username2",
+    url: "https://github.com/Skeptic-systems",
   },
   {
-    name: "Contributor 3",
+    name: "redasnkrs",
     avatar: "https://github.com/redasnkrs.png",
-    url: "https://github.com/username2",
+    url: "https://github.com/redasnkrs",
   },
 ];
 

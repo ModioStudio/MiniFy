@@ -51,8 +51,8 @@ export function PlayerPreview() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center gap-6">
-        <div className="h-[200px] w-[400px] rounded-[18px] bg-white/5 animate-pulse" />
-        <div className="h-10 w-64 rounded-lg bg-white/5 animate-pulse" />
+        <div className="h-[200px] w-[400px] rounded-[18px] bg-muted animate-pulse" />
+        <div className="h-10 w-64 rounded-lg bg-muted animate-pulse" />
       </div>
     );
   }

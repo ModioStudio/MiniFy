@@ -7,33 +7,22 @@ type LayoutAProps = {
 
 export function LayoutA({ theme }: LayoutAProps) {
   return (
-    <div className="h-[200px] w-[600px] pt-4 flex gap-5">
-      <div className="shrink-0">
-        <div
-          className="overflow-hidden"
-          style={{
-            width: 128,
-            height: 128,
-            borderRadius: theme.coverRadius,
-            border: `1px solid ${theme.coverBorderColor}`,
-          }}
-        >
-          <img
-            src="/playerpreview.png"
-            alt="Track cover"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
+    <div
+      className="w-[500px] flex overflow-hidden"
+      style={{
+        borderRadius: theme.panelRadius,
+        border: `1px solid ${theme.coverBorderColor}`,
+        background: theme.panel,
+        boxShadow: theme.panelShadow,
+      }}
+    >
+      <img
+        src="/playerpreview.png"
+        alt="Track cover"
+        className="block w-[161px] min-w-[161px] h-full object-cover -mr-px"
+      />
 
-      <div
-        className="flex-1 flex flex-col justify-start rounded-sm px-4 py-3"
-        style={{
-          background: theme.panel,
-          borderRadius: theme.panelRadius,
-          boxShadow: theme.panelShadow,
-        }}
-      >
+      <div className="flex-1 flex flex-col justify-start px-4 py-3">
         <div className="mt-2">
           <div
             className="font-semibold text-lg truncate"
@@ -52,6 +41,7 @@ export function LayoutA({ theme }: LayoutAProps) {
         <div className="flex items-center justify-center gap-2 mt-4">
           <button
             type="button"
+            aria-label="Previous track"
             className="p-2 rounded-full transition-colors"
             style={{ color: theme.controlsColor }}
           >
@@ -59,6 +49,7 @@ export function LayoutA({ theme }: LayoutAProps) {
           </button>
           <button
             type="button"
+            aria-label="Pause"
             className="p-3 rounded-full transition-colors"
             style={{
               background: theme.actionsBg,
@@ -69,6 +60,7 @@ export function LayoutA({ theme }: LayoutAProps) {
           </button>
           <button
             type="button"
+            aria-label="Next track"
             className="p-2 rounded-full transition-colors"
             style={{ color: theme.controlsColor }}
           >

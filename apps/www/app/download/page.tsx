@@ -3,6 +3,7 @@
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GridBackground } from "@/components/ui/grid-background";
 import { useLanguage } from "@/hooks/use-language";
 import {
   CheckCircle2,
@@ -14,12 +15,23 @@ import {
   Terminal,
 } from "lucide-react";
 
+const RELEASE_DATE = new Date("2025-10-28");
+
+function formatReleaseDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
 export default function DownloadPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <div className="min-h-screen">
       <Header />
+      <GridBackground className="fixed inset-0 -z-10" />
 
       <main className="container mx-auto px-4 py-16">
         {/* Header */}
@@ -59,8 +71,8 @@ export default function DownloadPage() {
             </p>
 
             <div className="mb-6 space-y-3">
-              {t.downloadPage.windows.features.map((feature, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm">
+              {t.downloadPage.windows.features.map((feature) => (
+                <div key={`windows-${feature}`} className="flex items-center gap-2 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
                   <span>{feature}</span>
                 </div>
@@ -112,8 +124,8 @@ export default function DownloadPage() {
             </p>
 
             <div className="mb-6 space-y-3">
-              {t.downloadPage.macos.features.map((feature, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm">
+              {t.downloadPage.macos.features.map((feature) => (
+                <div key={`macos-${feature}`} className="flex items-center gap-2 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
                   <span>{feature}</span>
                 </div>
@@ -165,8 +177,8 @@ export default function DownloadPage() {
             </p>
 
             <div className="mb-6 space-y-3">
-              {t.downloadPage.linux.features.map((feature, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm">
+              {t.downloadPage.linux.features.map((feature) => (
+                <div key={`linux-${feature}`} className="flex items-center gap-2 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-[#1ed760]" />
                   <span>{feature}</span>
                 </div>
@@ -209,7 +221,7 @@ export default function DownloadPage() {
               <div>
                 <div className="font-semibold">{t.downloadPage.latestVersion}: v0.1.0</div>
                 <div className="text-sm text-muted-foreground">
-                  {t.downloadPage.releasedOn} 28. Oktober 2025
+                  {t.downloadPage.releasedOn} {formatReleaseDate(RELEASE_DATE, language)}
                 </div>
               </div>
             </div>
@@ -295,10 +307,10 @@ export default function DownloadPage() {
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
               <h3 className="mb-4 text-xl font-bold">{t.downloadPage.windows.title}</h3>
               <ol className="space-y-3 text-sm text-muted-foreground">
-                {t.downloadPage.installSteps.windows.map((step, index) => (
-                  <li key={index} className="flex gap-3">
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                      {index + 1}
+                {t.downloadPage.installSteps.windows.map((step, stepNumber) => (
+                  <li key={`windows-step-${step}`} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
+                      {stepNumber + 1}
                     </span>
                     <span>{step}</span>
                   </li>
@@ -309,10 +321,10 @@ export default function DownloadPage() {
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
               <h3 className="mb-4 text-xl font-bold">{t.downloadPage.macos.title}</h3>
               <ol className="space-y-3 text-sm text-muted-foreground">
-                {t.downloadPage.installSteps.macos.map((step, index) => (
-                  <li key={index} className="flex gap-3">
-                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                      {index + 1}
+                {t.downloadPage.installSteps.macos.map((step, stepNumber) => (
+                  <li key={`macos-step-${step}`} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
+                      {stepNumber + 1}
                     </span>
                     <span>{step}</span>
                   </li>

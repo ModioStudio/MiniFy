@@ -46,6 +46,7 @@
     "latestVersion": "Последняя версия",
     "loading": "Загрузка информации о релизе...",
     "windowsDescription": "Windows 10/11 (64-bit)",
+    "macosDescription": "macOS 11+ (Intel & Apple Silicon)",
     "linuxDescription": "Ubuntu, Debian, Fedora (64-bit)",
     "downloadButton": "Скачать",
     "viewReleases": "Все релизы",

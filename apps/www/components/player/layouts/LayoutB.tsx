@@ -40,7 +40,7 @@ export function LayoutB({ theme }: LayoutBProps) {
             Midnight Drive
           </div>
           <div
-            className="text-sm truncate opacity-80 md:-ml-13.5 -ml-13.5"
+            className="text-sm truncate opacity-80"
             style={{ color: theme.songArtistColor }}
           >
             Lunar Echoes
@@ -53,6 +53,7 @@ export function LayoutB({ theme }: LayoutBProps) {
       <div className="flex items-center justify-center gap-2">
         <button
           type="button"
+          aria-label="Previous track"
           className="p-2 rounded-full transition-colors"
           style={{ color: theme.controlsColor }}
         >
@@ -60,6 +61,7 @@ export function LayoutB({ theme }: LayoutBProps) {
         </button>
         <button
           type="button"
+          aria-label="Pause"
           className="p-3 rounded-full transition-colors"
           style={{
             background: theme.actionsBg,
@@ -70,6 +72,7 @@ export function LayoutB({ theme }: LayoutBProps) {
         </button>
         <button
           type="button"
+          aria-label="Next track"
           className="p-2 rounded-full transition-colors"
           style={{ color: theme.controlsColor }}
         >

@@ -54,6 +54,7 @@ export function HeroSection() {
                   -mx-4
                   h-[1.6em] w-[1.6em]
                   translate-y-[0.55em]
+                  dark:invert-0 invert
 
                   sm:-mx-6
                   sm:h-[1.9em] sm:w-[1.9em]

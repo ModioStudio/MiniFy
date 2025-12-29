@@ -46,6 +46,7 @@
     "latestVersion": "最新版本",
     "loading": "正在加载版本信息...",
     "windowsDescription": "Windows 10/11 (64位)",
+    "macosDescription": "macOS 11+ (Intel 和 Apple Silicon)",
     "linuxDescription": "Ubuntu, Debian, Fedora (64位)",
     "downloadButton": "下载",
     "viewReleases": "查看所有版本",

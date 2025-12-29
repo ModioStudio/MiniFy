@@ -46,6 +46,7 @@
     "latestVersion": "最新バージョン",
     "loading": "リリース情報を読み込み中...",
     "windowsDescription": "Windows 10/11 (64ビット)",
+    "macosDescription": "macOS 11+ (Intel & Apple Silicon)",
     "linuxDescription": "Ubuntu, Debian, Fedora (64ビット)",
     "downloadButton": "ダウンロード",
     "viewReleases": "すべてのリリースを見る",

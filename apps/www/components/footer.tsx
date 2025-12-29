@@ -18,7 +18,7 @@ export function Footer() {
               <img
                 src="/logo.png"
                 alt="MiniFy Logo"
-                className="h-9 w-9"
+                className="h-9 w-9 dark:invert-0 invert"
               />
               <span className="text-xl font-bold tracking-tight">
                 MiniFy

@@ -36,7 +36,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="logo" className="w-32 h-32" />
+          <img src="/logo.png" alt="logo" className="w-32 h-32 dark:invert-0 invert" />
         </div>
 
         <nav className="hidden items-center gap-6 md:flex">

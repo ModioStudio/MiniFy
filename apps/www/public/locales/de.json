@@ -46,6 +46,7 @@
     "latestVersion": "Neueste Version",
     "loading": "Lade Release-Informationen...",
     "windowsDescription": "Windows 10/11 (64-bit)",
+    "macosDescription": "macOS 11+ (Intel & Apple Silicon)",
     "linuxDescription": "Ubuntu, Debian, Fedora (64-bit)",
     "downloadButton": "Herunterladen",
     "viewReleases": "Alle Releases ansehen",

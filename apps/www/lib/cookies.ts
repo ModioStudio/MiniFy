@@ -19,7 +19,13 @@ export function getCookie(name: string): string | null {
 
   const cookies = document.cookie.split(";");
   for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.split("=").map((c) => c.trim());
+    const trimmedCookie = cookie.trim();
+    const separatorIndex = trimmedCookie.indexOf("=");
+    if (separatorIndex === -1) {
+      continue;
+    }
+    const cookieName = trimmedCookie.substring(0, separatorIndex).trim();
+    const cookieValue = trimmedCookie.substring(separatorIndex + 1);
     if (cookieName === name) {
       return decodeURIComponent(cookieValue);
     }
