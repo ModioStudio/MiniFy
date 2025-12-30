@@ -11,3 +11,4 @@ apps/*/build
 apps/*/src-tauri/target
 .git
 
+
