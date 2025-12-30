@@ -1,0 +1,305 @@
+name: Build and Release Desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: Version bump type
+        required: true
+        type: choice
+        default: minor
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+jobs:
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next_version.outputs.version }}
+      version_without_v: ${{ steps.next_version.outputs.version_without_v }}
+      previous_tag: ${{ steps.next_version.outputs.previous_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next release version
+        id: next_version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_TYPE: ${{ inputs.version_type }}
+        run: |
+          set -euo pipefail
+          
+          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$latest" ] || ! [[ "$latest" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            next="v0.1.0"
+            previous_tag=""
+          else
+            version=${latest#v}
+            IFS='.' read -r major minor patch <<< "$version"
+            
+            case "$VERSION_TYPE" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+            
+            next="v${major}.${minor}.${patch}"
+            previous_tag="$latest"
+          fi
+          
+          echo "version=$next" >> $GITHUB_OUTPUT
+          echo "version_without_v=${next#v}" >> $GITHUB_OUTPUT
+          echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
+          echo "Next release: $next (previous: $previous_tag)"
+
+  build:
+    name: Build (${{ matrix.platform.name }})
+    needs: determine-version
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Windows
+            os: windows-latest
+            args: --bundles nsis,msi
+          - name: Linux
+            os: ubuntu-22.04
+            args: --bundles deb,appimage,rpm
+          - name: macOS (Intel)
+            os: macos-13
+            args: --target x86_64-apple-darwin --bundles dmg
+          - name: macOS (ARM)
+            os: macos-latest
+            args: --target aarch64-apple-darwin --bundles dmg
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm_store
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm_store.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Linux dependencies
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust target (macOS)
+        if: contains(matrix.platform.os, 'macos')
+        run: |
+          if [[ "${{ matrix.platform.args }}" == *"x86_64"* ]]; then
+            rustup target add x86_64-apple-darwin
+          else
+            rustup target add aarch64-apple-darwin
+          fi
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './apps/desktop/src-tauri -> target'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Update version in tauri.conf.json
+        shell: bash
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version_without_v }}"
+          node -e "
+            const fs = require('fs');
+            const configPath = 'apps/desktop/src-tauri/tauri.conf.json';
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            config.version = '${VERSION}';
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+          "
+          echo "Updated tauri.conf.json version to ${VERSION}"
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          args: ${{ matrix.platform.args }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.platform.os }}
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/release/bundle/**/*.rpm
+            apps/desktop/src-tauri/target/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/**/*.dmg
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.rpm
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: [determine-version, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f | head -50
+
+      - name: Generate changelog and commits
+        id: changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ needs.determine-version.outputs.previous_tag }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          
+          # Start building the release body
+          BODY="# Release ${VERSION}\n\n"
+          
+          # Generate changelog from changesets if they exist
+          if [ -d ".changeset" ] && [ "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md | head -1)" ]; then
+            BODY+="## 📝 Changelog\n\n"
+            
+            # Parse changeset files for changes
+            MINOR_CHANGES=""
+            PATCH_CHANGES=""
+            
+            for file in .changeset/*.md; do
+              if [ -f "$file" ] && [ "$(basename $file)" != "README.md" ]; then
+                content=$(cat "$file")
+                if echo "$content" | grep -q "minor"; then
+                  change=$(echo "$content" | tail -n +6)
+                  if [ -n "$change" ]; then
+                    MINOR_CHANGES+="- $change\n"
+                  fi
+                elif echo "$content" | grep -q "patch"; then
+                  change=$(echo "$content" | tail -n +6)
+                  if [ -n "$change" ]; then
+                    PATCH_CHANGES+="- $change\n"
+                  fi
+                fi
+              fi
+            done
+            
+            if [ -n "$MINOR_CHANGES" ]; then
+              BODY+="### Minor Changes\n\n${MINOR_CHANGES}\n"
+            fi
+            
+            if [ -n "$PATCH_CHANGES" ]; then
+              BODY+="### Patch Changes\n\n${PATCH_CHANGES}\n"
+            fi
+          fi
+          
+          # Add commits since last release
+          if [ -n "$PREVIOUS_TAG" ]; then
+            BODY+="## 📦 Commits since ${PREVIOUS_TAG}\n\n"
+            
+            commits=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges 2>/dev/null || echo "")
+            
+            if [ -n "$commits" ]; then
+              BODY+="${commits}\n\n"
+            else
+              BODY+="- Initial release\n\n"
+            fi
+          else
+            BODY+="## 📦 Initial Release\n\n"
+            BODY+="This is the first release of MiniFy!\n\n"
+          fi
+          
+          BODY+="---\n\n"
+          BODY+="_This release was generated automatically using GitHub Actions._\n"
+          
+          # Write to file to handle multiline
+          echo -e "$BODY" > release_body.md
+          cat release_body.md
+
+      - name: Collect release files
+        id: collect_files
+        run: |
+          mkdir -p release_files
+          
+          # Find and copy all release artifacts
+          find artifacts -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.dmg" \) -exec cp {} release_files/ \;
+          
+          # List collected files
+          echo "Collected files:"
+          ls -la release_files/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.determine-version.outputs.version }}
+          name: Release ${{ needs.determine-version.outputs.version_without_v }}
+          body_path: release_body.md
+          draft: false
+          prerelease: false
+          files: release_files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
