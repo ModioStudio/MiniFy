@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tauriDir = join(__dirname, '..');
+const projectRoot = join(tauriDir, '..', '..', '..');
 const configPath = join(tauriDir, 'tauri.conf.json');
-const pubkeyPath = join(tauriDir, '.tauri', 'updater.key.pub');
+const pubkeyPath = join(projectRoot, '.tauri', 'updater.key.pub');
 
 if (!existsSync(pubkeyPath)) {
   console.log('No updater.key.pub found, skipping pubkey injection');
