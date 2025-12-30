@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import "./global.css";
 
-import { invoke } from "@tauri-apps/api/core";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { readSettings, writeSettings } from "../lib/settingLib";
-import { applyThemeByName } from "../loader/themeLoader";
+import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
+import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
@@ -39,7 +38,19 @@ export default function App() {
 
   // ---- Apply theme
   useEffect(() => {
-    applyThemeByName(theme);
+    const applyTheme = async () => {
+      if (theme.startsWith("custom:")) {
+        const themeName = theme.replace("custom:", "");
+        const customThemes = await loadCustomThemes();
+        const customTheme = customThemes.find((t) => t.name === themeName);
+        if (customTheme) {
+          applyCustomThemeFromJson(JSON.stringify(customTheme));
+          return;
+        }
+      }
+      applyThemeByName(theme);
+    };
+    applyTheme();
   }, [theme]);
 
   // ---- Native OS context menu
@@ -59,24 +70,16 @@ export default function App() {
             action: () => setView("search"),
           });
 
-          const debugItem = await MenuItem.new({
-            text: "Debug",
-            action: () => void invoke("open_webview_devtools"),
-          });
-
           const separator = await PredefinedMenuItem.new({ item: "Separator" });
           const minimizeItem = await PredefinedMenuItem.new({ item: "Minimize" });
-          const maximizeItem = await PredefinedMenuItem.new({ item: "Maximize" });
           const closeItem = await PredefinedMenuItem.new({ item: "CloseWindow" });
 
           nativeMenuRef.current = await Menu.new({
             items: [
               settingsItem,
               searchItem,
-              debugItem,
               separator,
               minimizeItem,
-              maximizeItem,
               closeItem,
             ],
           });
@@ -145,7 +148,7 @@ export default function App() {
         );
 
       case "search":
-        return <SearchBar />;
+        return <SearchBar onBack={() => setView("app")} />;
 
       case "app":
       default:
