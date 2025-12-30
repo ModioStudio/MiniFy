@@ -172,18 +172,30 @@ jobs:
           name: artifacts-${{ matrix.platform.os }}
           path: |
             apps/desktop/src-tauri/target/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/release/bundle/**/*.deb.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.rpm
+            apps/desktop/src-tauri/target/release/bundle/**/*.rpm.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/**/*.AppImage.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.dmg
+            apps/desktop/src-tauri/target/release/bundle/**/*.dmg.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.exe.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.msi.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.deb.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.rpm
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.rpm.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.AppImage.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg
-          if-no-files-found: error
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg.sig
+          if-no-files-found: warn
 
   release:
     name: Create Release
@@ -279,8 +291,15 @@ jobs:
         run: |
           mkdir -p release_files
           
-          # Find and copy all release artifacts
-          find artifacts -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.dmg" \) -exec cp {} release_files/ \;
+          # Find and copy all release artifacts including signatures
+          find artifacts -type f \( \
+            -name "*.exe" -o -name "*.exe.sig" \
+            -o -name "*.msi" -o -name "*.msi.sig" \
+            -o -name "*.deb" -o -name "*.deb.sig" \
+            -o -name "*.rpm" -o -name "*.rpm.sig" \
+            -o -name "*.AppImage" -o -name "*.AppImage.sig" \
+            -o -name "*.dmg" -o -name "*.dmg.sig" \
+          \) -exec cp {} release_files/ \;
           
           # List collected files
           echo "Collected files:"

@@ -1,0 +1,105 @@
+---
+description: Changeset Guidelines for tracking changes and releases
+globs: 
+alwaysApply: true
+---
+
+# Changeset Guidelines
+
+## When to Create a Changeset
+
+After completing a feature, fix, or significant change, **always create a changeset file** in `.changeset/`.
+
+### Triggers for Changesets
+
+Create a changeset when:
+- ✅ New feature implemented
+- ✅ Bug fix completed
+- ✅ Breaking change introduced
+- ✅ Performance improvement made
+- ✅ New workflow or CI/CD change
+- ✅ Dependency update with user impact
+
+### Skip Changesets for
+
+- ❌ Documentation-only changes
+- ❌ Code style/formatting changes
+- ❌ Test-only changes
+- ❌ Internal refactoring without user impact
+
+## Changeset Format
+
+Create a file in `.changeset/` with a random name like `happy-dogs-dance.md`:
+
+```md
+---
+"MiniFy": <type>
+---
+
+<Short description of the change>
+
+- Detail 1
+- Detail 2
+```
+
+**Line Length Limit: Maximum 99 characters per line.** Break longer descriptions into multiple lines.
+
+### Version Types
+
+| Type | When to Use | Example |
+|------|-------------|---------|
+| `major` | Breaking changes | Removed deprecated API |
+| `minor` | New features | Added dark mode |
+| `patch` | Bug fixes, improvements | Fixed login issue |
+
+## Examples
+
+### Feature (minor)
+
+```md
+---
+"MiniFy": minor
+---
+
+Added theme customization support
+
+- Users can now create custom themes
+- Added theme import/export functionality
+```
+
+### Bug Fix (patch)
+
+```md
+---
+"MiniFy": patch
+---
+
+Fixed Spotify authentication timeout issue
+```
+
+### Breaking Change (major)
+
+```md
+---
+"MiniFy": major
+---
+
+Migrated to new configuration format
+
+- Old config files need to be migrated
+- See migration guide in docs
+```
+
+## File Naming
+
+Use kebab-case with random memorable words:
+- `happy-dogs-dance.md`
+- `brave-lions-jump.md`
+- `quick-cats-sleep.md`
+
+## Workflow Integration
+
+Changesets are automatically processed during releases:
+1. Changelog is generated from all changeset files
+2. Version is bumped based on changeset types
+3. Changeset files are deleted after release
