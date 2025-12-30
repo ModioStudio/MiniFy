@@ -191,7 +191,7 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
       await deleteCustomTheme(themeName);
       await refreshCustomThemes();
       if (currentTheme === `custom:${themeName}`) {
-        applyTheme("dark");
+        await applyTheme("dark");
       }
     } catch (err) {
       console.error("Failed to delete theme:", err);
@@ -222,7 +222,7 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
 
   return (
     <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3" style={{ color: "var(--settings-header-text)" }}>
         <h1 className="text-base font-semibold">Settings</h1>
         <button
           type="button"

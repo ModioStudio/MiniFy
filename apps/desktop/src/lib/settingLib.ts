@@ -24,6 +24,7 @@ export type CustomTheme = {
     panelBorder?: string;
     text?: string;
     textMuted?: string;
+    headerText?: string;
     itemHover?: string;
     itemActive?: string;
     accent?: string;

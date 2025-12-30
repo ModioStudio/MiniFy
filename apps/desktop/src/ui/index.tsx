@@ -47,6 +47,9 @@ export default function App() {
           applyCustomThemeFromJson(JSON.stringify(customTheme));
           return;
         }
+        console.warn(`Custom theme "${themeName}" not found, falling back to default theme`);
+        applyThemeByName("dark");
+        return;
       }
       applyThemeByName(theme);
     };

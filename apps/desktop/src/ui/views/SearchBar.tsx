@@ -35,6 +35,15 @@ export default function SearchBar({ onBack }: SearchBarProps) {
   }, [setLayout]);
 
   useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const loadRecentTracks = async () => {
       setLoadingRecent(true);
       try {
@@ -97,7 +106,7 @@ export default function SearchBar({ onBack }: SearchBarProps) {
 
   return (
     <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3" style={{ color: "var(--settings-header-text)" }}>
         <h1 className="text-base font-semibold">Search</h1>
         <button
           type="button"

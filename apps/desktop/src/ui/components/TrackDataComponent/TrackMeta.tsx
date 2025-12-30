@@ -27,7 +27,7 @@ export function TrackMeta({ title, artists, maxLength = DEFAULT_MAX_LENGTH, isEm
           </div>
         ) : (
           <div 
-            className="text-base -mt-3.5"
+            className="text-base -mt-1.5"
             style={{ color: "var(--player-song-artist-color)", opacity: 0.5 }}
           >
             <span>Click play to resume</span>
@@ -49,7 +49,7 @@ export function TrackMeta({ title, artists, maxLength = DEFAULT_MAX_LENGTH, isEm
       )}
 
       {artists && (
-        <div className="text-base -mt-3.5 text-(--player-song-artist-color)/80">
+        <div className="text-base -mt-1.5 text-(--player-song-artist-color)/80">
           <span>{truncateText(artists, maxLength)}</span>
         </div>
       )}

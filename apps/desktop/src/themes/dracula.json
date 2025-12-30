@@ -11,6 +11,7 @@
     "panelBorder": "rgba(33, 34, 44, 0.10)",
     "text": "#21222c",
     "textMuted": "rgba(33, 34, 44, 0.7)",
+    "headerText": "#FFFFFF",
     "itemHover": "rgba(139, 233, 253, 0.05)",
     "itemActive": "rgba(139, 233, 253, 0.15)",
     "accent": "#BD93F9"

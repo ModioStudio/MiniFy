@@ -49,6 +49,7 @@ export type ThemeConfig = {
     panelBorder?: string;
     text?: string;
     textMuted?: string;
+    headerText?: string;
     itemHover?: string;
     itemActive?: string;
     accent?: string;
@@ -68,6 +69,7 @@ type RawTheme = {
     panelBorder?: string;
     text?: string;
     textMuted?: string;
+    headerText?: string;
     itemHover?: string;
     itemActive?: string;
     accent?: string;
@@ -153,6 +155,7 @@ export function applyThemeConfig(t: ThemeConfig): void {
   root.style.setProperty("--settings-panel-border", t.settings?.panelBorder ?? "#ffffff1a");
   root.style.setProperty("--settings-text", t.settings?.text ?? "#ffffff");
   root.style.setProperty("--settings-text-muted", t.settings?.textMuted ?? "#e0e0e0");
+  root.style.setProperty("--settings-header-text", t.settings?.headerText ?? t.settings?.text ?? "#ffffff");
   root.style.setProperty("--settings-item-hover", t.settings?.itemHover ?? "#ffffff14");
   root.style.setProperty("--settings-item-active", t.settings?.itemActive ?? "#ffffff24");
   root.style.setProperty("--settings-accent", t.settings?.accent ?? "#74C7EC");
