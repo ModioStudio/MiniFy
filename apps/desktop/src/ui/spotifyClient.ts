@@ -112,3 +112,49 @@ export function getLargestImageUrl(images: SimplifiedAlbum["images"]): string | 
   const sorted = [...images].sort((a, b) => b.width - a.width);
   return sorted[0]?.url ?? null;
 }
+
+interface SpotifySearchResponse {
+  tracks: {
+    items: SimplifiedTrack[];
+    total: number;
+  };
+}
+
+export async function searchTracks(query: string, limit: number): Promise<SimplifiedTrack[]> {
+  if (!query.trim()) return [];
+  
+  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}`;
+  const data = await request<SpotifySearchResponse>(url);
+  return data.tracks.items;
+}
+
+export async function playTrack(trackUri: string): Promise<void> {
+  await request<void>("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    body: JSON.stringify({ uris: [trackUri] }),
+  });
+}
+
+interface RecentlyPlayedResponse {
+  items: Array<{
+    track: SimplifiedTrack;
+    played_at: string;
+  }>;
+}
+
+export async function fetchRecentlyPlayed(limit: number): Promise<SimplifiedTrack[]> {
+  const url = `https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`;
+  const data = await request<RecentlyPlayedResponse>(url);
+  
+  const seen = new Set<string>();
+  const uniqueTracks: SimplifiedTrack[] = [];
+  
+  for (const item of data.items) {
+    if (!seen.has(item.track.id)) {
+      seen.add(item.track.id);
+      uniqueTracks.push(item.track);
+    }
+  }
+  
+  return uniqueTracks;
+}

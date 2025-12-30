@@ -1,0 +1,107 @@
+---
+title: Layouts
+description: Learn about the different layout options available in MiniFy.
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+# Layouts
+
+MiniFy offers multiple layout options to fit different use cases and preferences. Choose the layout that works best for your workflow.
+
+## Available Layouts
+
+<CardGrid>
+  <Card title="Layout A - Compact" icon="rocket">
+    Minimal footprint showing only essential information. Perfect for keeping in a corner of your screen.
+  </Card>
+  <Card title="Layout B - Standard" icon="laptop">
+    Balanced view with album art, track info, and playback controls.
+  </Card>
+  <Card title="Layout C - Expanded" icon="open-book">
+    Full-featured view with larger album art and additional track details.
+  </Card>
+</CardGrid>
+
+## Layout A - Compact
+
+The compact layout is designed for users who want minimal screen real estate usage.
+
+**Features:**
+- Small, horizontal design
+- Track name and artist only
+- Essential playback controls
+- Minimal height (~50px)
+
+**Best for:**
+- Multi-monitor setups
+- Always-on-top usage
+- Users who prefer minimal interfaces
+
+## Layout B - Standard
+
+The standard layout provides a balanced experience with all essential features visible.
+
+**Features:**
+- Square album art
+- Track name and artist
+- Progress bar with time
+- Full playback controls
+- Volume slider
+
+**Best for:**
+- General use
+- Desktop widgets
+- Most users
+
+## Layout C - Expanded
+
+The expanded layout maximizes information display and visual appeal.
+
+**Features:**
+- Large album art
+- Full track information
+- Progress bar with timestamps
+- Playback and volume controls
+- Additional metadata
+
+**Best for:**
+- Music enthusiasts
+- Larger screen real estate
+- When you want to showcase the album art
+
+## Changing Layouts
+
+### Via Context Menu
+
+1. Right-click anywhere in MiniFy
+2. Hover over "Layout"
+3. Select your preferred layout
+
+### Via Settings
+
+1. Open Settings (`Ctrl+,` or `⌘+,`)
+2. Navigate to the "Appearance" section
+3. Select your layout from the dropdown
+
+### Via Keyboard Shortcut
+
+Configure a keyboard shortcut to cycle through layouts in Settings → Keyboard Shortcuts.
+
+<Aside type="tip">
+  You can set different layouts for different themes, allowing you to create multiple "profiles" for different use cases.
+</Aside>
+
+## Window Sizing
+
+Each layout has recommended window sizes:
+
+| Layout | Recommended Size |
+|--------|------------------|
+| Compact | 300 × 50 px |
+| Standard | 300 × 150 px |
+| Expanded | 350 × 350 px |
+
+The window can be resized freely, and the layout will adapt to the available space.
+
+

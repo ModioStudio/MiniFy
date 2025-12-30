@@ -12,6 +12,7 @@
     "panelBorder": "rgba(0, 0, 0, 0.10)",
     "text": "#000000",
     "textMuted": "rgba(80, 80, 80, 0.70)",
+    "headerText": "#FFFFFF",
     "itemHover": "rgba(0, 0, 0, 0.04)",
     "itemActive": "rgba(0, 0, 0, 0.08)",
     "accent": "#007BFF"

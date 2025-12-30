@@ -1,0 +1,137 @@
+{
+  "nav": {
+    "features": "Características",
+    "download": "Descargar",
+    "opensource": "Código Abierto",
+    "docs": "Documentación"
+  },
+  "hero": {
+    "badge": "Código Abierto",
+    "titleBefore": "Tu",
+    "titleAfter": ", Bellamente Minimizado",
+    "description": "Un reproductor mini de escritorio ligero para Spotify. Construido con Tauri + React, con autenticación OAuth, múltiples diseños y sensación nativa.",
+    "downloadButton": "Descargar Ahora",
+    "githubButton": "Ver en GitHub"
+  },
+  "features": {
+    "sectionTitle": "Características Potentes",
+    "sectionDescription": "Todo lo que necesitas para la experiencia perfecta del mini reproductor de Spotify",
+    "spotify": {
+      "title": "Integración con Spotify",
+      "description": "Autenticación OAuth sin fisuras con actualización automática de tokens y control total de reproducción."
+    },
+    "layouts": {
+      "title": "Múltiples Diseños",
+      "description": "Elige entre tres hermosos diseños (A, B, C) para adaptarse a tu flujo de trabajo y estilo."
+    },
+    "themes": {
+      "title": "Temas Personalizables",
+      "description": "Cambia entre temas predefinidos y personaliza colores para hacer MiniFy verdaderamente tuyo."
+    },
+    "performance": {
+      "title": "Ultrarrápido",
+      "description": "Construido con Tauri y Rust para un rendimiento excepcional y uso mínimo de recursos."
+    },
+    "secure": {
+      "title": "Seguro y Privado",
+      "description": "Tokens almacenados de forma segura en disco con flujo OAuth y sin recopilación de datos."
+    },
+    "customizable": {
+      "title": "Totalmente Personalizable",
+      "description": "Atajos de teclado, regiones de arrastre y menús contextuales nativos para control total."
+    }
+  },
+  "download": {
+    "sectionTitle": "Descargar MiniFy",
+    "sectionDescription": "Comienza gratis con MiniFy. Disponible para Windows y Linux.",
+    "latestVersion": "Última Versión",
+    "loading": "Cargando información de la versión...",
+    "windowsDescription": "Windows 10/11 (64-bit)",
+    "macosDescription": "macOS 11+ (Intel & Apple Silicon)",
+    "linuxDescription": "Ubuntu, Debian, Fedora (64-bit)",
+    "downloadButton": "Descargar",
+    "viewReleases": "Ver Todas las Versiones",
+    "systemRequirements": "Requisitos del sistema e instrucciones de instalación",
+    "learnMore": "Más información"
+  },
+  "downloadPage": {
+    "title": "Descargar MiniFy",
+    "subtitle": "Elige tu plataforma y comienza con el mejor mini reproductor de Spotify",
+    "recommended": "Recomendado",
+    "windows": {
+      "title": "Windows",
+      "description": "Para Windows 10 y Windows 11 (64-bit)",
+      "features": ["Actualizaciones Automáticas", "Integración Nativa de Windows", "Soporte de Atajos"],
+      "size": "Tamaño: 45 MB | Firmado y Verificado"
+    },
+    "macos": {
+      "title": "macOS",
+      "description": "Para macOS 11+ (Intel y Apple Silicon)",
+      "features": ["Universal Binary (Intel + M1/M2/M3)", "Integración Nativa de macOS", "Touch Bar y Teclas Multimedia"],
+      "size": "Tamaño: 48 MB | Notarizado y Firmado"
+    },
+    "linux": {
+      "title": "Linux",
+      "description": "Para Ubuntu, Debian, Fedora y otros (64-bit)",
+      "features": [".deb, .rpm y AppImage", "Soporte Wayland y X11", "Integración con Bandeja del Sistema"],
+      "size": "Tamaño: 42 MB | Firmado con GPG"
+    },
+    "latestVersion": "Última Versión",
+    "releasedOn": "Publicado el",
+    "allReleases": "Todas las Versiones",
+    "systemRequirements": "Requisitos del Sistema",
+    "requirements": {
+      "os": "Sistema Operativo",
+      "cpu": "Procesador",
+      "ram": "Memoria",
+      "other": "Otros",
+      "minRam": "Mín: 4 GB RAM",
+      "recRam": "Recomendado: 8 GB+",
+      "usage": "Uso: ~45 MB",
+      "internet": "Conexión a Internet",
+      "spotifyAccount": "Cuenta de Spotify",
+      "storage": "100 MB de Almacenamiento"
+    },
+    "installation": "Guía de Instalación",
+    "installSteps": {
+      "windows": ["Descarga el archivo .exe", "Ejecuta el instalador", "Sigue los pasos de instalación", "Inicia MiniFy e inicia sesión con Spotify"],
+      "macos": ["Descarga el archivo .dmg", "Abre el DMG y arrastra MiniFy a Aplicaciones", "Abre MiniFy desde la carpeta Aplicaciones", "Si hay advertencia: Preferencias del Sistema → Seguridad"],
+      "linux": {
+        "deb": "Debian/Ubuntu (.deb):",
+        "rpm": "Fedora/RHEL (.rpm):",
+        "appimage": "AppImage:"
+      }
+    },
+    "help": {
+      "title": "¿Necesitas Ayuda?",
+      "description": "Consulta nuestra documentación o visita el repositorio de GitHub para soporte.",
+      "docs": "Documentación",
+      "issues": "Reportar Problemas"
+    }
+  },
+  "opensource": {
+    "title": "Código Abierto y Comunidad",
+    "description": "MiniFy se construye abiertamente con contribuciones de desarrolladores de todo el mundo. ¡Únete a nosotros!",
+    "stars": "Estrellas",
+    "forks": "Forks",
+    "contributors": "Colaboradores",
+    "starButton": "Dar Estrella",
+    "contributeButton": "Contribuir",
+    "license": "Licenciado bajo",
+    "viewAll": "Ver todos →"
+  },
+  "footer": {
+    "description": "Un reproductor mini de Spotify ligero construido con Tauri, React y amor por la música.",
+    "product": "Producto",
+    "features": "Características",
+    "download": "Descargar",
+    "releases": "Versiones",
+    "community": "Comunidad",
+    "contributing": "Contribuir",
+    "codeOfConduct": "Código de Conducta",
+    "madeWith": "Hecho con",
+    "byTeam": "por el equipo MiniFy",
+    "allRightsReserved": "Todos los derechos reservados."
+  }
+}
+

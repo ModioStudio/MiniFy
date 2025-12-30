@@ -110,7 +110,7 @@ export function PlaybackBar({
         </span>
       </div>
       <div
-        className="relative h-2 w-full rounded-full cursor-pointer hover:cursor-ew-resize select-none"
+        className="relative h-2 w-full rounded-full cursor-pointer select-none"
         style={{ background: "var(--player-playbar-track-bg)" }}
         role="slider"
         aria-valuemin={0}

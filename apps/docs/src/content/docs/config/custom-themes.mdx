@@ -1,0 +1,198 @@
+---
+title: Custom Themes
+description: Create your own custom themes for MiniFy.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Custom Themes
+
+MiniFy supports fully customizable themes. This guide will walk you through creating your own theme from scratch.
+
+## Theme File Location
+
+Custom themes should be placed in the themes directory:
+
+<Tabs>
+  <TabItem label="Windows">
+    ```
+    %APPDATA%\MiniFy\themes\
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```
+    ~/Library/Application Support/MiniFy/themes/
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```
+    ~/.config/MiniFy/themes/
+    ```
+  </TabItem>
+</Tabs>
+
+## Creating a Theme
+
+<Steps>
+1. **Create a new JSON file**
+   
+   Name your theme file descriptively, e.g., `ocean-breeze.json`
+
+2. **Add the basic structure**
+   
+   ```json
+   {
+     "name": "Ocean Breeze",
+     "author": "Your Name",
+     "version": "1.0.0",
+     "colors": {}
+   }
+   ```
+
+3. **Define your colors**
+   
+   Fill in the colors object with your color scheme.
+
+4. **Save and restart MiniFy**
+   
+   Your theme will appear in the themes menu.
+</Steps>
+
+## Theme Schema
+
+Here's the complete theme schema with all available properties:
+
+```json
+{
+  "name": "Theme Name",
+  "author": "Author Name",
+  "version": "1.0.0",
+  "description": "A brief description of your theme",
+  "colors": {
+    "background": "#0a0a0a",
+    "foreground": "#ffffff",
+    "primary": "#1DB954",
+    "secondary": "#1a1a1a",
+    "accent": "#1ed760",
+    "muted": "#666666",
+    "border": "#2a2a2a",
+    "success": "#22c55e",
+    "warning": "#f59e0b",
+    "error": "#ef4444"
+  }
+}
+```
+
+## Color Properties
+
+| Property | Description | Used For |
+|----------|-------------|----------|
+| `background` | Main background color | Window background |
+| `foreground` | Primary text color | Track name, labels |
+| `primary` | Brand/accent color | Buttons, links, progress bar |
+| `secondary` | Secondary background | Cards, panels, hover states |
+| `accent` | Highlight color | Active states, focus rings |
+| `muted` | Subdued text color | Artist name, timestamps |
+| `border` | Border color | Dividers, outlines |
+| `success` | Success states | Volume indicator (high) |
+| `warning` | Warning states | Low battery, etc. |
+| `error` | Error states | Disconnection notices |
+
+## Color Format
+
+Colors can be specified in several formats:
+
+```json
+{
+  "colors": {
+    "background": "#0a0a0a",
+    "foreground": "rgb(255, 255, 255)",
+    "primary": "hsl(142, 76%, 36%)",
+    "accent": "rgba(30, 215, 96, 0.8)"
+  }
+}
+```
+
+<Aside type="tip">
+  Hex colors (#RRGGBB) are recommended for consistency and ease of editing.
+</Aside>
+
+## Example Themes
+
+### Nord Theme
+
+```json
+{
+  "name": "Nord",
+  "author": "Arctic Ice Studio",
+  "colors": {
+    "background": "#2e3440",
+    "foreground": "#eceff4",
+    "primary": "#88c0d0",
+    "secondary": "#3b4252",
+    "accent": "#81a1c1",
+    "muted": "#4c566a",
+    "border": "#434c5e"
+  }
+}
+```
+
+### Solarized Dark
+
+```json
+{
+  "name": "Solarized Dark",
+  "author": "Ethan Schoonover",
+  "colors": {
+    "background": "#002b36",
+    "foreground": "#839496",
+    "primary": "#268bd2",
+    "secondary": "#073642",
+    "accent": "#2aa198",
+    "muted": "#586e75",
+    "border": "#073642"
+  }
+}
+```
+
+### Tokyo Night
+
+```json
+{
+  "name": "Tokyo Night",
+  "author": "enkia",
+  "colors": {
+    "background": "#1a1b26",
+    "foreground": "#c0caf5",
+    "primary": "#7aa2f7",
+    "secondary": "#24283b",
+    "accent": "#bb9af7",
+    "muted": "#565f89",
+    "border": "#414868"
+  }
+}
+```
+
+## Testing Your Theme
+
+1. Save your theme file in the themes directory
+2. Restart MiniFy (or use Ctrl+R to reload)
+3. Select your theme from the themes menu
+4. Iterate on colors until satisfied
+
+<Aside type="note">
+  Use browser dev tools like the color picker for inspiration. Sites like [coolors.co](https://coolors.co) and [colorhunt.co](https://colorhunt.co) are great resources.
+</Aside>
+
+## Sharing Your Theme
+
+Love your theme? Share it with others:
+
+1. Fork the [MiniFy repository](https://github.com/ModioStudio/MiniFy)
+2. Add your theme JSON to `apps/desktop/src/themes/`
+3. Update the themes index if required
+4. Submit a pull request
+
+All theme contributions are welcome!
+
+

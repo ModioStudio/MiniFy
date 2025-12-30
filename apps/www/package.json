@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "dotenv -e ../../.env next dev",
     "lint": "biome check --config-path ../../biome.json .",
     "start": "next start"
   },
@@ -64,6 +64,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
+    "dotenv-cli": "^8.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

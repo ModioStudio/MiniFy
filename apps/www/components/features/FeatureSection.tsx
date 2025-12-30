@@ -1,20 +1,17 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Layout, Lock, Palette, Shield, Sliders, SpotifyLogoIcon } from "@phosphor-icons/react";
+import { useLanguage } from "@/hooks/use-language";
+import { Layout, Lock, Palette, Sliders, SpotifyLogoIcon } from "@phosphor-icons/react";
 import { Zap } from "lucide-react";
 import { useState } from "react";
 
 export function FeaturesSection() {
-  // Interaktive States
+  const { t } = useLanguage();
+
   const [spotifyConnected, setSpotifyConnected] = useState(true);
   const [activeLayout, setActiveLayout] = useState<"A" | "B" | "C">("A");
   const [activeTheme, setActiveTheme] = useState(0);
-  const [keyboardShortcuts] = useState([
-    { label: "Play/Pause", key: "Space" },
-    { label: "Next Track", key: "→" },
-    { label: "Toggle Window", key: "Cmd+Shift+M" },
-  ]);
 
   const layouts = {
     A: { bar: "1/3", dots: 1, color: "#1DB954" },
@@ -31,30 +28,25 @@ export function FeaturesSection() {
   return (
     <section className="py-20 md:py-32">
       <div className="container mx-auto px-4">
-        {/* Header */}
         <div className="mx-auto mb-16 max-w-3xl text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            Leistungsstarke Features
+            {t.features.sectionTitle}
           </h2>
           <p className="text-lg text-muted-foreground">
-            Alles, was du für das perfekte Spotify Mini-Player-Erlebnis brauchst
+            {t.features.sectionDescription}
           </p>
         </div>
 
-        {/* Bento Grid */}
         <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* Spotify Integration */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1DB954]/50 md:col-span-2 lg:col-span-2">
             <div className="mb-6 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
               <Lock className="h-6 w-6 text-[#1DB954]" />
             </div>
-            <h3 className="mb-3 text-2xl font-bold">Spotify Integration</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.features.spotify.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Nahtlose OAuth-Authentifizierung mit automatischer Token-Aktualisierung und voller
-              Wiedergabekontrolle.
+              {t.features.spotify.description}
             </p>
 
-            {/* MiniMock */}
             <div className="relative rounded-lg border border-border/40 bg-background/50 p-6 backdrop-blur-sm">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1DB954]">
@@ -88,9 +80,7 @@ export function FeaturesSection() {
                 </button>
               </div>
 
-              {/* Playlist / Songs */}
               <div className="space-y-2">
-                // biome-ignore lint/suspicious/noArrayIndexKey
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
@@ -116,9 +106,9 @@ export function FeaturesSection() {
             <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
               <Layout className="h-6 w-6 text-[#1ed760]" />
             </div>
-            <h3 className="mb-3 text-2xl font-bold">Mehrere Layouts</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.features.layouts.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Wähle aus drei schönen Layouts (A, B, C), die zu deinem Workflow und Stil passen.
+              {t.features.layouts.description}
             </p>
 
             <div className="space-y-3">
@@ -141,7 +131,6 @@ export function FeaturesSection() {
                 ))}
               </div>
 
-              {/* MiniMock */}
               <div className="rounded-lg border border-border/40 bg-background/50 p-4 backdrop-blur-sm transition-all">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-12 w-12 rounded bg-[color:var(--mock-color)]/20 transition-colors" />
@@ -166,7 +155,6 @@ export function FeaturesSection() {
                       style={{ backgroundColor: layouts[activeLayout].color }}
                     />
                   ))}
-                  {/* Füge leere Dots für Layouts mit weniger Punkten hinzu, um gleiche Breite zu behalten */}
                   {[...Array(5 - layouts[activeLayout].dots)].map((_, i) => (
                     <div
                       key={`empty-${i}`}
@@ -178,15 +166,13 @@ export function FeaturesSection() {
             </div>
           </Card>
 
-          {/* Themes */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1DB954]/50">
             <div className="mb-6 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
               <Palette className="h-6 w-6 text-[#1DB954]" />
             </div>
-            <h3 className="mb-3 text-2xl font-bold">Anpassbare Themes</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.features.themes.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Wechsle zwischen Theme-Vorlagen und passe Farben an, um MiniFy zu deinem eigenen zu
-              machen.
+              {t.features.themes.description}
             </p>
 
             <div className="space-y-3">
@@ -224,18 +210,15 @@ export function FeaturesSection() {
             </div>
           </Card>
 
-          {/* Blitzschnell */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1ed760]/50">
             <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
               <Zap className="h-6 w-6 text-[#1ed760]" />
             </div>
-            <h3 className="mb-3 text-2xl font-bold">Blitzschnell</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.features.performance.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Mit Tauri und Rust für außergewöhnliche Performance und minimalen Ressourcenverbrauch
-              gebaut.
+              {t.features.performance.description}
             </p>
 
-            {/* MiniMock: Performance Metrics */}
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-border/40 bg-background/50 p-3 hover:bg-[#1DB954]/10 transition-colors cursor-pointer">
@@ -256,7 +239,7 @@ export function FeaturesSection() {
 
               <div className="rounded-lg border border-border/40 bg-background/50 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-medium">Startup Zeit</span>
+                  <span className="text-xs font-medium">Startup</span>
                   <span className="text-xs font-mono text-[#1DB954]">{"<"}100ms</span>
                 </div>
                 <div className="relative h-2 overflow-hidden rounded-full bg-muted">
@@ -271,17 +254,15 @@ export function FeaturesSection() {
             </div>
           </Card>
 
-          {/* Vollständig anpassbar */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1ed760]/50">
             <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
               <Sliders className="h-6 w-6 text-[#1ed760]" />
             </div>
-            <h3 className="mb-3 text-2xl font-bold">Vollständig Anpassbar</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.features.customizable.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Tastenkombinationen, Ziehbereiche und native Kontextmenüs für volle Kontrolle.
+              {t.features.customizable.description}
             </p>
 
-            {/* MiniMock: Customization Options */}
             <div className="space-y-3">
               <div className="rounded-lg border border-border/40 bg-background/50 p-3">
                 <div className="mb-2 flex items-center justify-between">

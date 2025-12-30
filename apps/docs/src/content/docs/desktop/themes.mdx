@@ -1,0 +1,145 @@
+---
+title: Themes
+description: Explore the available themes in MiniFy and learn how to customize them.
+---
+
+import { Card, CardGrid, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Themes
+
+MiniFy comes with 8 carefully crafted themes to match your style and environment. Each theme is designed to provide excellent readability while looking beautiful.
+
+## Built-in Themes
+
+<CardGrid stagger>
+  <Card title="Dark" icon="moon">
+    The default dark theme. Clean, minimal, and easy on the eyes.
+  </Card>
+  <Card title="Light" icon="sun">
+    A bright, clean theme for well-lit environments.
+  </Card>
+  <Card title="Catppuccin" icon="seti:svg">
+    Popular pastel theme with warm, soothing colors.
+  </Card>
+  <Card title="Dracula" icon="seti:svg">
+    Classic dark theme with purple accents.
+  </Card>
+  <Card title="ChatGPT" icon="seti:svg">
+    Inspired by the ChatGPT interface. Dark with teal accents.
+  </Card>
+  <Card title="YouTube" icon="seti:svg">
+    Inspired by YouTube Music. Dark red theme.
+  </Card>
+  <Card title="BMW" icon="seti:svg">
+    Inspired by BMW iDrive. Blue and orange accents.
+  </Card>
+  <Card title="Milka" icon="seti:svg">
+    Fun purple theme inspired by the chocolate brand.
+  </Card>
+</CardGrid>
+
+## Theme Structure
+
+Each theme is a JSON file that defines colors and styling:
+
+```json
+{
+  "name": "dark",
+  "colors": {
+    "background": "#0a0a0a",
+    "foreground": "#fafafa",
+    "primary": "#1DB954",
+    "secondary": "#1a1a1a",
+    "accent": "#1ed760",
+    "muted": "#666666",
+    "border": "#2a2a2a"
+  }
+}
+```
+
+## Changing Themes
+
+### Via Context Menu
+
+1. Right-click anywhere in MiniFy
+2. Hover over "Themes"
+3. Select your preferred theme
+
+### Via Settings
+
+1. Open Settings (`Ctrl+,` or `⌘+,`)
+2. Navigate to "Appearance"
+3. Select a theme from the dropdown
+
+## Custom Themes
+
+You can create your own themes by adding JSON files to the themes directory.
+
+<Tabs>
+  <TabItem label="Windows">
+    ```
+    %APPDATA%\MiniFy\themes\
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```
+    ~/Library/Application Support/MiniFy/themes/
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```
+    ~/.config/MiniFy/themes/
+    ```
+  </TabItem>
+</Tabs>
+
+### Creating a Custom Theme
+
+1. Create a new JSON file (e.g., `my-theme.json`)
+2. Define your theme structure:
+
+```json
+{
+  "name": "My Custom Theme",
+  "colors": {
+    "background": "#1e1e2e",
+    "foreground": "#cdd6f4",
+    "primary": "#89b4fa",
+    "secondary": "#313244",
+    "accent": "#f5c2e7",
+    "muted": "#6c7086",
+    "border": "#45475a"
+  }
+}
+```
+
+3. Restart MiniFy to load the new theme
+4. Select your theme from the themes menu
+
+<Aside type="tip">
+  Use a color picker tool or reference sites like [coolors.co](https://coolors.co) to create harmonious color schemes.
+</Aside>
+
+## Color Reference
+
+| Property | Description |
+|----------|-------------|
+| `background` | Main window background |
+| `foreground` | Primary text color |
+| `primary` | Accent color for buttons and highlights |
+| `secondary` | Secondary background (cards, panels) |
+| `accent` | Hover states and emphasis |
+| `muted` | Subtle text and icons |
+| `border` | Border colors |
+
+## Sharing Themes
+
+Created a cool theme? Share it with the community!
+
+1. Fork the [MiniFy repository](https://github.com/ModioStudio/MiniFy)
+2. Add your theme to `apps/desktop/src/themes/`
+3. Submit a pull request
+
+See the [Contributing Guide](/dev/contributing/) for more details.
+
+

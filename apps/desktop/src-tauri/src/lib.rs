@@ -2,6 +2,7 @@ pub mod settings;
 pub mod spotify_auth;
 pub mod debug;
 pub mod resize;
+pub mod custom_themes;
 
 pub fn run() {
     let app = tauri::Builder::default()
@@ -20,7 +21,12 @@ pub fn run() {
             spotify_auth::refresh_access_token,
             spotify_auth::clear_credentials,
             debug::open_webview_devtools,
-            resize::set_layout
+            resize::set_layout,
+            custom_themes::save_custom_theme,
+            custom_themes::load_custom_themes,
+            custom_themes::delete_custom_theme,
+            custom_themes::export_custom_theme,
+            custom_themes::validate_theme_json
         ])
         .setup(|app| {
             spotify_auth::spawn_token_refresh_task(app.handle().clone());

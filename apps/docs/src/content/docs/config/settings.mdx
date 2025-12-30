@@ -1,0 +1,138 @@
+---
+title: Settings
+description: Configure MiniFy to work exactly how you want.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Settings
+
+MiniFy offers various settings to customize your experience. Access settings by pressing `Ctrl+,` (Windows/Linux) or `⌘+,` (macOS).
+
+## General Settings
+
+### Startup
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Launch on startup | Start MiniFy when your computer boots | Off |
+| Start minimized | Hide MiniFy window on startup | Off |
+| Check for updates | Automatically check for new versions | On |
+
+### Window Behavior
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Always on top | Keep MiniFy above other windows | Off |
+| Show in taskbar | Display MiniFy in the system taskbar | On |
+| Click-through mode | Allow clicks to pass through the window | Off |
+
+## Appearance Settings
+
+### Theme
+
+Select from built-in themes or custom themes you've added.
+
+### Layout
+
+Choose your preferred layout:
+- **Compact**: Minimal information, small footprint
+- **Standard**: Balanced view with all controls
+- **Expanded**: Full-featured with large album art
+
+### Transparency
+
+Adjust window transparency from 0% (fully opaque) to 90% (mostly transparent).
+
+<Aside type="note">
+  High transparency levels may affect readability depending on your desktop background.
+</Aside>
+
+### Custom CSS
+
+Advanced users can inject custom CSS to further customize the appearance.
+
+```css
+/* Example: Make all text uppercase */
+.track-title {
+  text-transform: uppercase;
+}
+```
+
+## Playback Settings
+
+### Progress Bar
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Show progress bar | Display the playback progress | On |
+| Clickable progress | Allow seeking by clicking the progress bar | On |
+| Show timestamps | Display current and total time | On |
+
+### Controls
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Show volume slider | Display the volume control | On |
+| Show shuffle button | Display the shuffle toggle | Off |
+| Show repeat button | Display the repeat toggle | Off |
+
+## Privacy Settings
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Send analytics | Help improve MiniFy with anonymous usage data | Off |
+| Clear cache on exit | Delete cached album art when closing | Off |
+
+<Aside type="tip">
+  MiniFy is privacy-focused. Analytics are opt-in and completely anonymous.
+</Aside>
+
+## Data & Storage
+
+### Cache Location
+
+Album art and other temporary data are stored in:
+
+- **Windows**: `%LOCALAPPDATA%\MiniFy\cache\`
+- **macOS**: `~/Library/Caches/MiniFy/`
+- **Linux**: `~/.cache/MiniFy/`
+
+### Clear Cache
+
+Clear the cache to free up disk space or resolve display issues:
+
+1. Open Settings
+2. Navigate to "Data & Storage"
+3. Click "Clear Cache"
+
+### Export Settings
+
+Export your settings to a JSON file for backup or sharing:
+
+1. Open Settings
+2. Click "Export Settings"
+3. Choose a save location
+
+### Import Settings
+
+Import previously exported settings:
+
+1. Open Settings
+2. Click "Import Settings"
+3. Select your settings file
+
+## Resetting Settings
+
+To reset all settings to their defaults:
+
+1. Open Settings
+2. Scroll to the bottom
+3. Click "Reset All Settings"
+4. Confirm the reset
+
+<Aside type="caution">
+  Resetting settings cannot be undone. Export your settings first if you want to keep a backup.
+</Aside>
+
+

@@ -1,0 +1,97 @@
+---
+title: Authentication
+description: How MiniFy authenticates with Spotify using OAuth.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Authentication
+
+MiniFy uses Spotify's OAuth 2.0 authentication to securely access your Spotify account. This page explains how the authentication process works and how to troubleshoot common issues.
+
+## How It Works
+
+MiniFy uses the **Authorization Code Flow with PKCE** (Proof Key for Code Exchange), which is the most secure OAuth flow for desktop applications.
+
+<Steps>
+1. **User initiates authentication**
+   
+   When you click "Connect to Spotify", MiniFy generates a unique code verifier and challenge.
+
+2. **Browser authorization**
+   
+   Your default browser opens to Spotify's authorization page where you log in and approve MiniFy's access.
+
+3. **Callback handling**
+   
+   Spotify redirects to a local callback URL that MiniFy is listening on.
+
+4. **Token exchange**
+   
+   MiniFy exchanges the authorization code for access and refresh tokens.
+
+5. **Secure storage**
+   
+   Tokens are stored securely on your local system.
+</Steps>
+
+## Required Permissions
+
+MiniFy requests the following Spotify scopes:
+
+| Scope | Purpose |
+|-------|---------|
+| `user-read-playback-state` | Read your current playback state |
+| `user-modify-playback-state` | Control playback (play, pause, skip) |
+| `user-read-currently-playing` | See the currently playing track |
+
+<Aside type="note">
+  MiniFy never accesses your playlists, saved tracks, or personal information beyond what's needed for playback control.
+</Aside>
+
+## Token Management
+
+### Access Tokens
+
+Access tokens are short-lived (1 hour) and are automatically refreshed when they expire.
+
+### Refresh Tokens
+
+Refresh tokens are stored securely and used to obtain new access tokens without requiring you to log in again.
+
+### Token Storage
+
+On each platform, tokens are stored in:
+
+- **Windows**: `%APPDATA%\MiniFy\`
+- **macOS**: `~/Library/Application Support/MiniFy/`
+- **Linux**: `~/.config/MiniFy/`
+
+## Disconnecting
+
+To disconnect MiniFy from your Spotify account:
+
+1. Open MiniFy Settings
+2. Click "Disconnect from Spotify"
+3. Confirm the disconnection
+
+This will delete your local tokens. You can also revoke access from your [Spotify Account Settings](https://www.spotify.com/account/apps/).
+
+## Troubleshooting
+
+### Authentication fails
+
+- Make sure you have an active internet connection
+- Check that your browser can access `accounts.spotify.com`
+- Try clearing your browser cookies for Spotify
+
+### Token refresh fails
+
+- Delete the token file from the storage location above
+- Restart MiniFy and authenticate again
+
+### "Invalid redirect URI" error
+
+This usually indicates a bug. Please [report it on GitHub](https://github.com/ModioStudio/MiniFy/issues).
+
+

@@ -1,0 +1,56 @@
+{
+  "name": "chatgpt",
+
+  "panel": {
+    "background": "#0F172A",
+    "borderRadius": 18,
+    "shadow": "0 16px 48px rgba(0, 0, 0, 0.6)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(15, 23, 42, 0.55)",
+    "panelBorder": "rgba(16, 163, 127, 0.10)",
+    "text": "#94A3B8",
+    "textMuted": "rgba(148, 163, 184, 0.7)",
+    "itemHover": "rgba(255, 255, 255, 0.07)",
+    "itemActive": "rgba(255, 255, 255, 0.14)",
+    "accent": "#10A37F"
+  },
+
+  "controls": {
+    "iconColor": "#94A3B8",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.07)"
+  },
+
+  "playbar": {
+    "trackBg": "#1E293B",
+    "trackFill": "linear-gradient(90deg, #10A37F 0%, #22C55E 100%)",
+    "thumbColor": "#22C55E",
+    "timeTextColor": "#22C55E"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#94A3B8",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.05)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.14)"
+  },
+
+  "cover": {
+    "borderColor": "#10A37F",
+    "borderRadius": 12
+  }
+}
+

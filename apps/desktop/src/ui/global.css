@@ -19,20 +19,19 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
-  -webkit-app-region: drag;
-  cursor: grab !important;
+  height: 20px;
+  cursor: move;
   pointer-events: auto;
   background: transparent;
   z-index: 50;
 }
 
 .drag-area:hover {
-  cursor: grab !important;
+  cursor: move;
 }
 
 .drag-area:active {
-  cursor: grabbing !important;
+  cursor: move;
 }
 
 /* App scrollbar styling */

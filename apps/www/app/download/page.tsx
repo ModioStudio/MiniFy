@@ -1,6 +1,10 @@
+"use client";
+
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GridBackground } from "@/components/ui/grid-background";
+import { useLanguage } from "@/hooks/use-language";
 import {
   CheckCircle2,
   Cpu,
@@ -11,19 +15,32 @@ import {
   Terminal,
 } from "lucide-react";
 
+const RELEASE_DATE = new Date("2025-10-28");
+
+function formatReleaseDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
 export default function DownloadPage() {
+  const { t, language } = useLanguage();
+
   return (
     <div className="min-h-screen">
       <Header />
+      <GridBackground className="fixed inset-0 -z-10" />
 
       <main className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="mx-auto mb-16 max-w-3xl text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            MiniFy Herunterladen
+            {t.downloadPage.title}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Wähle deine Plattform und starte mit dem besten Spotify Mini-Player
+            {t.downloadPage.subtitle}
           </p>
         </div>
 
@@ -44,28 +61,22 @@ export default function DownloadPage() {
                 </svg>
               </div>
               <span className="rounded-full bg-[#1DB954]/10 px-3 py-1 text-xs font-medium text-[#1DB954]">
-                Empfohlen
+                {t.downloadPage.recommended}
               </span>
             </div>
 
-            <h2 className="mb-3 text-3xl font-bold">Windows</h2>
+            <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.windows.title}</h2>
             <p className="mb-6 text-muted-foreground">
-              Für Windows 10 und Windows 11 (64-bit)
+              {t.downloadPage.windows.description}
             </p>
 
             <div className="mb-6 space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Automatische Updates</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Native Windows-Integration</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Tastenkombinationen Support</span>
-              </div>
+              {t.downloadPage.windows.features.map((feature) => (
+                <div key={`windows-${feature}`} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-3">
@@ -87,7 +98,7 @@ export default function DownloadPage() {
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              Größe: 45 MB | Signiert & Verifiziert
+              {t.downloadPage.windows.size}
             </p>
           </Card>
 
@@ -107,24 +118,18 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            <h2 className="mb-3 text-3xl font-bold">macOS</h2>
+            <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.macos.title}</h2>
             <p className="mb-6 text-muted-foreground">
-              Für macOS 11+ (Intel & Apple Silicon)
+              {t.downloadPage.macos.description}
             </p>
 
             <div className="mb-6 space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Universal Binary (Intel + M1/M2/M3)</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Native macOS Integration</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-                <span>Touch Bar & Media Keys</span>
-              </div>
+              {t.downloadPage.macos.features.map((feature) => (
+                <div key={`macos-${feature}`} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-3">
@@ -146,7 +151,7 @@ export default function DownloadPage() {
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              Größe: 48 MB | Notarized & Signiert
+              {t.downloadPage.macos.size}
             </p>
           </Card>
 
@@ -166,24 +171,18 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            <h2 className="mb-3 text-3xl font-bold">Linux</h2>
+            <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.linux.title}</h2>
             <p className="mb-6 text-muted-foreground">
-              Für Ubuntu, Debian, Fedora und andere (64-bit)
+              {t.downloadPage.linux.description}
             </p>
 
             <div className="mb-6 space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1ed760]" />
-                <span>.deb, .rpm & AppImage</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1ed760]" />
-                <span>Wayland & X11 Support</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-[#1ed760]" />
-                <span>Systemtray Integration</span>
-              </div>
+              {t.downloadPage.linux.features.map((feature) => (
+                <div key={`linux-${feature}`} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-[#1ed760]" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-3 -mt-6">
@@ -207,7 +206,7 @@ export default function DownloadPage() {
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              Größe: 42 MB | GPG Signiert
+              {t.downloadPage.linux.size}
             </p>
           </Card>
         </div>
@@ -220,9 +219,9 @@ export default function DownloadPage() {
                 <CheckCircle2 className="h-6 w-6 text-[#1DB954]" />
               </div>
               <div>
-                <div className="font-semibold">Neueste Version: v0.1.0</div>
+                <div className="font-semibold">{t.downloadPage.latestVersion}: v0.1.0</div>
                 <div className="text-sm text-muted-foreground">
-                  Veröffentlicht am 28. Oktober 2025
+                  {t.downloadPage.releasedOn} {formatReleaseDate(RELEASE_DATE, language)}
                 </div>
               </div>
             </div>
@@ -233,7 +232,7 @@ export default function DownloadPage() {
                 rel="noopener noreferrer"
               >
                 <Github className="mr-2 h-5 w-5" />
-                Alle Releases
+                {t.downloadPage.allReleases}
               </a>
             </Button>
           </div>
@@ -242,7 +241,7 @@ export default function DownloadPage() {
         {/* System Requirements */}
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-8 text-center text-3xl font-bold">
-            Systemanforderungen
+            {t.downloadPage.systemRequirements}
           </h2>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -250,7 +249,7 @@ export default function DownloadPage() {
               <div className="mb-4 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
                 <MonitorSmartphone className="h-6 w-6 text-[#1DB954]" />
               </div>
-              <h3 className="mb-2 font-semibold">Betriebssystem</h3>
+              <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.os}</h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>Windows 10/11</li>
                 <li>macOS 11+</li>
@@ -264,7 +263,7 @@ export default function DownloadPage() {
               <div className="mb-4 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
                 <Cpu className="h-6 w-6 text-[#1ed760]" />
               </div>
-              <h3 className="mb-2 font-semibold">Prozessor</h3>
+              <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.cpu}</h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>64-bit CPU</li>
                 <li>Dual-Core+</li>
@@ -276,11 +275,11 @@ export default function DownloadPage() {
               <div className="mb-4 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
                 <HardDrive className="h-6 w-6 text-[#1DB954]" />
               </div>
-              <h3 className="mb-2 font-semibold">Arbeitsspeicher</h3>
+              <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.ram}</h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>Min: 4 GB RAM</li>
-                <li>Empfohlen: 8 GB+</li>
-                <li>Verbrauch: ~45 MB</li>
+                <li>{t.downloadPage.requirements.minRam}</li>
+                <li>{t.downloadPage.requirements.recRam}</li>
+                <li>{t.downloadPage.requirements.usage}</li>
               </ul>
             </Card>
 
@@ -288,11 +287,11 @@ export default function DownloadPage() {
               <div className="mb-4 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
                 <Terminal className="h-6 w-6 text-[#1ed760]" />
               </div>
-              <h3 className="mb-2 font-semibold">Sonstiges</h3>
+              <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.other}</h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>Internetverbindung</li>
-                <li>Spotify Account</li>
-                <li>100 MB Speicher</li>
+                <li>{t.downloadPage.requirements.internet}</li>
+                <li>{t.downloadPage.requirements.spotifyAccount}</li>
+                <li>{t.downloadPage.requirements.storage}</li>
               </ul>
             </Card>
           </div>
@@ -301,76 +300,44 @@ export default function DownloadPage() {
         {/* Installation Instructions */}
         <div className="mx-auto mt-16 max-w-5xl">
           <h2 className="mb-8 text-center text-3xl font-bold">
-            Installationsanleitung
+            {t.downloadPage.installation}
           </h2>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
-              <h3 className="mb-4 text-xl font-bold">Windows</h3>
+              <h3 className="mb-4 text-xl font-bold">{t.downloadPage.windows.title}</h3>
               <ol className="space-y-3 text-sm text-muted-foreground">
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    1
-                  </span>
-                  <span>Lade die .exe-Datei herunter</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    2
-                  </span>
-                  <span>Führe den Installer aus</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    3
-                  </span>
-                  <span>Folge den Installationsschritten</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    4
-                  </span>
-                  <span>Starte MiniFy und melde dich mit Spotify an</span>
-                </li>
+                {t.downloadPage.installSteps.windows.map((step, stepNumber) => (
+                  <li key={`windows-step-${step}`} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
+                      {stepNumber + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
               </ol>
             </Card>
 
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
-              <h3 className="mb-4 text-xl font-bold">macOS</h3>
+              <h3 className="mb-4 text-xl font-bold">{t.downloadPage.macos.title}</h3>
               <ol className="space-y-3 text-sm text-muted-foreground">
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    1
-                  </span>
-                  <span>Lade die .dmg-Datei herunter</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    2
-                  </span>
-                  <span>Öffne die DMG und ziehe MiniFy in Programme</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    3
-                  </span>
-                  <span>Öffne MiniFy aus dem Programme-Ordner</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
-                    4
-                  </span>
-                  <span>Bei Warnung: Systemeinstellungen → Sicherheit</span>
-                </li>
+                {t.downloadPage.installSteps.macos.map((step, stepNumber) => (
+                  <li key={`macos-step-${step}`} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1DB954]/10 text-xs font-semibold text-[#1DB954]">
+                      {stepNumber + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
               </ol>
             </Card>
 
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
-              <h3 className="mb-4 text-xl font-bold">Linux</h3>
+              <h3 className="mb-4 text-xl font-bold">{t.downloadPage.linux.title}</h3>
               <div className="space-y-4">
                 <div>
                   <p className="mb-2 text-sm font-medium">
-                    Debian/Ubuntu (.deb):
+                    {t.downloadPage.installSteps.linux.deb}
                   </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
                     sudo dpkg -i minify_0.1.0_amd64.deb
@@ -378,14 +345,14 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <p className="mb-2 text-sm font-medium">
-                    Fedora/RHEL (.rpm):
+                    {t.downloadPage.installSteps.linux.rpm}
                   </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
                     sudo rpm -i minify-0.1.0.x86_64.rpm
                   </code>
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-medium">AppImage:</p>
+                  <p className="mb-2 text-sm font-medium">{t.downloadPage.installSteps.linux.appimage}</p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
                     chmod +x MiniFy-0.1.0.AppImage
                     <br />
@@ -400,10 +367,9 @@ export default function DownloadPage() {
         {/* CTA */}
         <div className="mx-auto mt-16 max-w-3xl text-center">
           <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
-            <h3 className="mb-3 text-2xl font-bold">Brauchst du Hilfe?</h3>
+            <h3 className="mb-3 text-2xl font-bold">{t.downloadPage.help.title}</h3>
             <p className="mb-6 text-muted-foreground">
-              Schau dir unsere Dokumentation an oder besuche das GitHub
-              Repository für Support.
+              {t.downloadPage.help.description}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button variant="outline" asChild>
@@ -412,7 +378,7 @@ export default function DownloadPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Dokumentation
+                  {t.downloadPage.help.docs}
                 </a>
               </Button>
               <Button variant="outline" asChild>
@@ -422,7 +388,7 @@ export default function DownloadPage() {
                   rel="noopener noreferrer"
                 >
                   <Github className="mr-2 h-4 w-4" />
-                  Issues melden
+                  {t.downloadPage.help.issues}
                 </a>
               </Button>
             </div>

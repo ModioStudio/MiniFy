@@ -1,0 +1,56 @@
+{
+  "name": "youtube",
+
+  "panel": {
+    "background": "#181818",
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0, 0, 0, 0.6)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(24, 24, 24, 0.55)",
+    "panelBorder": "rgba(255, 0, 0, 0.10)",
+    "text": "#FFFFFF",
+    "textMuted": "rgba(170, 170, 170, 0.7)",
+    "itemHover": "rgba(255, 255, 255, 0.08)",
+    "itemActive": "rgba(255, 0, 0, 0.14)",
+    "accent": "#FF0000"
+  },
+
+  "controls": {
+    "iconColor": "#AAAAAA",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.08)"
+  },
+
+  "playbar": {
+    "trackBg": "#303030",
+    "trackFill": "#FF0000",
+    "thumbColor": "#FF0000",
+    "timeTextColor": "#FFFFFF"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFFFFF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#AAAAAA",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FFFFFF",
+    "iconBackground": "rgba(255, 255, 255, 0.05)",
+    "iconBackgroundHover": "rgba(255, 255, 255, 0.12)"
+  },
+
+  "cover": {
+    "borderColor": "#FF0000",
+    "borderRadius": 10
+  }
+}
+

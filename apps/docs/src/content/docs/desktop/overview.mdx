@@ -1,0 +1,92 @@
+---
+title: Desktop App Overview
+description: A complete overview of the MiniFy desktop application.
+---
+
+# Desktop App Overview
+
+MiniFy is a desktop application built with [Tauri](https://tauri.app/) and [React](https://react.dev/). This page provides an overview of the application's features and architecture.
+
+## Technology Stack
+
+MiniFy leverages cutting-edge technologies for optimal performance:
+
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Tauri 2.0 |
+| **Backend** | Rust |
+| **Frontend** | React + TypeScript |
+| **Build Tool** | Vite |
+| **Styling** | CSS with theme variables |
+
+## Application Features
+
+### Now Playing Display
+
+The main interface shows:
+- Album artwork (high resolution)
+- Track name and artist
+- Playback progress bar
+- Playback controls
+
+### Playback Controls
+
+Control your music directly from MiniFy:
+- Play / Pause
+- Skip to next track
+- Go to previous track
+- Seek within track
+- Volume control
+
+### Window Behavior
+
+MiniFy offers flexible window options:
+- **Always on Top**: Keep MiniFy visible over other windows
+- **Transparent Background**: Blend with your desktop
+- **Resizable**: Adjust the window size to your preference
+- **Draggable**: Position anywhere on your screen
+
+## Architecture
+
+```
+┌─────────────────────────────────────┐
+│           React Frontend            │
+│  ┌──────────────────────────────┐  │
+│  │       UI Components          │  │
+│  │   (Layouts, Themes, etc.)    │  │
+│  └──────────────────────────────┘  │
+│                 ▼                   │
+│  ┌──────────────────────────────┐  │
+│  │        State Management      │  │
+│  │     (Player State, Theme)    │  │
+│  └──────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 ▼ Tauri Commands
+┌─────────────────────────────────────┐
+│            Rust Backend             │
+│  ┌──────────────────────────────┐  │
+│  │      Spotify OAuth           │  │
+│  │      Window Management       │  │
+│  │      Settings Storage        │  │
+│  └──────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 ▼ HTTP API
+┌─────────────────────────────────────┐
+│          Spotify Web API            │
+└─────────────────────────────────────┘
+```
+
+## Performance
+
+MiniFy is designed to be lightweight:
+- **Download size**: ~10MB
+- **Memory usage**: Less than 50MB RAM
+- **CPU usage**: Less than 1% when idle
+- **Startup time**: Under 1 second
+
+## Next Steps
+
+- [Authentication](/desktop/authentication/) - How Spotify OAuth works
+- [Layouts](/desktop/layouts/) - Available layout options
+- [Themes](/desktop/themes/) - Customize your experience
+
