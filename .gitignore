@@ -4,9 +4,13 @@ dist-ssr
 *.local
 .turbo
 .DS_Store
+.env
+.env.*
 
 apps/*/dist
 apps/*/dist-ssr
 apps/*/build
 apps/*/src-tauri/target
 apps/*/.DS_Store
+apps/*/.astro
+apps/*/node_modules
