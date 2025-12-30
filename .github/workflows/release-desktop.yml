@@ -316,3 +316,19 @@ jobs:
           files: release_files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete consumed changesets
+        run: |
+          # Find and delete changeset files (keep README.md and config.json)
+          find .changeset -name "*.md" ! -name "README.md" -type f -delete
+          
+          # Check if there are changes to commit
+          if [ -n "$(git status --porcelain .changeset)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .changeset
+            git commit -m "chore: delete changesets after release ${{ needs.determine-version.outputs.version }}"
+            git push
+          else
+            echo "No changesets to delete"
+          fi
