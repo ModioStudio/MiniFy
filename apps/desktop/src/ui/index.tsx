@@ -153,9 +153,13 @@ export default function App() {
     }
   };
 
+  const handleDragStart = () => {
+    getCurrentWindow().startDragging();
+  };
+
   return (
     <div className="h-full w-full no-drag relative theme-scope">
-      <div className="drag-area" />
+      <div className="drag-area" onMouseDown={handleDragStart} />
       {renderView()}
     </div>
   );

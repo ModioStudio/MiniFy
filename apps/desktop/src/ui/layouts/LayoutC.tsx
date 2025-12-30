@@ -32,12 +32,12 @@ function LayoutC() {
           <TrackInfoLayout track={track} variant="cover" size={96} />
 
           <div className="mt-10">
-            <TrackInfoLayout track={track} variant="title" />
-            <TrackInfoLayout track={track} variant="artist" />
+            <TrackInfoLayout track={track} variant="title" maxLength={20} />
+            <TrackInfoLayout track={track} variant="artist" maxLength={20} />
           </div>
         </div>
 
-        <div className="-ml-36 w-auto mt-5">
+        <div className="-ml-14 w-auto mt-5">
           <PlaybackBar
             durationMs={duration}
             progressMs={progress}
