@@ -46,3 +46,4 @@ apps/*/src-tauri/target
 apps/*/.DS_Store
 apps/*/.astro
 apps/*/node_modules
+
