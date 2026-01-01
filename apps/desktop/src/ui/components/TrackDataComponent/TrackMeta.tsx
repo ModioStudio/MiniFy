@@ -14,7 +14,12 @@ function truncateText(text: string, maxLength: number): string {
   return text;
 }
 
-export function TrackMeta({ title, artists, maxLength = DEFAULT_MAX_LENGTH, isEmpty = false }: TrackMetaProps) {
+export function TrackMeta({
+  title,
+  artists,
+  maxLength = DEFAULT_MAX_LENGTH,
+  isEmpty = false,
+}: TrackMetaProps) {
   if (isEmpty) {
     return (
       <div className="min-w-0">
@@ -26,7 +31,7 @@ export function TrackMeta({ title, artists, maxLength = DEFAULT_MAX_LENGTH, isEm
             <span>Not playing</span>
           </div>
         ) : (
-          <div 
+          <div
             className="text-base -mt-1.5"
             style={{ color: "var(--player-song-artist-color)", opacity: 0.5 }}
           >

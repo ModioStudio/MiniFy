@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "clear-auth": "node scripts/clear-auth.js"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

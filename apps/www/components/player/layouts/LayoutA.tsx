@@ -1,5 +1,5 @@
-import { SkipBack, Pause, SkipForward } from "@phosphor-icons/react";
 import type { ThemeConfig } from "@/lib/types/theme";
+import { Pause, SkipBack, SkipForward } from "@phosphor-icons/react";
 
 type LayoutAProps = {
   theme: ThemeConfig;
@@ -24,16 +24,10 @@ export function LayoutA({ theme }: LayoutAProps) {
 
       <div className="flex-1 flex flex-col justify-start px-4 py-3">
         <div className="mt-2">
-          <div
-            className="font-semibold text-lg truncate"
-            style={{ color: theme.songTitleColor }}
-          >
+          <div className="font-semibold text-lg truncate" style={{ color: theme.songTitleColor }}>
             Midnight Drive
           </div>
-          <div
-            className="text-sm truncate opacity-80"
-            style={{ color: theme.songArtistColor }}
-          >
+          <div className="text-sm truncate opacity-80" style={{ color: theme.songArtistColor }}>
             Lunar Echoes
           </div>
         </div>

@@ -1,5 +1,5 @@
-import { SkipBack, Pause, SkipForward } from "@phosphor-icons/react";
 import type { ThemeConfig } from "@/lib/types/theme";
+import { Pause, SkipBack, SkipForward } from "@phosphor-icons/react";
 
 type LayoutBProps = {
   theme: ThemeConfig;
@@ -25,29 +25,17 @@ export function LayoutB({ theme }: LayoutBProps) {
             border: `1px solid ${theme.coverBorderColor}`,
           }}
         >
-          <img
-            src="/playerpreview.png"
-            alt="Track cover"
-            className="w-full h-full object-cover"
-          />
+          <img src="/playerpreview.png" alt="Track cover" className="w-full h-full object-cover" />
         </div>
 
         <div className="flex flex-col">
-          <div
-            className="font-semibold text-xl truncate"
-            style={{ color: theme.songTitleColor }}
-          >
+          <div className="font-semibold text-xl truncate" style={{ color: theme.songTitleColor }}>
             Midnight Drive
           </div>
-          <div
-            className="text-sm truncate opacity-80"
-            style={{ color: theme.songArtistColor }}
-          >
+          <div className="text-sm truncate opacity-80" style={{ color: theme.songArtistColor }}>
             Lunar Echoes
           </div>
         </div>
-
-
       </div>
 
       <div className="flex items-center justify-center gap-2">

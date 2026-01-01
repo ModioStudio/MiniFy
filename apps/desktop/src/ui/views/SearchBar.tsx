@@ -1,12 +1,18 @@
-import { ArrowLeft, ClockCounterClockwise, MagnifyingGlass, Play, SpinnerGap } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  ClockCounterClockwise,
+  MagnifyingGlass,
+  Play,
+  SpinnerGap,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import {
+  type SimplifiedTrack,
   fetchRecentlyPlayed,
   getLargestImageUrl,
   playTrack,
   searchTracks,
-  SimplifiedTrack,
 } from "../spotifyClient";
 
 type SearchBarProps = {
@@ -106,7 +112,10 @@ export default function SearchBar({ onBack }: SearchBarProps) {
 
   return (
     <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
-      <div className="flex items-center justify-between mb-3" style={{ color: "var(--settings-header-text)" }}>
+      <div
+        className="flex items-center justify-between mb-3"
+        style={{ color: "var(--settings-header-text)" }}
+      >
         <h1 className="text-base font-semibold">Search</h1>
         <button
           type="button"
@@ -164,9 +173,9 @@ export default function SearchBar({ onBack }: SearchBarProps) {
           {!isSearching && !loadingRecent && recentTracks.length > 0 && (
             <div
               className="flex items-center gap-2 px-3 py-2 border-b"
-              style={{ 
+              style={{
                 borderColor: "var(--settings-panel-border)",
-                color: "var(--settings-text-muted)" 
+                color: "var(--settings-text-muted)",
               }}
             >
               <ClockCounterClockwise size={14} weight="bold" />

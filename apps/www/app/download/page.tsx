@@ -39,9 +39,7 @@ export default function DownloadPage() {
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
             {t.downloadPage.title}
           </h1>
-          <p className="text-lg text-muted-foreground">
-            {t.downloadPage.subtitle}
-          </p>
+          <p className="text-lg text-muted-foreground">{t.downloadPage.subtitle}</p>
         </div>
 
         {/* Download Cards */}
@@ -66,9 +64,7 @@ export default function DownloadPage() {
             </div>
 
             <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.windows.title}</h2>
-            <p className="mb-6 text-muted-foreground">
-              {t.downloadPage.windows.description}
-            </p>
+            <p className="mb-6 text-muted-foreground">{t.downloadPage.windows.description}</p>
 
             <div className="mb-6 space-y-3">
               {t.downloadPage.windows.features.map((feature) => (
@@ -87,19 +83,13 @@ export default function DownloadPage() {
                 <Download className="mr-2 h-5 w-5" />
                 MiniFy-Setup-v0.1.0.exe
               </Button>
-              <Button
-                variant="outline"
-                className="w-full bg-transparent"
-                size="lg"
-              >
+              <Button variant="outline" className="w-full bg-transparent" size="lg">
                 <Download className="mr-2 h-5 w-5" />
                 MiniFy-v0.1.0-portable.zip
               </Button>
             </div>
 
-            <p className="mt-4 text-xs text-muted-foreground">
-              {t.downloadPage.windows.size}
-            </p>
+            <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.windows.size}</p>
           </Card>
 
           {/* macOS */}
@@ -119,9 +109,7 @@ export default function DownloadPage() {
             </div>
 
             <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.macos.title}</h2>
-            <p className="mb-6 text-muted-foreground">
-              {t.downloadPage.macos.description}
-            </p>
+            <p className="mb-6 text-muted-foreground">{t.downloadPage.macos.description}</p>
 
             <div className="mb-6 space-y-3">
               {t.downloadPage.macos.features.map((feature) => (
@@ -140,19 +128,13 @@ export default function DownloadPage() {
                 <Download className="mr-2 h-5 w-5" />
                 MiniFy-v0.1.0-universal.dmg
               </Button>
-              <Button
-                variant="outline"
-                className="w-full bg-transparent"
-                size="lg"
-              >
+              <Button variant="outline" className="w-full bg-transparent" size="lg">
                 <Download className="mr-2 h-5 w-5" />
                 MiniFy-v0.1.0-arm64.dmg
               </Button>
             </div>
 
-            <p className="mt-4 text-xs text-muted-foreground">
-              {t.downloadPage.macos.size}
-            </p>
+            <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.macos.size}</p>
           </Card>
 
           {/* Linux */}
@@ -172,9 +154,7 @@ export default function DownloadPage() {
             </div>
 
             <h2 className="mb-3 text-3xl font-bold">{t.downloadPage.linux.title}</h2>
-            <p className="mb-6 text-muted-foreground">
-              {t.downloadPage.linux.description}
-            </p>
+            <p className="mb-6 text-muted-foreground">{t.downloadPage.linux.description}</p>
 
             <div className="mb-6 space-y-3">
               {t.downloadPage.linux.features.map((feature) => (
@@ -205,9 +185,7 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            <p className="mt-4 text-xs text-muted-foreground">
-              {t.downloadPage.linux.size}
-            </p>
+            <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.linux.size}</p>
           </Card>
         </div>
 
@@ -299,9 +277,7 @@ export default function DownloadPage() {
 
         {/* Installation Instructions */}
         <div className="mx-auto mt-16 max-w-5xl">
-          <h2 className="mb-8 text-center text-3xl font-bold">
-            {t.downloadPage.installation}
-          </h2>
+          <h2 className="mb-8 text-center text-3xl font-bold">{t.downloadPage.installation}</h2>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
@@ -352,7 +328,9 @@ export default function DownloadPage() {
                   </code>
                 </div>
                 <div>
-                  <p className="mb-2 text-sm font-medium">{t.downloadPage.installSteps.linux.appimage}</p>
+                  <p className="mb-2 text-sm font-medium">
+                    {t.downloadPage.installSteps.linux.appimage}
+                  </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
                     chmod +x MiniFy-0.1.0.AppImage
                     <br />
@@ -368,9 +346,7 @@ export default function DownloadPage() {
         <div className="mx-auto mt-16 max-w-3xl text-center">
           <Card className="border-border/40 bg-card/50 p-8 backdrop-blur-sm">
             <h3 className="mb-3 text-2xl font-bold">{t.downloadPage.help.title}</h3>
-            <p className="mb-6 text-muted-foreground">
-              {t.downloadPage.help.description}
-            </p>
+            <p className="mb-6 text-muted-foreground">{t.downloadPage.help.description}</p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button variant="outline" asChild>
                 <a

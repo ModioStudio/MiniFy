@@ -15,11 +15,13 @@ import LayoutC from "./layouts/LayoutC";
 import Boot from "./views/Boot";
 import SearchBar from "./views/SearchBar";
 import Settings from "./views/Settings";
+import { SplashScreen } from "./views/SplashScreen";
 
 type AppView = "app" | "settings" | "search";
 
 export default function App() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
+  const [isReconnect, setIsReconnect] = useState<boolean>(false);
   const [layout, setLayout] = useState<string>("LayoutA");
   const [theme, setTheme] = useState<string>("dark");
   const [view, setView] = useState<AppView>("app");
@@ -78,13 +80,7 @@ export default function App() {
           const closeItem = await PredefinedMenuItem.new({ item: "CloseWindow" });
 
           nativeMenuRef.current = await Menu.new({
-            items: [
-              settingsItem,
-              searchItem,
-              separator,
-              minimizeItem,
-              closeItem,
-            ],
+            items: [settingsItem, searchItem, separator, minimizeItem, closeItem],
           });
         }
 
@@ -101,27 +97,38 @@ export default function App() {
     return () => document.removeEventListener("contextmenu", onCtx);
   }, []);
 
-  // ---- Boot screen
+  const handleDragStart = () => {
+    getCurrentWindow().startDragging();
+  };
+
+  // ---- Splash screen while loading
   if (firstBootDone === null) {
-    return <div>Loading...</div>;
+    return (
+      <div className="h-full w-full no-drag relative">
+        <div className="drag-area" onMouseDown={handleDragStart} />
+        <SplashScreen />
+      </div>
+    );
   }
 
   if (!firstBootDone) {
     return (
-      <Boot
-        onComplete={async (selectedLayout, selectedTheme, spotifyTokens) => {
-          await writeSettings({
-            first_boot_done: true,
-            layout: selectedLayout,
-            theme: selectedTheme,
-            spotify: spotifyTokens,
-          });
-
-          setLayout(selectedLayout);
-          setTheme(selectedTheme);
-          setFirstBootDone(true);
-        }}
-      />
+      <div className="h-full w-full no-drag relative theme-scope">
+        <div className="drag-area" onMouseDown={handleDragStart} />
+        <Boot
+          initialStep={isReconnect ? "spotify-setup" : "provider"}
+          onComplete={async () => {
+            await writeSettings({
+              first_boot_done: true,
+              layout,
+              theme,
+              spotify: { access_token: null, refresh_token: null },
+            });
+            setFirstBootDone(true);
+            setIsReconnect(false);
+          }}
+        />
+      </div>
     );
   }
 
@@ -147,6 +154,11 @@ export default function App() {
             onBack={() => setView("app")}
             onUpdateLayout={setLayout}
             onUpdateTheme={setTheme}
+            onResetAuth={() => {
+              setIsReconnect(true);
+              setFirstBootDone(false);
+              setView("app");
+            }}
           />
         );
 
@@ -157,10 +169,6 @@ export default function App() {
       default:
         return renderLayout();
     }
-  };
-
-  const handleDragStart = () => {
-    getCurrentWindow().startDragging();
   };
 
   return (

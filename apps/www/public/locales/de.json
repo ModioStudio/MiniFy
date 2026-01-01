@@ -61,13 +61,21 @@
     "windows": {
       "title": "Windows",
       "description": "Für Windows 10 und Windows 11 (64-bit)",
-      "features": ["Automatische Updates", "Native Windows-Integration", "Tastenkombinationen Support"],
+      "features": [
+        "Automatische Updates",
+        "Native Windows-Integration",
+        "Tastenkombinationen Support"
+      ],
       "size": "Größe: 45 MB | Signiert & Verifiziert"
     },
     "macos": {
       "title": "macOS",
       "description": "Für macOS 11+ (Intel & Apple Silicon)",
-      "features": ["Universal Binary (Intel + M1/M2/M3)", "Native macOS Integration", "Touch Bar & Media Keys"],
+      "features": [
+        "Universal Binary (Intel + M1/M2/M3)",
+        "Native macOS Integration",
+        "Touch Bar & Media Keys"
+      ],
       "size": "Größe: 48 MB | Notarized & Signiert"
     },
     "linux": {
@@ -94,8 +102,18 @@
     },
     "installation": "Installationsanleitung",
     "installSteps": {
-      "windows": ["Lade die .exe-Datei herunter", "Führe den Installer aus", "Folge den Installationsschritten", "Starte MiniFy und melde dich mit Spotify an"],
-      "macos": ["Lade die .dmg-Datei herunter", "Öffne die DMG und ziehe MiniFy in Programme", "Öffne MiniFy aus dem Programme-Ordner", "Bei Warnung: Systemeinstellungen → Sicherheit"],
+      "windows": [
+        "Lade die .exe-Datei herunter",
+        "Führe den Installer aus",
+        "Folge den Installationsschritten",
+        "Starte MiniFy und melde dich mit Spotify an"
+      ],
+      "macos": [
+        "Lade die .dmg-Datei herunter",
+        "Öffne die DMG und ziehe MiniFy in Programme",
+        "Öffne MiniFy aus dem Programme-Ordner",
+        "Bei Warnung: Systemeinstellungen → Sicherheit"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +152,3 @@
     "allRightsReserved": "Alle Rechte vorbehalten."
   }
 }
-

@@ -155,7 +155,10 @@ export function applyThemeConfig(t: ThemeConfig): void {
   root.style.setProperty("--settings-panel-border", t.settings?.panelBorder ?? "#ffffff1a");
   root.style.setProperty("--settings-text", t.settings?.text ?? "#ffffff");
   root.style.setProperty("--settings-text-muted", t.settings?.textMuted ?? "#e0e0e0");
-  root.style.setProperty("--settings-header-text", t.settings?.headerText ?? t.settings?.text ?? "#ffffff");
+  root.style.setProperty(
+    "--settings-header-text",
+    t.settings?.headerText ?? t.settings?.text ?? "#ffffff"
+  );
   root.style.setProperty("--settings-item-hover", t.settings?.itemHover ?? "#ffffff14");
   root.style.setProperty("--settings-item-active", t.settings?.itemActive ?? "#ffffff24");
   root.style.setProperty("--settings-accent", t.settings?.accent ?? "#74C7EC");
@@ -174,39 +177,39 @@ export type ThemeValidationResult = {
 export function validateThemeJsonFormat(jsonString: string): ThemeValidationResult {
   try {
     const parsed = JSON.parse(jsonString) as RawTheme;
-    
+
     if (!parsed.name || typeof parsed.name !== "string" || parsed.name.trim() === "") {
       return { valid: false, error: "Theme must have a non-empty 'name' field" };
     }
-    
+
     if (parsed.panel !== undefined && typeof parsed.panel !== "object") {
       return { valid: false, error: "'panel' must be an object" };
     }
-    
+
     if (parsed.settings !== undefined && typeof parsed.settings !== "object") {
       return { valid: false, error: "'settings' must be an object" };
     }
-    
+
     if (parsed.controls !== undefined && typeof parsed.controls !== "object") {
       return { valid: false, error: "'controls' must be an object" };
     }
-    
+
     if (parsed.playbar !== undefined && typeof parsed.playbar !== "object") {
       return { valid: false, error: "'playbar' must be an object" };
     }
-    
+
     if (parsed.typography !== undefined && typeof parsed.typography !== "object") {
       return { valid: false, error: "'typography' must be an object" };
     }
-    
+
     if (parsed.actions !== undefined && typeof parsed.actions !== "object") {
       return { valid: false, error: "'actions' must be an object" };
     }
-    
+
     if (parsed.cover !== undefined && typeof parsed.cover !== "object") {
       return { valid: false, error: "'cover' must be an object" };
     }
-    
+
     return { valid: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Invalid JSON";
@@ -219,11 +222,11 @@ export function applyCustomThemeFromJson(jsonString: string): ThemeValidationRes
   if (!validation.valid) {
     return validation;
   }
-  
+
   const rawTheme = JSON.parse(jsonString) as RawTheme;
   const themeConfig = transformTheme(rawTheme);
   applyThemeConfig(themeConfig);
-  
+
   return { valid: true };
 }
 

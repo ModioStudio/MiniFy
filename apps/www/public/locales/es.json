@@ -61,19 +61,31 @@
     "windows": {
       "title": "Windows",
       "description": "Para Windows 10 y Windows 11 (64-bit)",
-      "features": ["Actualizaciones Automáticas", "Integración Nativa de Windows", "Soporte de Atajos"],
+      "features": [
+        "Actualizaciones Automáticas",
+        "Integración Nativa de Windows",
+        "Soporte de Atajos"
+      ],
       "size": "Tamaño: 45 MB | Firmado y Verificado"
     },
     "macos": {
       "title": "macOS",
       "description": "Para macOS 11+ (Intel y Apple Silicon)",
-      "features": ["Universal Binary (Intel + M1/M2/M3)", "Integración Nativa de macOS", "Touch Bar y Teclas Multimedia"],
+      "features": [
+        "Universal Binary (Intel + M1/M2/M3)",
+        "Integración Nativa de macOS",
+        "Touch Bar y Teclas Multimedia"
+      ],
       "size": "Tamaño: 48 MB | Notarizado y Firmado"
     },
     "linux": {
       "title": "Linux",
       "description": "Para Ubuntu, Debian, Fedora y otros (64-bit)",
-      "features": [".deb, .rpm y AppImage", "Soporte Wayland y X11", "Integración con Bandeja del Sistema"],
+      "features": [
+        ".deb, .rpm y AppImage",
+        "Soporte Wayland y X11",
+        "Integración con Bandeja del Sistema"
+      ],
       "size": "Tamaño: 42 MB | Firmado con GPG"
     },
     "latestVersion": "Última Versión",
@@ -94,8 +106,18 @@
     },
     "installation": "Guía de Instalación",
     "installSteps": {
-      "windows": ["Descarga el archivo .exe", "Ejecuta el instalador", "Sigue los pasos de instalación", "Inicia MiniFy e inicia sesión con Spotify"],
-      "macos": ["Descarga el archivo .dmg", "Abre el DMG y arrastra MiniFy a Aplicaciones", "Abre MiniFy desde la carpeta Aplicaciones", "Si hay advertencia: Preferencias del Sistema → Seguridad"],
+      "windows": [
+        "Descarga el archivo .exe",
+        "Ejecuta el instalador",
+        "Sigue los pasos de instalación",
+        "Inicia MiniFy e inicia sesión con Spotify"
+      ],
+      "macos": [
+        "Descarga el archivo .dmg",
+        "Abre el DMG y arrastra MiniFy a Aplicaciones",
+        "Abre MiniFy desde la carpeta Aplicaciones",
+        "Si hay advertencia: Preferencias del Sistema → Seguridad"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +156,3 @@
     "allRightsReserved": "Todos los derechos reservados."
   }
 }
-

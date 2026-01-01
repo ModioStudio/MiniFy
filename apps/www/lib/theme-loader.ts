@@ -70,4 +70,3 @@ export async function fetchAllThemes(index: ThemeIndex): Promise<Map<string, The
 }
 
 export { DEFAULT_THEME };
-

@@ -81,4 +81,3 @@ export type ThemeIndex = {
   defaultTheme: string;
   defaultLayout: LayoutType;
 };
-

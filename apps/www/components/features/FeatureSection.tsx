@@ -32,9 +32,7 @@ export function FeaturesSection() {
           <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
             {t.features.sectionTitle}
           </h2>
-          <p className="text-lg text-muted-foreground">
-            {t.features.sectionDescription}
-          </p>
+          <p className="text-lg text-muted-foreground">{t.features.sectionDescription}</p>
         </div>
 
         <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -43,9 +41,7 @@ export function FeaturesSection() {
               <Lock className="h-6 w-6 text-[#1DB954]" />
             </div>
             <h3 className="mb-3 text-2xl font-bold">{t.features.spotify.title}</h3>
-            <p className="mb-8 text-muted-foreground">
-              {t.features.spotify.description}
-            </p>
+            <p className="mb-8 text-muted-foreground">{t.features.spotify.description}</p>
 
             <div className="relative rounded-lg border border-border/40 bg-background/50 p-6 backdrop-blur-sm">
               <div className="mb-4 flex items-center gap-3">
@@ -107,9 +103,7 @@ export function FeaturesSection() {
               <Layout className="h-6 w-6 text-[#1ed760]" />
             </div>
             <h3 className="mb-3 text-2xl font-bold">{t.features.layouts.title}</h3>
-            <p className="mb-8 text-muted-foreground">
-              {t.features.layouts.description}
-            </p>
+            <p className="mb-8 text-muted-foreground">{t.features.layouts.description}</p>
 
             <div className="space-y-3">
               <div className="flex gap-2">
@@ -171,9 +165,7 @@ export function FeaturesSection() {
               <Palette className="h-6 w-6 text-[#1DB954]" />
             </div>
             <h3 className="mb-3 text-2xl font-bold">{t.features.themes.title}</h3>
-            <p className="mb-8 text-muted-foreground">
-              {t.features.themes.description}
-            </p>
+            <p className="mb-8 text-muted-foreground">{t.features.themes.description}</p>
 
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
@@ -215,9 +207,7 @@ export function FeaturesSection() {
               <Zap className="h-6 w-6 text-[#1ed760]" />
             </div>
             <h3 className="mb-3 text-2xl font-bold">{t.features.performance.title}</h3>
-            <p className="mb-8 text-muted-foreground">
-              {t.features.performance.description}
-            </p>
+            <p className="mb-8 text-muted-foreground">{t.features.performance.description}</p>
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
@@ -259,9 +249,7 @@ export function FeaturesSection() {
               <Sliders className="h-6 w-6 text-[#1ed760]" />
             </div>
             <h3 className="mb-3 text-2xl font-bold">{t.features.customizable.title}</h3>
-            <p className="mb-8 text-muted-foreground">
-              {t.features.customizable.description}
-            </p>
+            <p className="mb-8 text-muted-foreground">{t.features.customizable.description}</p>
 
             <div className="space-y-3">
               <div className="rounded-lg border border-border/40 bg-background/50 p-3">

@@ -15,19 +15,11 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="mb-4 flex items-center gap-3">
-              <img
-                src="/logo.png"
-                alt="MiniFy Logo"
-                className="h-9 w-9 dark:invert-0 invert"
-              />
-              <span className="text-xl font-bold tracking-tight">
-                MiniFy
-              </span>
+              <img src="/logo.png" alt="MiniFy Logo" className="h-9 w-9 dark:invert-0 invert" />
+              <span className="text-xl font-bold tracking-tight">MiniFy</span>
             </div>
 
-            <p className="mb-5 max-w-md text-sm text-muted-foreground">
-              {t.footer.description}
-            </p>
+            <p className="mb-5 max-w-md text-sm text-muted-foreground">{t.footer.description}</p>
 
             <div className="flex items-center gap-4">
               <a
@@ -60,9 +52,7 @@ export function Footer() {
 
           {/* Product */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold">
-              {t.footer.product}
-            </h3>
+            <h3 className="mb-4 text-sm font-semibold">{t.footer.product}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a
@@ -95,9 +85,7 @@ export function Footer() {
 
           {/* Community */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold">
-              {t.footer.community}
-            </h3>
+            <h3 className="mb-4 text-sm font-semibold">{t.footer.community}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a

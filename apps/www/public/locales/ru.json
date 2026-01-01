@@ -61,19 +61,31 @@
     "windows": {
       "title": "Windows",
       "description": "Для Windows 10 и Windows 11 (64-bit)",
-      "features": ["Автоматические обновления", "Нативная интеграция Windows", "Поддержка горячих клавиш"],
+      "features": [
+        "Автоматические обновления",
+        "Нативная интеграция Windows",
+        "Поддержка горячих клавиш"
+      ],
       "size": "Размер: 45 МБ | Подписано и проверено"
     },
     "macos": {
       "title": "macOS",
       "description": "Для macOS 11+ (Intel и Apple Silicon)",
-      "features": ["Universal Binary (Intel + M1/M2/M3)", "Нативная интеграция macOS", "Touch Bar и Media Keys"],
+      "features": [
+        "Universal Binary (Intel + M1/M2/M3)",
+        "Нативная интеграция macOS",
+        "Touch Bar и Media Keys"
+      ],
       "size": "Размер: 48 МБ | Нотаризовано и подписано"
     },
     "linux": {
       "title": "Linux",
       "description": "Для Ubuntu, Debian, Fedora и других (64-bit)",
-      "features": [".deb, .rpm и AppImage", "Поддержка Wayland и X11", "Интеграция с системным треем"],
+      "features": [
+        ".deb, .rpm и AppImage",
+        "Поддержка Wayland и X11",
+        "Интеграция с системным треем"
+      ],
       "size": "Размер: 42 МБ | GPG подписано"
     },
     "latestVersion": "Последняя версия",
@@ -94,8 +106,18 @@
     },
     "installation": "Руководство по установке",
     "installSteps": {
-      "windows": ["Скачайте .exe файл", "Запустите установщик", "Следуйте шагам установки", "Запустите MiniFy и войдите через Spotify"],
-      "macos": ["Скачайте .dmg файл", "Откройте DMG и перетащите MiniFy в Программы", "Откройте MiniFy из папки Программы", "При предупреждении: Системные настройки → Безопасность"],
+      "windows": [
+        "Скачайте .exe файл",
+        "Запустите установщик",
+        "Следуйте шагам установки",
+        "Запустите MiniFy и войдите через Spotify"
+      ],
+      "macos": [
+        "Скачайте .dmg файл",
+        "Откройте DMG и перетащите MiniFy в Программы",
+        "Откройте MiniFy из папки Программы",
+        "При предупреждении: Системные настройки → Безопасность"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +156,3 @@
     "allRightsReserved": "Все права защищены."
   }
 }
-

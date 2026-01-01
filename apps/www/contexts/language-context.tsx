@@ -1,8 +1,13 @@
 "use client";
 
 import { COOKIE_NAMES, getCookie, setCookie } from "@/lib/cookies";
-import { type Language, type Translations, translations, isValidLanguage } from "@/lib/translations";
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  type Language,
+  type Translations,
+  isValidLanguage,
+  translations,
+} from "@/lib/translations";
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react";
 
 interface LanguageContextValue {
   language: Language;
@@ -39,10 +44,9 @@ export function LanguageProvider({ children }: LanguageProviderProps): ReactNode
 
   useEffect(() => {
     const cookieLang = getCookie(COOKIE_NAMES.LANGUAGE);
-    const initialLang = cookieLang && isValidLanguage(cookieLang)
-      ? cookieLang
-      : getBrowserLanguage();
-    
+    const initialLang =
+      cookieLang && isValidLanguage(cookieLang) ? cookieLang : getBrowserLanguage();
+
     setLanguageState(initialLang);
     updateDocumentLang(initialLang);
     setIsInitialized(true);

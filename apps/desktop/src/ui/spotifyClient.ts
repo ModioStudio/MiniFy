@@ -122,7 +122,7 @@ interface SpotifySearchResponse {
 
 export async function searchTracks(query: string, limit: number): Promise<SimplifiedTrack[]> {
   if (!query.trim()) return [];
-  
+
   const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}`;
   const data = await request<SpotifySearchResponse>(url);
   return data.tracks.items;
@@ -145,16 +145,16 @@ interface RecentlyPlayedResponse {
 export async function fetchRecentlyPlayed(limit: number): Promise<SimplifiedTrack[]> {
   const url = `https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`;
   const data = await request<RecentlyPlayedResponse>(url);
-  
+
   const seen = new Set<string>();
   const uniqueTracks: SimplifiedTrack[] = [];
-  
+
   for (const item of data.items) {
     if (!seen.has(item.track.id)) {
       seen.add(item.track.id);
       uniqueTracks.push(item.track);
     }
   }
-  
+
   return uniqueTracks;
 }
