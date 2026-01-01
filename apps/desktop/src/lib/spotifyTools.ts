@@ -1,6 +1,10 @@
 import { tool } from "ai";
 import { z } from "zod";
 import {
+  type AudioFeatures,
+  type FullArtist,
+  type SimplifiedTrack,
+  type TimeRange,
   fetchAudioFeatures,
   fetchCurrentlyPlaying,
   fetchRecentlyPlayed,
@@ -11,10 +15,6 @@ import {
   fetchUserProfile,
   playTrack,
   searchTracks,
-  type AudioFeatures,
-  type FullArtist,
-  type SimplifiedTrack,
-  type TimeRange,
 } from "../ui/spotifyClient";
 
 function formatTrack(track: SimplifiedTrack): string {
@@ -121,12 +121,7 @@ export const spotifyTools = {
   getRecentlyPlayed: tool({
     description: "Get the user's recently played tracks on Spotify",
     parameters: z.object({
-      limit: z
-        .number()
-        .min(1)
-        .max(50)
-        .default(10)
-        .describe("Number of tracks to retrieve (1-50)"),
+      limit: z.number().min(1).max(50).default(10).describe("Number of tracks to retrieve (1-50)"),
     }),
     execute: async ({ limit }) => {
       try {
@@ -148,15 +143,13 @@ export const spotifyTools = {
   }),
 
   searchTracks: tool({
-    description: "Search for tracks on Spotify by name, artist, or query. This is the most reliable way to find music.",
+    description:
+      "Search for tracks on Spotify by name, artist, or query. This is the most reliable way to find music.",
     parameters: z.object({
-      query: z.string().describe("Search query for finding tracks (e.g. 'upbeat pop' or 'artist name')"),
-      limit: z
-        .number()
-        .min(1)
-        .max(20)
-        .default(5)
-        .describe("Number of results to return (1-20)"),
+      query: z
+        .string()
+        .describe("Search query for finding tracks (e.g. 'upbeat pop' or 'artist name')"),
+      limit: z.number().min(1).max(20).default(5).describe("Number of results to return (1-20)"),
     }),
     execute: async ({ query, limit }) => {
       try {
@@ -179,9 +172,7 @@ export const spotifyTools = {
   playTrack: tool({
     description: "Play a specific track on Spotify using its URI",
     parameters: z.object({
-      trackUri: z
-        .string()
-        .describe("Spotify track URI in format spotify:track:TRACK_ID"),
+      trackUri: z.string().describe("Spotify track URI in format spotify:track:TRACK_ID"),
     }),
     execute: async ({ trackUri }) => {
       try {
@@ -225,8 +216,7 @@ export const spotifyTools = {
   }),
 
   getTopArtists: tool({
-    description:
-      "Get the user's most listened artists to understand their genre preferences",
+    description: "Get the user's most listened artists to understand their genre preferences",
     parameters: z.object({
       timeRange: timeRangeSchema.default("medium_term" as TimeRange),
       limit: z.number().min(1).max(50).default(15).describe("Number of artists (1-50)"),
@@ -410,7 +400,8 @@ export const spotifyTools = {
         if (!tracks || tracks.length === 0) {
           return {
             success: false,
-            message: "No recommendations found. Try using searchTracks with artist or genre keywords.",
+            message:
+              "No recommendations found. Try using searchTracks with artist or genre keywords.",
           };
         }
 
@@ -456,4 +447,3 @@ export const spotifyTools = {
 };
 
 export type SpotifyToolName = keyof typeof spotifyTools;
-

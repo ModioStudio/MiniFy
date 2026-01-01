@@ -2,7 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModelV1 } from "ai";
-import { getAIApiKey, type AIProviderConfig, type AIProviderType } from "./settingLib";
+import { type AIProviderConfig, type AIProviderType, getAIApiKey } from "./settingLib";
 
 export const AI_DJ_SYSTEM_PROMPT = `You are an AI DJ assistant for MiniFy, a desktop music player app.
 
@@ -52,11 +52,7 @@ Your role is to help users discover and play music based on their listening hist
 - "Your music taste shows you prefer [mood] tracks with an average tempo of [X] BPM. I found something perfect..."
 - "Based on your top genres ([genres]), here's a track you might not know yet..."`;
 
-
-export function createAIModel(
-  providerType: AIProviderType,
-  apiKey: string
-): LanguageModelV1 {
+export function createAIModel(providerType: AIProviderType, apiKey: string): LanguageModelV1 {
   switch (providerType) {
     case "openai": {
       const openai = createOpenAI({ apiKey });
@@ -94,7 +90,7 @@ export async function getActiveProviderWithKey(
 ): Promise<{ provider: AIProviderType; apiKey: string } | null> {
   const config = getActiveProvider(providers, activeProvider);
   if (!config) return null;
-  
+
   try {
     const apiKey = await getAIApiKey(config.provider);
     return { provider: config.provider, apiKey };
@@ -102,4 +98,3 @@ export async function getActiveProviderWithKey(
     return null;
   }
 }
-

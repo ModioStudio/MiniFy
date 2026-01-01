@@ -28,7 +28,6 @@ export default function App() {
   const [theme, setTheme] = useState<string>("dark");
   const [view, setView] = useState<AppView>("app");
 
-
   // ---- Load persisted settings
   useEffect(() => {
     (async () => {
@@ -66,7 +65,8 @@ export default function App() {
 
       const showMenu = async () => {
         const settings = await readSettings();
-        const hasAI = getActiveProvider(settings.ai_providers, settings.active_ai_provider) !== null;
+        const hasAI =
+          getActiveProvider(settings.ai_providers, settings.active_ai_provider) !== null;
 
         const settingsItem = await MenuItem.new({
           text: "Settings",
@@ -96,10 +96,7 @@ export default function App() {
             items: [settingsItem, searchItem, separator, minimizeItem, closeItem],
           });
         }
-        await menu.popup(
-          new LogicalPosition(e.clientX + 12, e.clientY),
-          getCurrentWindow()
-        );
+        await menu.popup(new LogicalPosition(e.clientX + 12, e.clientY), getCurrentWindow());
       };
 
       void showMenu();

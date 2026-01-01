@@ -7,14 +7,10 @@ import {
   User,
   Waveform,
 } from "@phosphor-icons/react";
-import { generateText, type CoreMessage } from "ai";
+import { type CoreMessage, generateText } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import {
-  AI_DJ_SYSTEM_PROMPT,
-  createAIModel,
-  getActiveProviderWithKey,
-} from "../../lib/aiClient";
+import { AI_DJ_SYSTEM_PROMPT, createAIModel, getActiveProviderWithKey } from "../../lib/aiClient";
 import { readSettings } from "../../lib/settingLib";
 import { spotifyTools } from "../../lib/spotifyTools";
 
@@ -48,10 +44,6 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
     setLayout("AIDJ");
   }, [setLayout]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   const handleScroll = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -61,9 +53,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   useEffect(() => {
     if (shouldAutoScroll) {
-      scrollToBottom();
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, shouldAutoScroll]);
+  }, [shouldAutoScroll]);
 
   useEffect(() => {
     (async () => {
@@ -179,7 +171,11 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   if (isConfigured === null) {
     return (
       <div className="h-full w-full flex items-center justify-center">
-        <SpinnerGap size={32} className="animate-spin" style={{ color: "var(--settings-accent)" }} />
+        <SpinnerGap
+          size={32}
+          className="animate-spin"
+          style={{ color: "var(--settings-accent)" }}
+        />
       </div>
     );
   }
@@ -211,8 +207,8 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           <Robot size={64} weight="duotone" style={{ color: "var(--settings-text-muted)" }} />
           <h2 className="text-lg font-medium">AI DJ Not Configured</h2>
           <p className="text-sm text-[--settings-text-muted] max-w-sm">
-            To use the AI DJ, you need to connect an AI provider first. Go to Settings
-            → Connections and add an API key for OpenAI, Anthropic, Google AI, or Groq.
+            To use the AI DJ, you need to connect an AI provider first. Go to Settings → Connections
+            and add an API key for OpenAI, Anthropic, Google AI, or Groq.
           </p>
           <button
             type="button"
@@ -279,9 +275,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                 )}
               </div>
 
-              <div
-                className={`max-w-[80%] ${message.role === "user" ? "text-right" : ""}`}
-              >
+              <div className={`max-w-[80%] ${message.role === "user" ? "text-right" : ""}`}>
                 <div
                   className="inline-block px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                   style={{
@@ -291,9 +285,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                         : "var(--settings-accent)",
                     color: message.role === "assistant" ? "var(--settings-text)" : "#000",
                     borderRadius:
-                      message.role === "assistant"
-                        ? "4px 18px 18px 18px"
-                        : "18px 4px 18px 18px",
+                      message.role === "assistant" ? "4px 18px 18px 18px" : "18px 4px 18px 18px",
                   }}
                 >
                   {message.content}
@@ -301,9 +293,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
                 {message.toolResults && message.toolResults.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {message.toolResults.map((tr, idx) => (
+                    {message.toolResults.map((tr) => (
                       <div
-                        key={idx}
+                        key={`${message.id}-${tr.toolName}`}
                         className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg inline-flex"
                         style={{
                           background: "rgba(255, 255, 255, 0.05)",
@@ -322,10 +314,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                   </div>
                 )}
 
-                <div
-                  className="text-xs mt-1"
-                  style={{ color: "var(--settings-text-muted)" }}
-                >
+                <div className="text-xs mt-1" style={{ color: "var(--settings-text-muted)" }}>
                   {message.timestamp.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -443,4 +432,3 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
     </div>
   );
 }
-

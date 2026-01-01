@@ -90,10 +90,7 @@ async function clearMacOSCredentials() {
       console.log(`  ✓ Deleted: ${service}`);
     } catch (err) {
       const message = err?.stderr || err?.message || String(err);
-      if (
-        message.includes("could not be found") ||
-        message.includes("SecKeychainSearchCopyNext")
-      ) {
+      if (message.includes("could not be found") || message.includes("SecKeychainSearchCopyNext")) {
         console.log(`  - Not found: ${service}`);
       } else {
         console.error(`  ✗ Error deleting ${service}:`, message);
@@ -171,9 +168,9 @@ async function clearSettingsFile() {
     console.log(`  ✓ Deleted: ${settingsPath}`);
   } catch (err) {
     if (err?.code === "ENOENT") {
-      console.log(`  - Not found: settings.json (already clean)`);
+      console.log("  - Not found: settings.json (already clean)");
     } else {
-      console.error(`  ✗ Error deleting settings file:`, err?.message || err);
+      console.error("  ✗ Error deleting settings file:", err?.message || err);
       process.exit(1);
     }
   }

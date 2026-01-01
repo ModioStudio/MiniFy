@@ -5,6 +5,13 @@
   <h1>MiniFy</h1>
   <p>Spotify mini player for desktop built with Tauri + React, paired with a Next.js landing site.</p>
   <p>
+    <a href="https://minify.skeptic.run"><strong>🌐 Website</strong></a>
+    ·
+    <a href="https://minify-docs.skeptic.run"><strong>📚 Documentation</strong></a>
+    ·
+    <a href="https://github.com/ModioStudio/MiniFy/releases/latest"><strong>⬇️ Download</strong></a>
+  </p>
+  <p>
     <a href="https://github.com/ModioStudio/MiniFy/issues/new?labels=bug">Report Bug</a>
     ·
     <a href="https://github.com/ModioStudio/MiniFy/issues/new?labels=enhancement">Request Feature</a>
@@ -42,6 +49,7 @@
 - [Scripts](#scripts)
 - [Tech Stack](#tech-stack)
 - [Security Details](#security-details)
+- [Links](#links)
 - [License](#license)
 
 ## Overview
@@ -220,6 +228,16 @@ All sensitive credentials are stored in your operating system's secure credentia
 | Linux | Secret Service |
 
 This includes Spotify tokens and AI API keys. No credentials are stored in plain text files.
+
+## Links
+
+| Resource | URL |
+|----------|-----|
+| 🌐 Website | [minify.skeptic.run](https://minify.skeptic.run) |
+| 📚 Documentation | [minify-docs.skeptic.run](https://minify-docs.skeptic.run) |
+| ⬇️ Downloads | [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) |
+| 🐛 Issues | [GitHub Issues](https://github.com/ModioStudio/MiniFy/issues) |
+| 📋 Roadmap | [Project Board](https://github.com/orgs/ModioStudio/projects/2) |
 
 ## License
 Licensed under the MIT License. See `LICENSE` for details.

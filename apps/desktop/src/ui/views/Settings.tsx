@@ -50,7 +50,12 @@ const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: st
   { id: "groq", name: "Groq", model: "Llama 3.1 8B", color: "#F55036" },
 ];
 
-const MUSIC_PROVIDERS: { id: MusicProviderType; name: string; color: string; available: boolean }[] = [
+const MUSIC_PROVIDERS: {
+  id: MusicProviderType;
+  name: string;
+  color: string;
+  available: boolean;
+}[] = [
   { id: "spotify", name: "Spotify", color: "#1DB954", available: true },
   { id: "apple", name: "Apple Music", color: "#FC3C44", available: false },
   { id: "youtube", name: "YouTube Music", color: "#FF0000", available: false },
@@ -168,7 +173,12 @@ const DEFAULT_THEME_JSON = `{
   }
 }`;
 
-export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onResetAuth }: SettingsProps) {
+export default function Settings({
+  onBack,
+  onUpdateLayout,
+  onUpdateTheme,
+  onResetAuth,
+}: SettingsProps) {
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
   const [currentTheme, setCurrentTheme] = useState<string>("dark");
@@ -324,7 +334,7 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
 
     const newActive =
       activeAIProvider === provider
-        ? newProviders.find((p) => p.enabled)?.provider ?? null
+        ? (newProviders.find((p) => p.enabled)?.provider ?? null)
         : activeAIProvider;
     setActiveAIProvider(newActive);
 
@@ -512,7 +522,8 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
               {MUSIC_PROVIDERS.map(({ id, name, color, available }) => {
                 const isSpotifyConnected = id === "spotify" && spotifyConnected;
                 const isActive = activeMusicProvider === id;
-                const IconComponent = id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
+                const IconComponent =
+                  id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
 
                 return (
                   <div
@@ -520,11 +531,12 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
                     className={`flex items-center justify-between p-4 rounded-xl border ${!available ? "opacity-50" : ""}`}
                     style={{
                       background: "rgba(0, 0, 0, 0.2)",
-                      borderColor: isSpotifyConnected && isActive
-                        ? `${color}50`
-                        : isSpotifyConnected
-                          ? `${color}30`
-                          : "rgba(255, 255, 255, 0.1)",
+                      borderColor:
+                        isSpotifyConnected && isActive
+                          ? `${color}50`
+                          : isSpotifyConnected
+                            ? `${color}30`
+                            : "rgba(255, 255, 255, 0.1)",
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -532,7 +544,11 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
                         style={{ background: color }}
                       >
-                        <IconComponent size={24} weight="fill" color={id === "spotify" ? "#000" : "#fff"} />
+                        <IconComponent
+                          size={24}
+                          weight="fill"
+                          color={id === "spotify" ? "#000" : "#fff"}
+                        />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-medium">{name}</span>
@@ -625,11 +641,12 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
                     className="flex flex-col gap-2 p-4 rounded-xl border"
                     style={{
                       background: "rgba(0, 0, 0, 0.2)",
-                      borderColor: isConnected && isActive
-                        ? `${color}50`
-                        : isConnected
-                          ? `${color}30`
-                          : "rgba(255, 255, 255, 0.1)",
+                      borderColor:
+                        isConnected && isActive
+                          ? `${color}50`
+                          : isConnected
+                            ? `${color}30`
+                            : "rgba(255, 255, 255, 0.1)",
                     }}
                   >
                     <div className="flex items-center justify-between">

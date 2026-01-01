@@ -188,10 +188,7 @@ export async function fetchTopTracks(
   return data.items;
 }
 
-export async function fetchTopArtists(
-  timeRange: TimeRange,
-  limit: number
-): Promise<FullArtist[]> {
+export async function fetchTopArtists(timeRange: TimeRange, limit: number): Promise<FullArtist[]> {
   const url = `https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=${limit}`;
   const data = await request<TopArtistsResponse>(url);
   return data.items;

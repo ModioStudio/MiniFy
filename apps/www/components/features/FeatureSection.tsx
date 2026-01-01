@@ -77,9 +77,9 @@ export function FeaturesSection() {
               </div>
 
               <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
+                {["track-1", "track-2", "track-3"].map((trackId) => (
                   <div
-                    key={i}
+                    key={trackId}
                     className="flex items-center gap-2 rounded-md bg-muted/30 p-3 hover:bg-[#1DB954]/10 transition-colors cursor-pointer"
                   >
                     <div className="h-8 w-8 rounded bg-[#1DB954]/20" />
@@ -142,16 +142,21 @@ export function FeaturesSection() {
                 </div>
 
                 <div className="flex justify-center gap-3">
-                  {[...Array(layouts[activeLayout].dots)].map((_, i) => (
+                  {Array.from({ length: layouts[activeLayout].dots }, (_, i) => `dot-${i}`).map(
+                    (dotId) => (
+                      <div
+                        key={dotId}
+                        className="h-6 w-6 rounded-full border border-border/40"
+                        style={{ backgroundColor: layouts[activeLayout].color }}
+                      />
+                    )
+                  )}
+                  {Array.from(
+                    { length: 5 - layouts[activeLayout].dots },
+                    (_, i) => `empty-${i}`
+                  ).map((emptyId) => (
                     <div
-                      key={i}
-                      className="h-6 w-6 rounded-full border border-border/40"
-                      style={{ backgroundColor: layouts[activeLayout].color }}
-                    />
-                  ))}
-                  {[...Array(5 - layouts[activeLayout].dots)].map((_, i) => (
-                    <div
-                      key={`empty-${i}`}
+                      key={emptyId}
                       className="h-6 w-6 rounded-full border border-border/40 bg-background/50"
                     />
                   ))}
@@ -170,8 +175,9 @@ export function FeaturesSection() {
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 {themes.map((theme, i) => (
-                  <div
-                    key={i}
+                  <button
+                    type="button"
+                    key={`theme-${theme.colors[0]}`}
                     onClick={() => setActiveTheme(i)}
                     className={`aspect-square rounded-lg border-2 p-2 cursor-pointer ${
                       activeTheme === i ? "border-[#1DB954]" : "border-border/40 opacity-60"
@@ -179,6 +185,7 @@ export function FeaturesSection() {
                     style={{
                       background: `linear-gradient(135deg, ${theme.colors[0]}, ${theme.colors[1]})`,
                     }}
+                    aria-label={`Select theme ${i + 1}`}
                   />
                 ))}
               </div>
@@ -262,9 +269,9 @@ export function FeaturesSection() {
                     { label: "Play/Pause", key: "Space" },
                     { label: "Next Track", key: "→" },
                     { label: "Toggle Window", key: "Cmd+Shift+M" },
-                  ].map((shortcut, i) => (
+                  ].map((shortcut) => (
                     <div
-                      key={i}
+                      key={shortcut.label}
                       className="flex items-center justify-between text-xs hover:bg-[#1ed760]/10 p-1 rounded cursor-pointer transition-colors"
                     >
                       <span className="text-muted-foreground">{shortcut.label}</span>
