@@ -12,7 +12,7 @@ COPY package.json ./
 # Install dependencies using npm (standalone, no workspace needed)
 RUN npm install
 
-# Copy source files
+# Copy all source files (including nginx.conf)
 COPY . .
 
 # Build the docs
@@ -21,11 +21,11 @@ RUN npm run build
 # Production image with nginx
 FROM nginx:alpine AS runner
 
-# Copy built assets
+# Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config from builder (not from build context)
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3002
 
