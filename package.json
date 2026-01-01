@@ -12,6 +12,7 @@
     "desktop:dev": "pnpm --filter desktop tauri dev",
     "desktop:build": "pnpm --filter desktop build",
     "desktop:clear-auth": "pnpm --filter desktop clear-auth",
+    "desktop:clear": "pnpm --filter desktop clear-auth",
     "www:dev": "pnpm --filter www dev",
     "www:build": "pnpm --filter www build",
     "docs:dev": "pnpm --filter docs dev",

@@ -457,7 +457,18 @@ fn success_page() -> String {
     html.to_string()
 }
 
+/// Escape HTML special characters to prevent XSS attacks
+fn escape_html(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 fn error_page(message: &str) -> String {
+    let escaped_message = escape_html(message);
     format!(r##"<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>MiniFy - Error</title></head>
 <body style="font-family:system-ui,sans-serif;background:#0a0a0a;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">
@@ -468,7 +479,7 @@ fn error_page(message: &str) -> String {
 <h1 style="color:#ef4444;margin:0 0 0.5rem;font-size:1.25rem">Authentication Failed</h1>
 <p style="color:rgba(255,255,255,0.6);margin:0;font-size:0.9rem">{}</p>
 <p style="color:rgba(255,255,255,0.4);margin:1rem 0 0;font-size:0.8rem">Please close this window and try again in the app</p>
-</div></body></html>"##, message)
+</div></body></html>"##, escaped_message)
 }
 
 #[tauri::command]

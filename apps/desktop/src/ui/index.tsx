@@ -15,7 +15,7 @@ import LayoutC from "./layouts/LayoutC";
 import Boot from "./views/Boot";
 import SearchBar from "./views/SearchBar";
 import Settings from "./views/Settings";
-import SplashScreen from "./views/SplashScreen";
+import { SplashScreen } from "./views/SplashScreen";
 
 type AppView = "app" | "settings" | "search";
 
