@@ -17,6 +17,8 @@
     <a href="https://github.com/ModioStudio/MiniFy/issues/new?labels=enhancement">Request Feature</a>
     ·
     <a href="https://github.com/orgs/ModioStudio/projects/2">Project Board</a>
+    ·
+    <a href="https://discord.gg/haNyuz2zQ5">Discord</a>
   </p>
   <div>
     <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.8" />
@@ -238,6 +240,7 @@ This includes Spotify tokens and AI API keys. No credentials are stored in plain
 | ⬇️ Downloads | [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) |
 | 🐛 Issues | [GitHub Issues](https://github.com/ModioStudio/MiniFy/issues) |
 | 📋 Roadmap | [Project Board](https://github.com/orgs/ModioStudio/projects/2) |
+| 💬 Discord | [discord.gg/haNyuz2zQ5](https://discord.gg/haNyuz2zQ5) |
 
 ## License
 Licensed under the MIT License. See `LICENSE` for details.
