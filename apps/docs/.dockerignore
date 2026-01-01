@@ -1,16 +1,21 @@
+# Dependencies
 node_modules
+
+# Build output (will be created during build)
 dist
+
+# Development files
 .astro
-.git
 *.log
-.env
-.env.*
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# OS
 .DS_Store
 Thumbs.db
-
-# Monorepo files (should not be in docs context)
-turbo.json
-pnpm-workspace.yaml
-pnpm-lock.yaml
-biome.json
-lefthook.yml
