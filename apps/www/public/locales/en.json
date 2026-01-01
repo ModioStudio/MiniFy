@@ -67,7 +67,11 @@
     "macos": {
       "title": "macOS",
       "description": "For macOS 11+ (Intel & Apple Silicon)",
-      "features": ["Universal Binary (Intel + M1/M2/M3)", "Native macOS Integration", "Touch Bar & Media Keys"],
+      "features": [
+        "Universal Binary (Intel + M1/M2/M3)",
+        "Native macOS Integration",
+        "Touch Bar & Media Keys"
+      ],
       "size": "Size: 48 MB | Notarized & Signed"
     },
     "linux": {
@@ -94,8 +98,18 @@
     },
     "installation": "Installation Guide",
     "installSteps": {
-      "windows": ["Download the .exe file", "Run the installer", "Follow installation steps", "Launch MiniFy and sign in with Spotify"],
-      "macos": ["Download the .dmg file", "Open DMG and drag MiniFy to Applications", "Open MiniFy from Applications folder", "If warning: System Preferences → Security"],
+      "windows": [
+        "Download the .exe file",
+        "Run the installer",
+        "Follow installation steps",
+        "Launch MiniFy and sign in with Spotify"
+      ],
+      "macos": [
+        "Download the .dmg file",
+        "Open DMG and drag MiniFy to Applications",
+        "Open MiniFy from Applications folder",
+        "If warning: System Preferences → Security"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +148,3 @@
     "allRightsReserved": "All rights reserved."
   }
 }
-

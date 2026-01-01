@@ -94,8 +94,18 @@
     },
     "installation": "安装指南",
     "installSteps": {
-      "windows": ["下载 .exe 文件", "运行安装程序", "按照安装步骤操作", "启动 MiniFy 并使用 Spotify 登录"],
-      "macos": ["下载 .dmg 文件", "打开 DMG 并将 MiniFy 拖到应用程序", "从应用程序文件夹打开 MiniFy", "如有警告：系统偏好设置 → 安全性"],
+      "windows": [
+        "下载 .exe 文件",
+        "运行安装程序",
+        "按照安装步骤操作",
+        "启动 MiniFy 并使用 Spotify 登录"
+      ],
+      "macos": [
+        "下载 .dmg 文件",
+        "打开 DMG 并将 MiniFy 拖到应用程序",
+        "从应用程序文件夹打开 MiniFy",
+        "如有警告：系统偏好设置 → 安全性"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +144,3 @@
     "allRightsReserved": "保留所有权利。"
   }
 }
-

@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
+import { motion } from "framer-motion";
 import { ArrowRight, Download, Github } from "lucide-react";
 import { PlayerPreview } from "./player";
-import { motion } from "framer-motion";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },

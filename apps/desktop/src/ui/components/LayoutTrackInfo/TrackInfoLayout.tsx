@@ -18,8 +18,8 @@ export function TrackInfoLayout({ track, variant, size, maxLength }: Props) {
   switch (variant) {
     case "cover":
       return (
-        <TrackCover 
-          src={track ? getLargestImageUrl(track.album.images) ?? undefined : undefined} 
+        <TrackCover
+          src={track ? (getLargestImageUrl(track.album.images) ?? undefined) : undefined}
           size={size || 64}
           isEmpty={!track}
         />
@@ -29,12 +29,18 @@ export function TrackInfoLayout({ track, variant, size, maxLength }: Props) {
       return <TrackMeta title={track?.name} maxLength={maxLength} isEmpty={!track} />;
 
     case "artist":
-      return <TrackMeta artists={track?.artists.map((a) => a.name).join(", ")} maxLength={maxLength} isEmpty={!track} />;
+      return (
+        <TrackMeta
+          artists={track?.artists.map((a) => a.name).join(", ")}
+          maxLength={maxLength}
+          isEmpty={!track}
+        />
+      );
 
     case "description":
       if (!track) return <p className="text-sm text-white/60 line-clamp-2">—</p>;
       return <p className="text-sm text-white/60 line-clamp-2">{track.album.name}</p>;
-      
+
     case "actions":
       if (!track) return null;
       return <TrackActions onSave={() => saveTrackToLibrary(track.id)} />;

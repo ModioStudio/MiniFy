@@ -11,18 +11,15 @@
     "check": "biome check --write .",
     "desktop:dev": "pnpm --filter desktop tauri dev",
     "desktop:build": "pnpm --filter desktop build",
+    "desktop:clear-auth": "pnpm --filter desktop clear-auth",
     "www:dev": "pnpm --filter www dev",
     "www:build": "pnpm --filter www build",
     "docs:dev": "pnpm --filter docs dev",
     "docs:build": "pnpm --filter docs build",
-    "docs:preview": "pnpm --filter docs preview",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "changeset publish"
+    "docs:preview": "pnpm --filter docs preview"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@changesets/cli": "^2.28.1",
     "@turbo/gen": "^2.3.1",
     "lefthook": "^1.11.1",
     "turbo": "^2.3.1"

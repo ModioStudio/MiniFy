@@ -67,7 +67,11 @@
     "macos": {
       "title": "macOS",
       "description": "macOS 11+ (Intel・Apple Silicon)対応",
-      "features": ["ユニバーサルバイナリ (Intel + M1/M2/M3)", "ネイティブmacOS統合", "Touch Bar・メディアキー"],
+      "features": [
+        "ユニバーサルバイナリ (Intel + M1/M2/M3)",
+        "ネイティブmacOS統合",
+        "Touch Bar・メディアキー"
+      ],
       "size": "サイズ：48 MB | 公証済み・署名済み"
     },
     "linux": {
@@ -94,8 +98,18 @@
     },
     "installation": "インストールガイド",
     "installSteps": {
-      "windows": [".exeファイルをダウンロード", "インストーラーを実行", "インストール手順に従う", "MiniFyを起動してSpotifyでログイン"],
-      "macos": [".dmgファイルをダウンロード", "DMGを開いてMiniFyをアプリケーションにドラッグ", "アプリケーションフォルダからMiniFyを開く", "警告時：システム環境設定 → セキュリティ"],
+      "windows": [
+        ".exeファイルをダウンロード",
+        "インストーラーを実行",
+        "インストール手順に従う",
+        "MiniFyを起動してSpotifyでログイン"
+      ],
+      "macos": [
+        ".dmgファイルをダウンロード",
+        "DMGを開いてMiniFyをアプリケーションにドラッグ",
+        "アプリケーションフォルダからMiniFyを開く",
+        "警告時：システム環境設定 → セキュリティ"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +148,3 @@
     "allRightsReserved": "全著作権所有。"
   }
 }
-

@@ -1,4 +1,5 @@
 import {
+  AppleLogo,
   ArrowLeft,
   Check,
   Download,
@@ -6,18 +7,24 @@ import {
   FloppyDisk,
   GearSix,
   GithubLogo,
+  Link,
   PaintBrush,
   ShieldCheck,
+  SignOut,
+  SpotifyLogo,
   SquaresFour,
   Trash,
   Warning,
   X,
+  YoutubeLogo,
 } from "@phosphor-icons/react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import {
-  CustomTheme,
+  type CustomTheme,
   deleteCustomTheme,
   exportCustomTheme,
   loadCustomThemes,
@@ -25,21 +32,20 @@ import {
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
-import {
-  applyCustomThemeFromJson,
-  validateThemeJsonFormat,
-} from "../../loader/themeLoader";
+import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
 
 type SettingsProps = {
   onBack: () => void;
   onUpdateLayout?: (layout: string) => void;
   onUpdateTheme?: (theme: string) => void;
+  onResetAuth?: () => void;
 };
 
 const categories = [
   { key: "appearance", label: "Appearance", icon: GearSix },
   { key: "layout", label: "Layout", icon: SquaresFour },
   { key: "themestudio", label: "Theme Studio", icon: PaintBrush },
+  { key: "connections", label: "Connections", icon: Link },
   { key: "privacy", label: "Privacy", icon: ShieldCheck },
 ] as const;
 
@@ -95,7 +101,7 @@ const DEFAULT_THEME_JSON = `{
   }
 }`;
 
-export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: SettingsProps) {
+export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onResetAuth }: SettingsProps) {
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
   const [currentTheme, setCurrentTheme] = useState<string>("dark");
@@ -109,10 +115,18 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
   } | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  const refreshCustomThemes = async () => {
+  const [spotifyConnected, setSpotifyConnected] = useState<boolean>(false);
+  const [spotifyLoading, setSpotifyLoading] = useState<boolean>(false);
+
+  const refreshCustomThemes = useCallback(async () => {
     const themes = await loadCustomThemes();
     setCustomThemes(themes);
-  };
+  }, []);
+
+  const checkSpotifyConnection = useCallback(async () => {
+    const hasTokens = await invoke<boolean>("has_valid_tokens");
+    setSpotifyConnected(hasTokens);
+  }, []);
 
   useEffect(() => {
     setLayout("Settings");
@@ -122,8 +136,43 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
       if (settings.theme) setCurrentTheme(settings.theme);
       if (settings.layout) setCurrentLayout(settings.layout);
       await refreshCustomThemes();
+      await checkSpotifyConnection();
     })();
-  }, [setLayout]);
+  }, [setLayout, refreshCustomThemes, checkSpotifyConnection]);
+
+  useEffect(() => {
+    const setupOAuthListener = async () => {
+      const unlistenSuccess = await listen("oauth-success", async () => {
+        setSpotifyLoading(false);
+        await checkSpotifyConnection();
+      });
+      const unlistenFailed = await listen("oauth-failed", () => {
+        setSpotifyLoading(false);
+      });
+
+      return () => {
+        unlistenSuccess();
+        unlistenFailed();
+      };
+    };
+
+    const cleanup = setupOAuthListener();
+    return () => {
+      cleanup.then((c) => c());
+    };
+  }, [checkSpotifyConnection]);
+
+  const handleSpotifyLogout = async () => {
+    setSpotifyLoading(true);
+    await invoke("clear_credentials");
+    setSpotifyConnected(false);
+    setSpotifyLoading(false);
+    onResetAuth?.();
+  };
+
+  const handleSpotifyConnect = async () => {
+    onResetAuth?.();
+  };
 
   const applyLayout = async (layout: string) => {
     await writeSettings({ layout });
@@ -222,7 +271,10 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
 
   return (
     <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
-      <div className="flex items-center justify-between mb-3" style={{ color: "var(--settings-header-text)" }}>
+      <div
+        className="flex items-center justify-between mb-3"
+        style={{ color: "var(--settings-header-text)" }}
+      >
         <h1 className="text-base font-semibold">Settings</h1>
         <button
           type="button"
@@ -277,12 +329,135 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme }: Sett
             color: "var(--settings-text)",
           }}
         >
+          {active === "connections" && (
+            <div className="flex flex-col gap-4">
+              <div className="font-medium">Music Services</div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Connect your music streaming accounts to control playback
+              </p>
+
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: spotifyConnected
+                    ? "rgba(30, 215, 96, 0.3)"
+                    : "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: "#1DB954" }}
+                  >
+                    <SpotifyLogo size={24} weight="fill" color="#000" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Spotify</span>
+                    <span
+                      className="text-xs flex items-center gap-1"
+                      style={{
+                        color: spotifyConnected ? "#1DB954" : "var(--settings-text-muted)",
+                      }}
+                    >
+                      {spotifyConnected ? (
+                        <>
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: "#1DB954" }}
+                          />
+                          Connected
+                        </>
+                      ) : (
+                        "Not connected"
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {spotifyConnected ? (
+                  <button
+                    type="button"
+                    onClick={handleSpotifyLogout}
+                    disabled={spotifyLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <SignOut size={16} />
+                    <span className="text-sm">Disconnect</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSpotifyConnect}
+                    disabled={spotifyLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-black font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: "#1DB954" }}
+                  >
+                    {spotifyLoading ? (
+                      <span className="text-sm">Connecting...</span>
+                    ) : (
+                      <>
+                        <SpotifyLogo size={16} weight="fill" />
+                        <span className="text-sm">Connect</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border opacity-50"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: "#FC3C44" }}
+                  >
+                    <AppleLogo size={24} weight="fill" color="#fff" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Apple Music</span>
+                    <span className="text-xs text-[--settings-text-muted]">Coming soon</span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border opacity-50"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: "#FF0000" }}
+                  >
+                    <YoutubeLogo size={24} weight="fill" color="#fff" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium">YouTube Music</span>
+                    <span className="text-xs text-[--settings-text-muted]">Coming soon</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {active === "appearance" && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="font-medium">Built-in Themes</div>
                 <span className="text-xs text-[--settings-text-muted]">
-                  Current: {currentTheme.startsWith("custom:") ? currentTheme.replace("custom:", "") : currentTheme}
+                  Current:{" "}
+                  {currentTheme.startsWith("custom:")
+                    ? currentTheme.replace("custom:", "")
+                    : currentTheme}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">

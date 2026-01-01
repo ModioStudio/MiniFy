@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
-import { GitFork, Heart, Star, Users } from "lucide-react";
 import { motion } from "framer-motion";
+import { GitFork, Heart, Star, Users } from "lucide-react";
 import { ContributorsRow } from "./ContributorRow";
 
 const container = {
@@ -30,13 +30,9 @@ export function OpenSourceSection() {
   ];
 
   return (
-    <section
-      id="opensource"
-      className="relative overflow-hidden py-20 md:py-32"
-    >
+    <section id="opensource" className="relative overflow-hidden py-20 md:py-32">
       {/* Background */}
       <div className="absolute inset-0 bg-muted/50 dark:bg-black/90" />
-
 
       <div className="container relative mx-auto px-4">
         <motion.div
@@ -87,12 +83,8 @@ export function OpenSourceSection() {
                   className="group flex flex-col items-center gap-2 rounded-xl border border-border/40 bg-muted/40 px-6 py-8 backdrop-blur-sm transition-colors hover:bg-muted/60"
                 >
                   <Icon className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
-                  <span className="text-3xl font-bold tracking-tight">
-                    {stat.value}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {stat.label}
-                  </span>
+                  <span className="text-3xl font-bold tracking-tight">{stat.value}</span>
+                  <span className="text-sm text-muted-foreground">{stat.label}</span>
                 </motion.div>
               );
             })}
@@ -100,10 +92,7 @@ export function OpenSourceSection() {
             {/* Contributors – spans all columns */}
           </motion.div>
 
-          <motion.div
-            variants={item}
-            className="flex justify-center mb-10"
-          >
+          <motion.div variants={item} className="flex justify-center mb-10">
             <ContributorsRow />
           </motion.div>
 
@@ -140,10 +129,7 @@ export function OpenSourceSection() {
           </motion.div>
 
           {/* License */}
-          <motion.p
-            variants={item}
-            className="mt-12 text-sm text-muted-foreground"
-          >
+          <motion.p variants={item} className="mt-12 text-sm text-muted-foreground">
             {t.opensource.license}{" "}
             <a
               href="https://github.com/ModioStudio/MiniFy/blob/main/LICENSE"

@@ -14,16 +14,16 @@ export function TrackCover({ src, size = 72, isEmpty = false }: TrackCoverProps)
     return (
       <div
         className="rounded-md overflow-hidden shrink-0 flex items-center justify-center"
-        style={{ 
-          width: dimension, 
+        style={{
+          width: dimension,
           height: dimension,
           background: "var(--settings-panel-bg, rgba(40, 40, 40, 0.6))",
           border: "1px solid var(--player-cover-border-color, rgba(255,255,255,0.1))",
         }}
       >
-        <MusicNote 
-          size={iconSize} 
-          weight="fill" 
+        <MusicNote
+          size={iconSize}
+          weight="fill"
           style={{ color: "var(--player-controls-color, #888)", opacity: 0.5 }}
         />
       </div>

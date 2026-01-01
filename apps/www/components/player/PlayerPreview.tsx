@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { ThemeConfig, ThemeIndex, LayoutType } from "@/lib/types/theme";
-import { fetchThemeIndex, fetchAllThemes, DEFAULT_THEME } from "@/lib/theme-loader";
+import { DEFAULT_THEME, fetchAllThemes, fetchThemeIndex } from "@/lib/theme-loader";
+import type { LayoutType, ThemeConfig, ThemeIndex } from "@/lib/types/theme";
+import { useEffect, useState } from "react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { LayoutA, LayoutB, LayoutC } from "./layouts";
 
@@ -74,4 +74,3 @@ export function PlayerPreview() {
     </div>
   );
 }
-

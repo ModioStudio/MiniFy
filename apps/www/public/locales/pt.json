@@ -67,13 +67,21 @@
     "macos": {
       "title": "macOS",
       "description": "Para macOS 11+ (Intel e Apple Silicon)",
-      "features": ["Universal Binary (Intel + M1/M2/M3)", "Integração Nativa macOS", "Touch Bar e Teclas de Mídia"],
+      "features": [
+        "Universal Binary (Intel + M1/M2/M3)",
+        "Integração Nativa macOS",
+        "Touch Bar e Teclas de Mídia"
+      ],
       "size": "Tamanho: 48 MB | Notarizado e Assinado"
     },
     "linux": {
       "title": "Linux",
       "description": "Para Ubuntu, Debian, Fedora e outros (64-bit)",
-      "features": [".deb, .rpm e AppImage", "Suporte Wayland e X11", "Integração com Bandeja do Sistema"],
+      "features": [
+        ".deb, .rpm e AppImage",
+        "Suporte Wayland e X11",
+        "Integração com Bandeja do Sistema"
+      ],
       "size": "Tamanho: 42 MB | Assinado com GPG"
     },
     "latestVersion": "Última Versão",
@@ -94,8 +102,18 @@
     },
     "installation": "Guia de Instalação",
     "installSteps": {
-      "windows": ["Baixe o arquivo .exe", "Execute o instalador", "Siga as etapas de instalação", "Inicie o MiniFy e faça login com Spotify"],
-      "macos": ["Baixe o arquivo .dmg", "Abra o DMG e arraste MiniFy para Aplicativos", "Abra MiniFy da pasta Aplicativos", "Se houver aviso: Preferências do Sistema → Segurança"],
+      "windows": [
+        "Baixe o arquivo .exe",
+        "Execute o instalador",
+        "Siga as etapas de instalação",
+        "Inicie o MiniFy e faça login com Spotify"
+      ],
+      "macos": [
+        "Baixe o arquivo .dmg",
+        "Abra o DMG e arraste MiniFy para Aplicativos",
+        "Abra MiniFy da pasta Aplicativos",
+        "Se houver aviso: Preferências do Sistema → Segurança"
+      ],
       "linux": {
         "deb": "Debian/Ubuntu (.deb):",
         "rpm": "Fedora/RHEL (.rpm):",
@@ -134,4 +152,3 @@
     "allRightsReserved": "Todos os direitos reservados."
   }
 }
-

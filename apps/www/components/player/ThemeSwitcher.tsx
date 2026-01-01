@@ -1,7 +1,7 @@
 "use client";
 
+import type { LayoutType, ThemeMeta } from "@/lib/types/theme";
 import { ChevronDown } from "lucide-react";
-import type { ThemeMeta, LayoutType } from "@/lib/types/theme";
 
 type ThemeSwitcherProps = {
   themes: ThemeMeta[];
@@ -58,4 +58,3 @@ export function ThemeSwitcher({
     </div>
   );
 }
-

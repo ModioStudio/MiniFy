@@ -1,11 +1,11 @@
-import enTranslations from "@/public/locales/en.json";
 import deTranslations from "@/public/locales/de.json";
-import ruTranslations from "@/public/locales/ru.json";
+import enTranslations from "@/public/locales/en.json";
 import esTranslations from "@/public/locales/es.json";
 import frTranslations from "@/public/locales/fr.json";
-import zhTranslations from "@/public/locales/zh.json";
 import jaTranslations from "@/public/locales/ja.json";
 import ptTranslations from "@/public/locales/pt.json";
+import ruTranslations from "@/public/locales/ru.json";
+import zhTranslations from "@/public/locales/zh.json";
 
 export type Language = "en" | "de" | "ru" | "es" | "fr" | "zh" | "ja" | "pt";
 

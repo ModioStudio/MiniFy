@@ -24,11 +24,7 @@ export function LayoutC({ theme }: LayoutCProps) {
             border: `1px solid ${theme.coverBorderColor}`,
           }}
         >
-          <img
-            src="/playerpreview.png"
-            alt="Track cover"
-            className="w-full h-full object-cover"
-          />
+          <img src="/playerpreview.png" alt="Track cover" className="w-full h-full object-cover" />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">
@@ -59,16 +55,10 @@ export function LayoutC({ theme }: LayoutCProps) {
       </div>
 
       <div className="mt-3">
-        <div
-          className="font-semibold text-lg truncate"
-          style={{ color: theme.songTitleColor }}
-        >
+        <div className="font-semibold text-lg truncate" style={{ color: theme.songTitleColor }}>
           Midnight Drive
         </div>
-        <div
-          className="text-sm truncate opacity-80"
-          style={{ color: theme.songArtistColor }}
-        >
+        <div className="text-sm truncate opacity-80" style={{ color: theme.songArtistColor }}>
           Lunar Echoes
         </div>
       </div>
