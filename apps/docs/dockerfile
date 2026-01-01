@@ -1,19 +1,22 @@
-# Standalone Dockerfile for docs - can be built directly from apps/docs directory
-# Build: docker build -t minify-docs .
-# Run: docker run -p 3002:3002 minify-docs
+# Dockerfile for MiniFy Docs
+# Designed to work when build context is the monorepo root
+# Build: docker build -f apps/docs/dockerfile -t minify-docs .
 
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Copy only docs package.json from monorepo
+COPY apps/docs/package.json ./
 
-# Install dependencies using npm (standalone, no workspace needed)
+# Install dependencies using npm
 RUN npm install
 
-# Copy all source files (including nginx.conf)
-COPY . .
+# Copy docs source files
+COPY apps/docs/src ./src
+COPY apps/docs/astro.config.mjs ./
+COPY apps/docs/tsconfig.json ./
+COPY apps/docs/nginx.conf ./
 
 # Build the docs
 RUN npm run build
@@ -24,7 +27,7 @@ FROM nginx:alpine AS runner
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config from builder (not from build context)
+# Copy nginx config from builder
 COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3002
