@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./global.css";
 
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+import { getActiveProvider } from "../lib/aiClient";
 import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 
@@ -12,12 +13,13 @@ import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
 
+import AIDJView from "./views/AIDJView";
 import Boot from "./views/Boot";
 import SearchBar from "./views/SearchBar";
 import Settings from "./views/Settings";
 import { SplashScreen } from "./views/SplashScreen";
 
-type AppView = "app" | "settings" | "search";
+type AppView = "app" | "settings" | "search" | "aidj";
 
 export default function App() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
@@ -26,7 +28,6 @@ export default function App() {
   const [theme, setTheme] = useState<string>("dark");
   const [view, setView] = useState<AppView>("app");
 
-  const nativeMenuRef = useRef<Menu | null>(null);
 
   // ---- Load persisted settings
   useEffect(() => {
@@ -64,27 +65,38 @@ export default function App() {
       e.preventDefault();
 
       const showMenu = async () => {
-        if (!nativeMenuRef.current) {
-          const settingsItem = await MenuItem.new({
-            text: "Settings",
-            action: () => setView("settings"),
+        const settings = await readSettings();
+        const hasAI = getActiveProvider(settings.ai_providers, settings.active_ai_provider) !== null;
+
+        const settingsItem = await MenuItem.new({
+          text: "Settings",
+          action: () => setView("settings"),
+        });
+
+        const searchItem = await MenuItem.new({
+          text: "Search",
+          action: () => setView("search"),
+        });
+
+        const separator = await PredefinedMenuItem.new({ item: "Separator" });
+        const minimizeItem = await PredefinedMenuItem.new({ item: "Minimize" });
+        const closeItem = await PredefinedMenuItem.new({ item: "CloseWindow" });
+
+        let menu: Menu;
+        if (hasAI) {
+          const aiDjItem = await MenuItem.new({
+            text: "AI DJ",
+            action: () => setView("aidj"),
           });
-
-          const searchItem = await MenuItem.new({
-            text: "Search",
-            action: () => setView("search"),
+          menu = await Menu.new({
+            items: [settingsItem, searchItem, aiDjItem, separator, minimizeItem, closeItem],
           });
-
-          const separator = await PredefinedMenuItem.new({ item: "Separator" });
-          const minimizeItem = await PredefinedMenuItem.new({ item: "Minimize" });
-          const closeItem = await PredefinedMenuItem.new({ item: "CloseWindow" });
-
-          nativeMenuRef.current = await Menu.new({
+        } else {
+          menu = await Menu.new({
             items: [settingsItem, searchItem, separator, minimizeItem, closeItem],
           });
         }
-
-        await nativeMenuRef.current.popup(
+        await menu.popup(
           new LogicalPosition(e.clientX + 12, e.clientY),
           getCurrentWindow()
         );
@@ -134,41 +146,34 @@ export default function App() {
 
   // ---- Layout renderer
   const renderLayout = () => {
-    switch (layout) {
-      case "LayoutB":
-        return <LayoutB />;
-      case "LayoutC":
-        return <LayoutC />;
-      case "LayoutA":
-      default:
-        return <LayoutA />;
-    }
+    if (layout === "LayoutB") return <LayoutB />;
+    if (layout === "LayoutC") return <LayoutC />;
+    return <LayoutA />;
   };
 
-  // ---- View renderer (app / settings / search)
+  // ---- View renderer (app / settings / search / aidj)
   const renderView = () => {
-    switch (view) {
-      case "settings":
-        return (
-          <Settings
-            onBack={() => setView("app")}
-            onUpdateLayout={setLayout}
-            onUpdateTheme={setTheme}
-            onResetAuth={() => {
-              setIsReconnect(true);
-              setFirstBootDone(false);
-              setView("app");
-            }}
-          />
-        );
-
-      case "search":
-        return <SearchBar onBack={() => setView("app")} />;
-
-      case "app":
-      default:
-        return renderLayout();
+    if (view === "settings") {
+      return (
+        <Settings
+          onBack={() => setView("app")}
+          onUpdateLayout={setLayout}
+          onUpdateTheme={setTheme}
+          onResetAuth={() => {
+            setIsReconnect(true);
+            setFirstBootDone(false);
+            setView("app");
+          }}
+        />
+      );
     }
+    if (view === "search") {
+      return <SearchBar onBack={() => setView("app")} />;
+    }
+    if (view === "aidj") {
+      return <AIDJView onBack={() => setView("app")} />;
+    }
+    return renderLayout();
   };
 
   return (

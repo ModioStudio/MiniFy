@@ -1,50 +1,108 @@
 ---
 title: Building from Source
-description: Build MiniFy from source code.
+description: Complete guide to building MiniFy from source code.
 ---
 
-import { Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Steps, Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 # Building from Source
 
-This guide walks you through building MiniFy from source code.
+This guide walks you through building MiniFy from source code, whether you're contributing
+to the project or creating a custom build.
+
+## Build Overview
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              Build Pipeline                                    │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   Source Code                   Build Process                    Output        │
+│   ────────────                  ─────────────                    ──────        │
+│                                                                                │
+│   ┌──────────────┐             ┌──────────────┐               ┌────────────┐  │
+│   │  React/TS    │─── Vite ───▶│   Bundled    │               │            │  │
+│   │  Frontend    │             │   JS/CSS     │───┐           │  Platform  │  │
+│   └──────────────┘             └──────────────┘   │           │  Specific  │  │
+│                                                    │─ Tauri ─▶│  Installer │  │
+│   ┌──────────────┐             ┌──────────────┐   │           │            │  │
+│   │   Rust       │─── Cargo ──▶│   Native     │───┘           │  .msi      │  │
+│   │   Backend    │             │   Binary     │               │  .dmg      │  │
+│   └──────────────┘             └──────────────┘               │  .deb      │  │
+│                                                                └────────────┘  │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Prerequisites
 
-Before building, ensure you have the following installed:
-
 ### All Platforms
 
-- [Node.js](https://nodejs.org/) 18 or later
-- [pnpm](https://pnpm.io/) 9 or later
-- [Rust](https://rustup.rs/) (latest stable)
-- [Git](https://git-scm.com/)
+Ensure you have the following installed:
+
+| Tool | Version | Installation |
+|------|---------|--------------|
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| pnpm | 9+ | `npm install -g pnpm` |
+| Rust | Latest stable | [rustup.rs](https://rustup.rs/) |
+| Git | Any recent | [git-scm.com](https://git-scm.com/) |
+
+**Verify installations:**
+
+```bash
+node --version   # Should be 18.x or higher
+pnpm --version   # Should be 9.x or higher
+rustc --version  # Should be 1.70.x or higher
+cargo --version  # Should match rustc version
+```
 
 ### Platform-Specific Requirements
 
 <Tabs>
   <TabItem label="Windows">
-    - Microsoft Visual Studio C++ Build Tools
-    - WebView2 (usually pre-installed on Windows 10/11)
+    **Microsoft Visual Studio Build Tools**
+
+    Required for compiling native Rust code:
 
     ```powershell
-    # Install Visual Studio Build Tools
+    # Using winget
     winget install Microsoft.VisualStudio.2022.BuildTools
+
+    # Or download from:
+    # https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022
     ```
+
+    During installation, select:
+    - "Desktop development with C++"
+
+    **WebView2 Runtime**
+
+    Usually pre-installed on Windows 10/11. If not:
+    - Download from [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
   </TabItem>
   <TabItem label="macOS">
-    - Xcode Command Line Tools
+    **Xcode Command Line Tools**
 
     ```bash
     xcode-select --install
     ```
+
+    This provides:
+    - C/C++ compiler (clang)
+    - Development headers
+    - Build utilities
+
+    <Aside type="note">
+      Full Xcode is not required - just the Command Line Tools.
+    </Aside>
   </TabItem>
   <TabItem label="Linux">
-    - Various development libraries
+    **Debian/Ubuntu:**
 
     ```bash
-    # Debian/Ubuntu
-    sudo apt install libwebkit2gtk-4.1-dev \
+    sudo apt update
+    sudo apt install -y \
+      libwebkit2gtk-4.1-dev \
       build-essential \
       curl \
       wget \
@@ -53,9 +111,13 @@ Before building, ensure you have the following installed:
       libssl-dev \
       libayatana-appindicator3-dev \
       librsvg2-dev
+    ```
 
-    # Fedora
-    sudo dnf install webkit2gtk4.1-devel \
+    **Fedora:**
+
+    ```bash
+    sudo dnf install -y \
+      webkit2gtk4.1-devel \
       openssl-devel \
       curl \
       wget \
@@ -64,152 +126,314 @@ Before building, ensure you have the following installed:
       libappindicator-gtk3-devel \
       librsvg2-devel
     ```
+
+    **Arch Linux:**
+
+    ```bash
+    sudo pacman -S --needed \
+      webkit2gtk-4.1 \
+      base-devel \
+      curl \
+      wget \
+      file \
+      openssl \
+      appmenu-gtk-module \
+      libappindicator-gtk3 \
+      librsvg
+    ```
   </TabItem>
 </Tabs>
 
-## Clone the Repository
+## Clone and Setup
 
-```bash
-git clone https://github.com/ModioStudio/MiniFy.git
-cd MiniFy
-```
+<Steps>
+1. **Clone the repository**
 
-## Install Dependencies
+   ```bash
+   git clone https://github.com/ModioStudio/MiniFy.git
+   cd MiniFy
+   ```
 
-```bash
-pnpm install
-```
+2. **Install dependencies**
 
-This installs all dependencies for the monorepo, including:
-- Desktop app (React + Tauri)
-- Website (Next.js)
-- Documentation (Astro + Starlight)
+   ```bash
+   pnpm install
+   ```
+
+   This installs dependencies for all workspace packages:
+   - `apps/desktop` - Desktop application
+   - `apps/www` - Marketing website
+   - `apps/docs` - Documentation site
+</Steps>
 
 ## Development Build
 
-Run the desktop app in development mode:
+Run the desktop app in development mode with hot reload:
 
 ```bash
 pnpm desktop:dev
 ```
 
-This will:
-1. Start the Vite development server
-2. Compile the Rust backend
-3. Open the development window
+This command:
+1. Starts the Vite development server (port 1420)
+2. Compiles the Rust backend in debug mode
+3. Opens the development window
+4. Enables hot module replacement (HMR) for React
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                          Development Mode                                      │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   Terminal Output:                                                             │
+│                                                                                │
+│   $ pnpm desktop:dev                                                          │
+│                                                                                │
+│   > @minify/desktop@0.1.0 dev                                                 │
+│   > tauri dev                                                                 │
+│                                                                                │
+│        Info Watching for file changes...                                      │
+│   ┌──────────────────────────────────────────┐                               │
+│   │  VITE v5.x.x  ready in 500ms            │                               │
+│   │  ➜  Local:   http://localhost:1420/     │                               │
+│   └──────────────────────────────────────────┘                               │
+│                                                                                │
+│   Compiling minify v0.1.0...                                                  │
+│   Finished `dev` profile [unoptimized + debuginfo]                           │
+│                                                                                │
+│   [Window opens with MiniFy application]                                      │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
 
 <Aside type="tip">
-  Hot reload is enabled for the React frontend. Changes to Rust code require a rebuild.
+**Hot Reload Behavior:**
+- Frontend (React) changes: Instant reload
+- Rust backend changes: Requires rebuild (~10-30 seconds)
+- Theme JSON changes: Requires app restart
 </Aside>
+
+### Development with DevTools
+
+Open the WebView DevTools for debugging:
+
+```bash
+# Press F12 in the app window
+# Or right-click → Inspect Element
+```
 
 ## Production Build
 
-<Steps>
-1. **Build the application**
-   
-   ```bash
-   pnpm desktop:build
-   ```
+Build optimized installers for distribution:
 
-2. **Find the output**
-   
-   Built installers are located in:
-   ```
-   apps/desktop/src-tauri/target/release/bundle/
-   ```
+```bash
+pnpm desktop:build
+```
 
-3. **Available formats**
-   
-   - **Windows**: `.msi`, `.exe`
-   - **macOS**: `.dmg`, `.app`
-   - **Linux**: `.deb`, `.rpm`, `.AppImage`
-</Steps>
+This creates platform-specific installers:
 
-## Build Scripts
+### Output Locations
+
+```
+apps/desktop/src-tauri/target/release/bundle/
+├── msi/                    # Windows installer
+│   └── MiniFy_x.x.x_x64.msi
+├── nsis/                   # Windows NSIS installer
+│   └── MiniFy_x.x.x_x64-setup.exe
+├── dmg/                    # macOS disk image
+│   └── MiniFy_x.x.x_x64.dmg
+├── macos/                  # macOS app bundle
+│   └── MiniFy.app
+├── deb/                    # Debian package
+│   └── minify_x.x.x_amd64.deb
+├── rpm/                    # Red Hat package
+│   └── minify-x.x.x.x86_64.rpm
+└── appimage/               # Universal Linux
+    └── MiniFy_x.x.x_amd64.AppImage
+```
+
+### Build with Embedded Client ID
+
+For official releases, embed the Spotify Client ID at build time:
+
+```bash
+SPOTIFY_CLIENT_ID=your_client_id pnpm desktop:build
+```
+
+<Aside type="caution">
+Never commit Client IDs to version control. Use environment variables or CI/CD secrets.
+</Aside>
+
+## All Build Scripts
 
 | Script | Description |
 |--------|-------------|
-| `pnpm desktop:dev` | Run desktop app in development |
+| `pnpm desktop:dev` | Run desktop app in development mode |
 | `pnpm desktop:build` | Build desktop app for production |
-| `pnpm www:dev` | Run website in development |
+| `pnpm desktop:clear` | Clear all stored credentials (for testing) |
+| `pnpm www:dev` | Run website in development mode |
 | `pnpm www:build` | Build website for production |
-| `pnpm docs:dev` | Run documentation in development |
+| `pnpm docs:dev` | Run documentation in development mode |
 | `pnpm docs:build` | Build documentation for production |
 | `pnpm build` | Build all packages |
-| `pnpm dev` | Run all packages in development |
+| `pnpm dev` | Run all packages in development mode |
+| `pnpm check` | Run Biome linter and formatter check |
+| `pnpm format` | Format all code with Biome |
 
 ## Environment Variables
 
-Create a `.env` file in `apps/desktop/` if needed:
+### Development
+
+Create a `.env` file in `apps/desktop/` for development:
 
 ```bash
-# Spotify OAuth credentials (optional for development)
-VITE_SPOTIFY_CLIENT_ID=your_client_id
+# Optional: Custom Spotify Client ID for development
+VITE_SPOTIFY_CLIENT_ID=your_development_client_id
 ```
 
-<Aside type="note">
-  The default client ID works for local development. You only need custom credentials for production builds.
-</Aside>
+### Production
+
+For production builds, set environment variables before building:
+
+```bash
+# Required for official releases
+SPOTIFY_CLIENT_ID=production_client_id
+
+# Optional: Enable debug logging
+RUST_LOG=debug
+```
+
+### CI/CD Secrets
+
+For GitHub Actions, set these repository secrets:
+
+| Secret | Purpose |
+|--------|---------|
+| `SPOTIFY_CLIENT_ID` | Embedded in production builds |
+| `APPLE_SIGNING_IDENTITY` | macOS code signing (optional) |
+| `APPLE_ID` | macOS notarization (optional) |
+| `WINDOWS_CERTIFICATE` | Windows code signing (optional) |
 
 ## Troubleshooting
 
-### Rust compilation fails
+### Rust Compilation Fails
 
 ```bash
-# Update Rust
-rustup update
+# Update Rust to latest stable
+rustup update stable
 
-# Clear Cargo cache
+# Clean Cargo cache and rebuild
+cd apps/desktop/src-tauri
 cargo clean
+cd ../../..
+pnpm desktop:dev
 ```
 
-### Node modules issues
+### Node Module Issues
 
 ```bash
-# Clear node_modules and reinstall
+# Remove all node_modules and reinstall
 rm -rf node_modules
 rm -rf apps/*/node_modules
 pnpm install
 ```
 
-### Tauri CLI issues
+### Tauri CLI Issues
 
 ```bash
-# Reinstall Tauri CLI
-pnpm add -D @tauri-apps/cli@latest
+# Update Tauri CLI
+pnpm add -D @tauri-apps/cli@latest -w
+
+# Or reinstall
+pnpm remove @tauri-apps/cli
+pnpm add -D @tauri-apps/cli
 ```
 
-### WebView2 issues (Windows)
+### Platform-Specific Issues
 
-Download and install WebView2 from [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+<Tabs>
+  <TabItem label="Windows">
+    **"LINK : fatal error LNK1181"**
+    - Install Visual Studio Build Tools with C++ support
+    - Restart your terminal after installation
 
-### GTK issues (Linux)
+    **WebView2 not found**
+    - Download and install WebView2 from Microsoft
+    - Restart after installation
+  </TabItem>
+  <TabItem label="macOS">
+    **"xcrun: error: invalid active developer path"**
+    ```bash
+    xcode-select --install
+    ```
 
-Ensure all GTK dependencies are installed:
+    **Code signing issues**
+    - For development, signing is not required
+    - For distribution, see [Tauri signing docs](https://tauri.app/v2/guides/distribution/sign-macos/)
+  </TabItem>
+  <TabItem label="Linux">
+    **"webkit2gtk not found"**
+    ```bash
+    # Check if installed
+    pkg-config --modversion webkit2gtk-4.1
+
+    # Install if missing (Debian/Ubuntu)
+    sudo apt install libwebkit2gtk-4.1-dev
+    ```
+
+    **"libayatana-appindicator not found"**
+    ```bash
+    sudo apt install libayatana-appindicator3-dev
+    ```
+  </TabItem>
+</Tabs>
+
+### Build Performance
+
+For faster builds during development:
 
 ```bash
-sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev
+# Use incremental compilation (default in dev mode)
+pnpm desktop:dev
+
+# For production, use release profile optimization
+pnpm desktop:build
 ```
 
-## Building for Multiple Platforms
+## Cross-Compilation
 
-Tauri supports cross-compilation in some cases, but we recommend building on each target platform for best results.
+Tauri supports limited cross-compilation. For best results, build on each target platform:
 
-### GitHub Actions
+| Build On | Can Target |
+|----------|------------|
+| Windows | Windows only |
+| macOS | macOS only |
+| Linux | Linux only |
 
-The repository includes CI/CD workflows that build for all platforms:
+For multi-platform releases, use GitHub Actions with matrix builds:
 
 ```yaml
-# .github/workflows/build.yml
-on:
-  push:
-    tags:
-      - 'v*'
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: windows-latest
+          - platform: macos-latest
+          - platform: ubuntu-22.04
 ```
 
 ## Next Steps
 
-- [Contributing Guide](/dev/contributing/) - Learn how to submit your changes
-- [Architecture](/dev/architecture/) - Understand the codebase structure
-
+<CardGrid>
+  <Card title="Architecture" icon="laptop">
+    [Understand the codebase →](/dev/architecture/)
+  </Card>
+  <Card title="Contributing" icon="rocket">
+    [Submit your changes →](/dev/contributing/)
+  </Card>
+  <Card title="Desktop Overview" icon="seti:config">
+    [Learn about features →](/desktop/overview/)
+  </Card>
+</CardGrid>
 

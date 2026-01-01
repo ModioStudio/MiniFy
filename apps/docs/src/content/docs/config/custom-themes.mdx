@@ -1,23 +1,98 @@
 ---
 title: Custom Themes
-description: Create your own custom themes for MiniFy.
+description: Complete guide to creating and managing custom themes for MiniFy.
 ---
 
-import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Steps, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
 
 # Custom Themes
 
-MiniFy supports fully customizable themes. This guide will walk you through creating your own theme from scratch.
+MiniFy supports fully customizable themes. This guide walks you through creating your own theme
+from scratch, understanding the theme system, and sharing themes with the community.
 
-## Theme File Location
+## Theme System Overview
 
-Custom themes should be placed in the themes directory:
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                           Theme System Architecture                            │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      Theme JSON File                                     │ │
+│   │                                                                          │ │
+│   │   {                                                                      │ │
+│   │     "name": "Custom Theme",                                              │ │
+│   │     "colors": {                                                          │ │
+│   │       "background": "#1a1b26",                                           │ │
+│   │       "foreground": "#c0caf5",                                           │ │
+│   │       "primary": "#7aa2f7",                                              │ │
+│   │       ...                                                                │ │
+│   │     }                                                                    │ │
+│   │   }                                                                      │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                        │
+│                                       ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      Theme Loader (themeLoader.ts)                       │ │
+│   │                                                                          │ │
+│   │   Reads JSON → Validates → Converts to CSS Variables                    │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                        │
+│                                       ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      CSS Custom Properties                               │ │
+│   │                                                                          │ │
+│   │   :root {                                                                │ │
+│   │     --background: #1a1b26;                                               │ │
+│   │     --foreground: #c0caf5;                                               │ │
+│   │     --primary: #7aa2f7;                                                  │ │
+│   │     ...                                                                  │ │
+│   │   }                                                                      │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                        │
+│                                       ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      UI Components                                       │ │
+│   │                                                                          │ │
+│   │   Components use CSS variables for all colors                           │ │
+│   │   Theme changes are instant (no rebuild needed)                         │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Theme File Locations
+
+### Built-in Themes
+
+Built-in themes are bundled with the application:
+
+```
+apps/desktop/src/themes/
+├── dark.json
+├── light.json
+├── catppuccin.json
+├── dracula.json
+├── chatgpt.json
+├── youtube.json
+├── bmw.json
+└── milka.json
+```
+
+### Custom Theme Locations
+
+Custom themes should be placed in the user themes directory:
 
 <Tabs>
   <TabItem label="Windows">
     ```
     %APPDATA%\MiniFy\themes\
     ```
+    Example: `C:\Users\YourName\AppData\Roaming\MiniFy\themes\`
   </TabItem>
   <TabItem label="macOS">
     ```
@@ -31,43 +106,70 @@ Custom themes should be placed in the themes directory:
   </TabItem>
 </Tabs>
 
-## Creating a Theme
+## Creating a Custom Theme
 
 <Steps>
-1. **Create a new JSON file**
-   
-   Name your theme file descriptively, e.g., `ocean-breeze.json`
+1. **Create the themes directory**
 
-2. **Add the basic structure**
-   
+   <Tabs>
+     <TabItem label="Windows">
+       ```powershell
+       New-Item -ItemType Directory -Force "$env:APPDATA\MiniFy\themes"
+       ```
+     </TabItem>
+     <TabItem label="macOS">
+       ```bash
+       mkdir -p ~/Library/Application\ Support/MiniFy/themes
+       ```
+     </TabItem>
+     <TabItem label="Linux">
+       ```bash
+       mkdir -p ~/.config/MiniFy/themes
+       ```
+     </TabItem>
+   </Tabs>
+
+2. **Create your theme file**
+
+   Create a new JSON file (e.g., `my-theme.json`):
+
    ```json
    {
-     "name": "Ocean Breeze",
+     "name": "My Custom Theme",
      "author": "Your Name",
      "version": "1.0.0",
-     "colors": {}
+     "description": "A brief description of your theme",
+     "colors": {
+       "background": "#1e1e2e",
+       "foreground": "#cdd6f4",
+       "primary": "#89b4fa",
+       "secondary": "#313244",
+       "accent": "#f5c2e7",
+       "muted": "#6c7086",
+       "border": "#45475a"
+     }
    }
    ```
 
-3. **Define your colors**
-   
-   Fill in the colors object with your color scheme.
+3. **Restart MiniFy**
 
-4. **Save and restart MiniFy**
-   
-   Your theme will appear in the themes menu.
+   Close and reopen MiniFy to load the new theme.
+
+4. **Select your theme**
+
+   Right-click → Themes → Select "My Custom Theme"
 </Steps>
 
-## Theme Schema
+## Theme Schema Reference
 
-Here's the complete theme schema with all available properties:
+### Complete Schema
 
 ```json
 {
   "name": "Theme Name",
   "author": "Author Name",
   "version": "1.0.0",
-  "description": "A brief description of your theme",
+  "description": "Theme description",
   "colors": {
     "background": "#0a0a0a",
     "foreground": "#ffffff",
@@ -83,24 +185,39 @@ Here's the complete theme schema with all available properties:
 }
 ```
 
-## Color Properties
+### Required Fields
 
-| Property | Description | Used For |
-|----------|-------------|----------|
-| `background` | Main background color | Window background |
-| `foreground` | Primary text color | Track name, labels |
-| `primary` | Brand/accent color | Buttons, links, progress bar |
-| `secondary` | Secondary background | Cards, panels, hover states |
-| `accent` | Highlight color | Active states, focus rings |
-| `muted` | Subdued text color | Artist name, timestamps |
-| `border` | Border color | Dividers, outlines |
-| `success` | Success states | Volume indicator (high) |
-| `warning` | Warning states | Low battery, etc. |
-| `error` | Error states | Disconnection notices |
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Display name in theme menu |
+| `colors` | object | Color definitions |
 
-## Color Format
+### Optional Fields
 
-Colors can be specified in several formats:
+| Field | Type | Description |
+|-------|------|-------------|
+| `author` | string | Theme creator's name |
+| `version` | string | Theme version (semver) |
+| `description` | string | Brief description |
+
+### Color Properties
+
+| Property | CSS Variable | Usage |
+|----------|--------------|-------|
+| `background` | `--background` | Main window background |
+| `foreground` | `--foreground` | Primary text color |
+| `primary` | `--primary` | Accent color (buttons, progress) |
+| `secondary` | `--secondary` | Secondary backgrounds (cards) |
+| `accent` | `--accent` | Hover states, highlights |
+| `muted` | `--muted` | Subdued text (timestamps) |
+| `border` | `--border` | Border colors, dividers |
+| `success` | `--success` | Success states (optional) |
+| `warning` | `--warning` | Warning states (optional) |
+| `error` | `--error` | Error states (optional) |
+
+## Color Formats
+
+Colors can be specified in multiple formats:
 
 ```json
 {
@@ -114,17 +231,20 @@ Colors can be specified in several formats:
 ```
 
 <Aside type="tip">
-  Hex colors (#RRGGBB) are recommended for consistency and ease of editing.
+**Hex colors (#RRGGBB)** are recommended for consistency and ease of editing.
 </Aside>
 
 ## Example Themes
 
-### Nord Theme
+### Nord
+
+A popular theme with cool, arctic colors:
 
 ```json
 {
   "name": "Nord",
   "author": "Arctic Ice Studio",
+  "version": "1.0.0",
   "colors": {
     "background": "#2e3440",
     "foreground": "#eceff4",
@@ -137,30 +257,15 @@ Colors can be specified in several formats:
 }
 ```
 
-### Solarized Dark
-
-```json
-{
-  "name": "Solarized Dark",
-  "author": "Ethan Schoonover",
-  "colors": {
-    "background": "#002b36",
-    "foreground": "#839496",
-    "primary": "#268bd2",
-    "secondary": "#073642",
-    "accent": "#2aa198",
-    "muted": "#586e75",
-    "border": "#073642"
-  }
-}
-```
-
 ### Tokyo Night
+
+A popular developer theme:
 
 ```json
 {
   "name": "Tokyo Night",
   "author": "enkia",
+  "version": "1.0.0",
   "colors": {
     "background": "#1a1b26",
     "foreground": "#c0caf5",
@@ -173,26 +278,212 @@ Colors can be specified in several formats:
 }
 ```
 
-## Testing Your Theme
+### Gruvbox Dark
 
-1. Save your theme file in the themes directory
-2. Restart MiniFy (or use Ctrl+R to reload)
-3. Select your theme from the themes menu
-4. Iterate on colors until satisfied
+A retro groove theme:
 
-<Aside type="note">
-  Use browser dev tools like the color picker for inspiration. Sites like [coolors.co](https://coolors.co) and [colorhunt.co](https://colorhunt.co) are great resources.
-</Aside>
+```json
+{
+  "name": "Gruvbox Dark",
+  "author": "morhetz",
+  "version": "1.0.0",
+  "colors": {
+    "background": "#282828",
+    "foreground": "#ebdbb2",
+    "primary": "#b8bb26",
+    "secondary": "#3c3836",
+    "accent": "#fabd2f",
+    "muted": "#928374",
+    "border": "#504945"
+  }
+}
+```
 
-## Sharing Your Theme
+### Solarized Dark
 
-Love your theme? Share it with others:
+The classic Solarized theme:
 
-1. Fork the [MiniFy repository](https://github.com/ModioStudio/MiniFy)
-2. Add your theme JSON to `apps/desktop/src/themes/`
-3. Update the themes index if required
-4. Submit a pull request
+```json
+{
+  "name": "Solarized Dark",
+  "author": "Ethan Schoonover",
+  "version": "1.0.0",
+  "colors": {
+    "background": "#002b36",
+    "foreground": "#839496",
+    "primary": "#268bd2",
+    "secondary": "#073642",
+    "accent": "#2aa198",
+    "muted": "#586e75",
+    "border": "#073642"
+  }
+}
+```
 
-All theme contributions are welcome!
+## Color Design Tips
 
+### Contrast Guidelines
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                        Contrast Recommendations                                │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   Background vs Foreground:                                                   │
+│   ─────────────────────────                                                   │
+│   • Minimum contrast ratio: 4.5:1 (WCAG AA)                                   │
+│   • Recommended: 7:1 or higher (WCAG AAA)                                     │
+│                                                                                │
+│   Primary vs Background:                                                       │
+│   ──────────────────────                                                      │
+│   • Should be visually distinct                                               │
+│   • Used for interactive elements                                              │
+│                                                                                │
+│   Muted vs Background:                                                         │
+│   ────────────────────                                                        │
+│   • Should be readable but subdued                                            │
+│   • Minimum contrast ratio: 3:1                                               │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Color Palette Tools
+
+- [Coolors](https://coolors.co) - Color scheme generator
+- [ColorHunt](https://colorhunt.co) - Curated color palettes
+- [Contrast Checker](https://webaim.org/resources/contrastchecker/) - WCAG contrast tool
+- [Paletton](https://paletton.com) - Color wheel and harmonies
+
+### Theme Testing Checklist
+
+Before sharing your theme, test these scenarios:
+
+- [ ] Track title is readable
+- [ ] Artist name is readable but subdued
+- [ ] Progress bar is clearly visible
+- [ ] Buttons have clear hover states
+- [ ] Active/inactive states are distinguishable
+- [ ] Works in all three layouts
+- [ ] Settings page is usable
+- [ ] AI DJ chat is readable
+
+## Managing Themes
+
+### In-App Theme Management
+
+1. Right-click → Settings → Themes
+2. View all themes (built-in + custom)
+3. Delete custom themes
+4. Export themes for sharing
+
+### Theme Validation
+
+MiniFy validates themes on load. Invalid themes are skipped with a console warning.
+
+**Common validation errors:**
+- Missing `name` field
+- Missing `colors` object
+- Invalid color format
+- JSON syntax errors
+
+### Debugging Theme Issues
+
+Open DevTools (F12) to see theme loading errors:
+
+```javascript
+// Console output
+[Theme] Loading theme: my-theme.json
+[Theme] Error: Invalid color format for 'primary'
+```
+
+## Sharing Themes
+
+### Contributing to MiniFy
+
+<Steps>
+1. **Fork the repository**
+
+   [Fork on GitHub](https://github.com/ModioStudio/MiniFy)
+
+2. **Add your theme**
+
+   Add the JSON file to `apps/desktop/src/themes/`
+
+3. **Add to website preview**
+
+   Also add to `apps/www/public/themes/`
+
+4. **Update theme index**
+
+   Add your theme to `apps/www/public/themes/index.json`
+
+5. **Submit a Pull Request**
+
+   Include screenshots showing your theme in use
+</Steps>
+
+### Sharing Externally
+
+You can share theme JSON files directly:
+
+1. Export your theme from Settings
+2. Share the JSON file
+3. Recipients place it in their themes directory
+
+## Advanced Customization
+
+### CSS Variable Reference
+
+All theme colors are available as CSS custom properties:
+
+```css
+:root {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --primary: #1DB954;
+  --secondary: #1a1a1a;
+  --accent: #1ed760;
+  --muted: #666666;
+  --border: #2a2a2a;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+}
+```
+
+### Derived Colors
+
+The theme system also generates derived colors:
+
+```css
+:root {
+  /* Settings panel specific */
+  --settings-panel-bg: /* derived from secondary */;
+  --settings-panel-border: /* derived from border */;
+  --settings-text: /* derived from foreground */;
+  --settings-text-muted: /* derived from muted */;
+  --settings-accent: /* derived from primary */;
+}
+```
+
+## Troubleshooting
+
+### Theme not appearing in menu
+
+1. Check the file is valid JSON
+2. Verify it's in the correct directory
+3. Ensure the file has a `.json` extension
+4. Restart MiniFy
+
+### Colors not applying correctly
+
+1. Check for typos in color property names
+2. Verify color format is valid
+3. Check DevTools console for errors
+
+### Theme causes rendering issues
+
+1. Ensure adequate contrast between colors
+2. Test all UI elements
+3. Try adjusting problematic colors
 

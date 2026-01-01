@@ -3,7 +3,7 @@ title: Quick Start
 description: Get up and running with MiniFy in under 5 minutes.
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Aside, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
 
 # Quick Start
 
@@ -13,82 +13,230 @@ This guide will help you set up MiniFy and start controlling your Spotify playba
 
 Before you begin, make sure you have:
 
-- ✅ MiniFy installed on your system
+- ✅ MiniFy installed on your system ([Installation Guide](/guides/installation/))
 - ✅ A Spotify account (Free or Premium)
-- ✅ The Spotify desktop app or web player running
+- ✅ Spotify playing on some device (phone, computer, smart speaker, etc.)
+
+<Aside type="tip">
+MiniFy is a **controller** - it needs an active Spotify playback session to control.
+Start playing something in Spotify first, then MiniFy can display and control it.
+</Aside>
 
 ## Getting Started
 
 <Steps>
 1. **Launch MiniFy**
-   
+
    Open MiniFy from your applications menu or desktop shortcut.
 
 2. **Connect to Spotify**
-   
-   On first launch, you'll see a "Connect to Spotify" button. Click it to begin the authentication process.
+
+   On first launch, you'll see a "Connect to Spotify" button. Click it to begin authentication.
+
+   ```
+   ┌──────────────────────────────────────────┐
+   │                                          │
+   │        🎵 Welcome to MiniFy              │
+   │                                          │
+   │    Connect your Spotify account to       │
+   │    start controlling your music.         │
+   │                                          │
+   │       [ Connect to Spotify ]             │
+   │                                          │
+   └──────────────────────────────────────────┘
+   ```
 
 3. **Authorize access**
-   
-   A browser window will open asking you to log in to Spotify and authorize MiniFy. Click "Agree" to continue.
 
-4. **Start playing music**
-   
-   Once connected, MiniFy will display your currently playing track. If nothing is playing, start a song in Spotify.
+   A browser window will open asking you to log in to Spotify. After logging in, click "Agree" to
+   authorize MiniFy.
 
-5. **Explore the interface**
-   
-   - Click the album art to expand/collapse the player
-   - Use the playback buttons to control music
-   - Right-click anywhere for the context menu
+   ```
+   ┌───────────────────────────────────────────────────────────────┐
+   │  Spotify                                                       │
+   │                                                                │
+   │  MiniFy wants to access your Spotify account                  │
+   │                                                                │
+   │  This will allow MiniFy to:                                   │
+   │  • View your Spotify account data                             │
+   │  • View your activity on Spotify                              │
+   │  • Control playback on your devices                           │
+   │                                                                │
+   │              [ Cancel ]    [ Agree ]                          │
+   │                                                                │
+   └───────────────────────────────────────────────────────────────┘
+   ```
+
+4. **Wait for confirmation**
+
+   After authorizing, you'll see a success page. MiniFy will automatically detect this and show the
+   player interface.
+
+5. **Start playing music**
+
+   If nothing is playing, start a song in Spotify. MiniFy will display your currently playing track!
 </Steps>
 
-## Essential Shortcuts
+## Your First 5 Minutes
 
-Learn these shortcuts to control MiniFy like a pro:
+### Explore the Interface
 
-| Action | Windows/Linux | macOS |
-|--------|---------------|-------|
-| Play/Pause | `Space` | `Space` |
-| Next Track | `→` | `→` |
-| Previous Track | `←` | `←` |
-| Volume Up | `↑` | `↑` |
-| Volume Down | `↓` | `↓` |
-| Open Settings | `Ctrl+,` | `⌘+,` |
+Once connected, you'll see the main player interface:
 
-<Aside type="tip">
-  You can customize these shortcuts in Settings → Keyboard Shortcuts.
-</Aside>
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Standard Layout (B)                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌────────────┐  Track Name Here                                       │
+│   │            │  Artist Name                                            │
+│   │  Album     │                                                         │
+│   │   Art      │  ━━━━━━━━━━━━━━━━━━━●━━━━━━━━━                         │
+│   │            │  2:34 ────────────── 4:12                               │
+│   └────────────┘                                                         │
+│                                                                          │
+│                    ⏮️  ▶️/⏸️  ⏭️                                         │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
-## Customizing Your Experience
+### Use the Context Menu
+
+Right-click anywhere to access the context menu:
+
+```
+┌────────────────────────┐
+│ 🎨 Themes        ▶     │
+│ 📐 Layout        ▶     │
+│ ─────────────────────  │
+│ 🤖 AI DJ               │
+│ ⚙️ Settings            │
+│ ─────────────────────  │
+│ 📌 Always on Top       │
+│ ❌ Exit                │
+└────────────────────────┘
+```
+
+### Try the Keyboard Shortcuts
+
+<Tabs>
+  <TabItem label="Windows/Linux">
+    | Action | Shortcut |
+    |--------|----------|
+    | Play/Pause | `Space` |
+    | Next Track | `→` or `N` |
+    | Previous Track | `←` or `P` |
+    | Volume Up | `↑` |
+    | Volume Down | `↓` |
+    | Open Settings | `Ctrl+,` |
+  </TabItem>
+  <TabItem label="macOS">
+    | Action | Shortcut |
+    |--------|----------|
+    | Play/Pause | `Space` |
+    | Next Track | `→` or `N` |
+    | Previous Track | `←` or `P` |
+    | Volume Up | `↑` |
+    | Volume Down | `↓` |
+    | Open Settings | `⌘+,` |
+  </TabItem>
+</Tabs>
+
+## Customization Quick Guide
 
 ### Change Theme
 
 1. Right-click anywhere in MiniFy
-2. Select "Themes" from the context menu
-3. Choose your preferred theme
+2. Hover over "Themes"
+3. Select your preferred theme
+
+**Available themes:** Dark, Light, Catppuccin, Dracula, ChatGPT, YouTube, BMW, Milka
 
 ### Change Layout
 
 1. Right-click anywhere in MiniFy
-2. Select "Layout" from the context menu
-3. Choose between Compact, Standard, or Expanded
+2. Hover over "Layout"
+3. Choose from:
+   - **Layout A** - Compact (minimal footprint)
+   - **Layout B** - Standard (balanced view)
+   - **Layout C** - Expanded (large album art)
 
-### Adjust Settings
+### Enable Always on Top
 
-Press `Ctrl+,` (or `⌘+,` on macOS) to open Settings where you can:
+1. Right-click anywhere in MiniFy
+2. Click "Always on Top"
 
-- Enable/disable "Always on top"
-- Customize keyboard shortcuts
-- Adjust transparency
-- And more...
+This keeps MiniFy visible above other windows.
 
-## Next Steps
+## Setting Up AI DJ (Optional)
 
-Now that you're up and running, explore these guides:
+The AI DJ gives you personalized music recommendations. To set it up:
 
-- [Themes Guide](/desktop/themes/) - Learn about all available themes
-- [Keyboard Shortcuts](/desktop/shortcuts/) - Master the full shortcut list
-- [Layouts](/desktop/layouts/) - Understand the different layout options
+<Steps>
+1. **Open Settings**
 
+   Press `Ctrl+,` (or `⌘+,` on macOS), or right-click → Settings
+
+2. **Go to Connections**
+
+   Navigate to the "Connections" tab
+
+3. **Add an AI Provider**
+
+   Choose from OpenAI, Anthropic, Google AI, or Groq and enter your API key
+
+4. **Activate the Provider**
+
+   Click "Connect" to validate, then set it as **Active**
+
+5. **Use AI DJ**
+
+   Right-click → AI DJ to open the chat interface
+</Steps>
+
+### Example AI DJ Conversations
+
+Once configured, try asking:
+
+- "Play something based on my recent listening history"
+- "Find me something upbeat and energetic"
+- "What's my music taste like?"
+- "Play some chill acoustic tracks"
+
+## Troubleshooting First Setup
+
+### MiniFy won't connect to Spotify
+
+- Ensure you have an internet connection
+- Check that your browser can access spotify.com
+- Try clearing browser cookies for Spotify
+
+### No track is showing
+
+- Make sure Spotify is playing on some device
+- Check that the same Spotify account is used
+- Try playing/pausing in Spotify to refresh the connection
+
+### Controls don't work
+
+- Verify you have an active Spotify playback device
+- Premium features (like seeking) may be limited on Free accounts
+- Try clicking play in Spotify first
+
+## What's Next?
+
+<CardGrid>
+  <Card title="Learn More Features" icon="laptop">
+    [Desktop Overview →](/desktop/overview/)
+  </Card>
+  <Card title="Explore Themes" icon="seti:svg">
+    [Theme Gallery →](/desktop/themes/)
+  </Card>
+  <Card title="Master Shortcuts" icon="setting">
+    [All Shortcuts →](/desktop/shortcuts/)
+  </Card>
+  <Card title="Setup AI DJ" icon="rocket">
+    [AI DJ Guide →](/desktop/ai-dj/)
+  </Card>
+</CardGrid>
 

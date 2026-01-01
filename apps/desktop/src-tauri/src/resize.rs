@@ -8,6 +8,7 @@ pub enum Layout {
     D,
     Settings,
     SearchSongs,
+    AIDJ,
 }
 
 #[tauri::command]
@@ -19,6 +20,7 @@ pub fn set_layout(window: WebviewWindow, layout: Layout) {
         Layout::D => LogicalSize { width: 400.0, height: 200.0 },
         Layout::Settings => LogicalSize { width: 800.0, height: 800.0 },
         Layout::SearchSongs => LogicalSize { width: 400.0, height: 600.0 },
+        Layout::AIDJ => LogicalSize { width: 400.0, height: 600.0 },
     };
 
     window.set_size(Size::Logical(size)).unwrap();

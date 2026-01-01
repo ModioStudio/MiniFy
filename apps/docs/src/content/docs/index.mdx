@@ -23,7 +23,8 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 ## Why MiniFy?
 
-MiniFy transforms how you interact with Spotify. No more switching windows or cluttering your screen – just pure music control at your fingertips.
+MiniFy transforms how you interact with Spotify. No more switching windows or cluttering your
+screen – just pure music control at your fingertips.
 
 <CardGrid stagger>
   <Card title="Lightning Fast" icon="rocket">
@@ -40,6 +41,31 @@ MiniFy transforms how you interact with Spotify. No more switching windows or cl
   </Card>
 </CardGrid>
 
+## Documentation Structure
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                          Documentation Overview                                │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   📚 Guides                    🖥️ Desktop                   🔧 Development    │
+│   ──────────                   ──────────                   ──────────────    │
+│   • Introduction               • Overview                   • Architecture    │
+│   • Installation               • Authentication             • Building        │
+│   • Quick Start                • Security                   • Contributing    │
+│                                • AI DJ                                        │
+│                                • Themes                                        │
+│                                • Layouts                                       │
+│                                • Shortcuts                                     │
+│                                                                                │
+│   ⚙️ Configuration                                                            │
+│   ──────────────────                                                          │
+│   • Settings                                                                   │
+│   • Custom Themes                                                              │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## Quick Links
 
 <CardGrid>
@@ -49,14 +75,59 @@ MiniFy transforms how you interact with Spotify. No more switching windows or cl
     href="/guides/installation/"
   />
   <LinkCard
+    title="Quick Start"
+    description="Connect to Spotify and start controlling your music in 5 minutes."
+    href="/guides/quick-start/"
+  />
+  <LinkCard
+    title="Desktop Overview"
+    description="Comprehensive overview of all MiniFy features and capabilities."
+    href="/desktop/overview/"
+  />
+  <LinkCard
+    title="AI DJ Guide"
+    description="Set up your personal AI-powered music assistant."
+    href="/desktop/ai-dj/"
+  />
+</CardGrid>
+
+## Core Topics
+
+<CardGrid>
+  <LinkCard
+    title="Authentication"
+    description="Learn how OAuth PKCE authentication works and how tokens are managed."
+    href="/desktop/authentication/"
+  />
+  <LinkCard
+    title="Security"
+    description="Understand how your credentials are stored and protected."
+    href="/desktop/security/"
+  />
+  <LinkCard
     title="Themes Gallery"
-    description="Explore all available themes and learn how to customize them."
+    description="Explore all available themes and learn how to create custom ones."
     href="/desktop/themes/"
   />
   <LinkCard
     title="Keyboard Shortcuts"
     description="Master MiniFy with powerful keyboard shortcuts."
     href="/desktop/shortcuts/"
+  />
+</CardGrid>
+
+## For Developers
+
+<CardGrid>
+  <LinkCard
+    title="Architecture"
+    description="Deep dive into MiniFy's technical architecture and code structure."
+    href="/dev/architecture/"
+  />
+  <LinkCard
+    title="Building from Source"
+    description="Complete guide to building MiniFy on Windows, macOS, and Linux."
+    href="/dev/building/"
   />
   <LinkCard
     title="Contributing"
@@ -84,6 +155,11 @@ MiniFy transforms how you interact with Spotify. No more switching windows or cl
     <p>Global hotkeys for play, pause, skip, and volume. Works even when minimized.</p>
   </div>
   <div class="feature-card">
+    <div class="feature-icon">🤖</div>
+    <h3>AI DJ</h3>
+    <p>Personal AI assistant that understands your music taste and plays what you want.</p>
+  </div>
+  <div class="feature-card">
     <div class="feature-icon">🔒</div>
     <h3>Privacy First</h3>
     <p>Open source. No tracking. Your data stays on your device.</p>
@@ -98,7 +174,25 @@ MiniFy transforms how you interact with Spotify. No more switching windows or cl
     <h3>Lightweight</h3>
     <p>Under 10MB download. Uses less than 50MB RAM while running.</p>
   </div>
+  <div class="feature-card">
+    <div class="feature-icon">🔐</div>
+    <h3>Secure</h3>
+    <p>OAuth PKCE authentication. Credentials stored in OS-level encrypted keyring.</p>
+  </div>
 </div>
+
+## Technology Stack
+
+MiniFy is built with modern, efficient technologies:
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Runtime | Tauri 2.0 | Native desktop shell |
+| Backend | Rust | Secure operations, OAuth |
+| Frontend | React 18 | User interface |
+| Build | Vite | Fast bundling |
+| AI | Vercel AI SDK | Multi-provider AI support |
+| Styling | CSS Variables | Dynamic theming |
 
 ---
 
@@ -107,5 +201,4 @@ MiniFy transforms how you interact with Spotify. No more switching windows or cl
     Made with ♥ by the <a href="https://github.com/ModioStudio" style="color: var(--sl-color-accent);">ModioStudio</a> team
   </p>
 </div>
-
 

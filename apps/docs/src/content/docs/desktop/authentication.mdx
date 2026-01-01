@@ -1,97 +1,376 @@
 ---
 title: Authentication
-description: How MiniFy authenticates with Spotify using OAuth.
+description: Deep dive into how MiniFy authenticates with Spotify using OAuth 2.0 PKCE.
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
 # Authentication
 
-MiniFy uses Spotify's OAuth 2.0 authentication to securely access your Spotify account. This page explains how the authentication process works and how to troubleshoot common issues.
+MiniFy uses Spotify's OAuth 2.0 authentication to securely access your Spotify account. This page provides
+a comprehensive explanation of the authentication process, security measures, and troubleshooting guidance.
 
-## How It Works
+## Overview
 
-MiniFy uses the **Authorization Code Flow with PKCE** (Proof Key for Code Exchange), which is the most secure OAuth flow for desktop applications.
+MiniFy implements the **Authorization Code Flow with PKCE** (Proof Key for Code Exchange), which is the
+most secure OAuth flow for public clients like desktop applications that cannot securely store a client secret.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        OAuth 2.0 PKCE Authentication Flow                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌──────────┐                                            ┌──────────────┐  │
+│   │  MiniFy  │                                            │   Spotify    │  │
+│   │  Desktop │                                            │   Servers    │  │
+│   └────┬─────┘                                            └──────┬───────┘  │
+│        │                                                         │          │
+│        │  1. Generate code_verifier (64 random chars)            │          │
+│        │  2. Create code_challenge = SHA256(code_verifier)       │          │
+│        │  3. Store state nonce (CSRF protection)                 │          │
+│        │                                                         │          │
+│        │ ─────────────── Authorization Request ─────────────────▶│          │
+│        │                 (code_challenge, state)                 │          │
+│        │                                                         │          │
+│        │                          ┌────────────────────┐         │          │
+│        │                          │   User logs in &   │         │          │
+│        │                          │   approves access  │         │          │
+│        │                          └────────────────────┘         │          │
+│        │                                                         │          │
+│        │ ◀────────────── Redirect to localhost:3000 ────────────│          │
+│        │                 (authorization_code, state)             │          │
+│        │                                                         │          │
+│        │  4. Verify state matches (CSRF check)                   │          │
+│        │                                                         │          │
+│        │ ─────────────── Token Exchange Request ────────────────▶│          │
+│        │                 (code + code_verifier)                  │          │
+│        │                                                         │          │
+│        │  5. Server verifies SHA256(code_verifier)               │          │
+│        │     matches original code_challenge                     │          │
+│        │                                                         │          │
+│        │ ◀──────────────── Access & Refresh Tokens ─────────────│          │
+│        │                                                         │          │
+│        │  6. Store tokens securely in OS keyring                 │          │
+│        ▼                                                         ▼          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Detailed Authentication Steps
 
 <Steps>
 1. **User initiates authentication**
-   
-   When you click "Connect to Spotify", MiniFy generates a unique code verifier and challenge.
 
-2. **Browser authorization**
-   
-   Your default browser opens to Spotify's authorization page where you log in and approve MiniFy's access.
+   When you click "Connect to Spotify", MiniFy generates cryptographic values:
+   - **Code Verifier**: A 64-character random string using URL-safe characters
+   - **Code Challenge**: SHA-256 hash of the verifier, base64-URL encoded
+   - **State Nonce**: A random 32-character hex string for CSRF protection
 
-3. **Callback handling**
-   
-   Spotify redirects to a local callback URL that MiniFy is listening on.
+2. **Local callback server starts**
 
-4. **Token exchange**
-   
-   MiniFy exchanges the authorization code for access and refresh tokens.
+   MiniFy starts a local HTTP server on `127.0.0.1:3000` to receive the OAuth callback.
+   This server only accepts connections from localhost for security.
 
-5. **Secure storage**
-   
-   Tokens are stored securely on your local system.
+3. **Browser authorization**
+
+   Your default browser opens to Spotify's authorization page with these parameters:
+   - `client_id`: Your Spotify application ID
+   - `response_type`: `code`
+   - `redirect_uri`: `http://127.0.0.1:3000/callback`
+   - `scope`: Requested permissions
+   - `code_challenge`: The SHA-256 hash
+   - `code_challenge_method`: `S256`
+   - `state`: CSRF protection token
+
+4. **User approves access**
+
+   You log in to Spotify (if not already) and approve MiniFy's access request.
+
+5. **Callback handling**
+
+   Spotify redirects to the local callback URL with:
+   - `code`: Authorization code (one-time use)
+   - `state`: Must match the original state nonce
+
+   MiniFy validates the state parameter to prevent CSRF attacks.
+
+6. **Token exchange**
+
+   MiniFy sends the authorization code along with the original code_verifier to Spotify.
+   Spotify verifies that `SHA256(code_verifier) == code_challenge` before issuing tokens.
+
+7. **Secure storage**
+
+   Tokens are stored in the operating system's secure credential manager:
+   - Access token (short-lived, ~1 hour)
+   - Refresh token (long-lived)
+   - Token expiry timestamp
 </Steps>
 
-## Required Permissions
+## Why PKCE?
 
-MiniFy requests the following Spotify scopes:
+PKCE provides several security advantages for desktop applications:
+
+| Traditional OAuth | OAuth with PKCE |
+|-------------------|-----------------|
+| Requires client secret | No client secret needed |
+| Secret could be extracted from app | Nothing sensitive to extract |
+| Vulnerable to authorization code interception | Codes useless without verifier |
+| Single point of failure | Cryptographically secure |
+
+<Aside type="note">
+Even if an attacker intercepts the authorization code, they cannot exchange it for tokens
+without the code_verifier, which is never transmitted over the network.
+</Aside>
+
+## Required Permissions (Scopes)
+
+MiniFy requests only the permissions necessary for its features:
+
+### Core Playback
 
 | Scope | Purpose |
 |-------|---------|
-| `user-read-playback-state` | Read your current playback state |
-| `user-modify-playback-state` | Control playback (play, pause, skip) |
-| `user-read-currently-playing` | See the currently playing track |
+| `user-read-playback-state` | Read current playback state (track, progress, device) |
+| `user-modify-playback-state` | Control playback (play, pause, skip, seek) |
+| `user-read-currently-playing` | Get the currently playing track |
 
-<Aside type="note">
-  MiniFy never accesses your playlists, saved tracks, or personal information beyond what's needed for playback control.
+### AI DJ Features
+
+| Scope | Purpose |
+|-------|---------|
+| `user-top-read` | Access top tracks and artists for taste analysis |
+| `user-read-recently-played` | View recently played tracks for recommendations |
+| `user-library-read` | Read saved tracks count |
+| `playlist-read-private` | Access private playlists |
+
+<Aside type="tip">
+MiniFy never requests write access to your library or playlists. All write operations
+are limited to playback control.
 </Aside>
 
-## Token Management
+## Token Lifecycle
 
-### Access Tokens
+### Access Token
 
-Access tokens are short-lived (1 hour) and are automatically refreshed when they expire.
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Access Token Lifecycle                     │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌─────────────┐                                              │
+│  │  Token      │                                              │
+│  │  Issued     │────▶ Valid for ~1 hour                       │
+│  └─────────────┘                                              │
+│        │                                                      │
+│        │  Used for all Spotify API requests                   │
+│        │                                                      │
+│        ▼                                                      │
+│  ┌─────────────┐                                              │
+│  │  5 minutes  │                                              │
+│  │  before     │────▶ Background refresh task triggers        │
+│  │  expiry     │                                              │
+│  └─────────────┘                                              │
+│        │                                                      │
+│        ▼                                                      │
+│  ┌─────────────┐                                              │
+│  │  New token  │                                              │
+│  │  issued     │────▶ Seamlessly replaces old token           │
+│  └─────────────┘                                              │
+│                                                               │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### Refresh Tokens
+- **Validity**: ~1 hour (set by Spotify)
+- **Auto-refresh**: MiniFy runs a background task every 5 minutes that checks
+  if the token will expire within 5 minutes and proactively refreshes it
+- **Retry on 401**: If a request fails with 401 Unauthorized, MiniFy automatically
+  refreshes the token and retries the request
 
-Refresh tokens are stored securely and used to obtain new access tokens without requiring you to log in again.
+### Refresh Token
 
-### Token Storage
+- **Validity**: Long-lived (months) unless revoked
+- **Rotation**: Spotify may issue a new refresh token with each use
+- **Storage**: Securely stored in OS keyring
 
-On each platform, tokens are stored in:
+## Token Storage Locations
 
-- **Windows**: `%APPDATA%\MiniFy\`
-- **macOS**: `~/Library/Application Support/MiniFy/`
-- **Linux**: `~/.config/MiniFy/`
+<Tabs>
+  <TabItem label="Windows">
+    **Credential Manager** (Windows Credential Manager)
+
+    ```
+    Target: minify:access_token
+    Target: minify:refresh_token
+    Target: minify:token_expiry
+    Target: minify:spotify_client_id
+    ```
+
+    View with: Control Panel → User Accounts → Credential Manager
+  </TabItem>
+  <TabItem label="macOS">
+    **Keychain** (Keychain Access.app)
+
+    ```
+    Service: minify
+    Account: access_token
+    Account: refresh_token
+    Account: token_expiry
+    Account: spotify_client_id
+    ```
+
+    View with: Applications → Utilities → Keychain Access
+  </TabItem>
+  <TabItem label="Linux">
+    **Secret Service** (GNOME Keyring or KDE Wallet)
+
+    ```
+    Collection: Default keyring
+    Label: minify:access_token
+    Label: minify:refresh_token
+    Label: minify:token_expiry
+    Label: minify:spotify_client_id
+    ```
+
+    View with: Seahorse (GNOME) or KWallet Manager (KDE)
+  </TabItem>
+</Tabs>
+
+## Client ID Configuration
+
+MiniFy supports two ways to configure the Spotify Client ID:
+
+### 1. Embedded (Recommended for end users)
+
+Official MiniFy releases have a Client ID embedded at build time. Users don't need
+to configure anything.
+
+### 2. User-provided
+
+For development or self-built versions:
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new application
+3. Add `http://127.0.0.1:3000/callback` to Redirect URIs
+4. Copy the Client ID
+5. Enter it in MiniFy's setup screen
+
+<Aside type="caution">
+Never share your Client ID publicly if you've also configured a client secret
+for other OAuth flows in the same Spotify app.
+</Aside>
 
 ## Disconnecting
 
 To disconnect MiniFy from your Spotify account:
 
-1. Open MiniFy Settings
-2. Click "Disconnect from Spotify"
-3. Confirm the disconnection
+### From MiniFy
 
-This will delete your local tokens. You can also revoke access from your [Spotify Account Settings](https://www.spotify.com/account/apps/).
+1. Open Settings (right-click → Settings)
+2. Navigate to "Connections"
+3. Click "Disconnect from Spotify"
+4. Confirm the disconnection
+
+This will:
+- Delete all tokens from the OS keyring
+- Clear the stored Client ID (if user-provided)
+- Reset MiniFy to the initial setup state
+
+### From Spotify
+
+You can also revoke MiniFy's access from Spotify:
+
+1. Go to [Spotify Account Apps](https://www.spotify.com/account/apps/)
+2. Find MiniFy in the list
+3. Click "Remove Access"
+
+<Aside type="note">
+Revoking from Spotify invalidates the refresh token immediately.
+MiniFy will show an authentication error on next use.
+</Aside>
+
+## Security Measures
+
+### CSRF Protection
+
+Every OAuth flow generates a unique state nonce. The callback validates that the
+returned state matches the expected value, preventing cross-site request forgery attacks.
+
+### Code Verifier Security
+
+- Generated using cryptographically secure random number generator
+- Contains 64 characters from the URL-safe alphabet
+- Never transmitted over the network (only the hash is sent)
+- Cleared from memory after token exchange
+
+### Localhost-only Callback
+
+The callback server binds exclusively to `127.0.0.1:3000`, ensuring:
+- No external network access
+- No DNS rebinding attacks
+- Callback only works on the local machine
+
+### Token Encryption
+
+Tokens are stored using OS-level encryption:
+- **Windows**: DPAPI (Data Protection API)
+- **macOS**: AES-256 via Keychain
+- **Linux**: Encryption depends on Secret Service implementation
 
 ## Troubleshooting
 
-### Authentication fails
+### "Port 3000 already in use"
 
-- Make sure you have an active internet connection
-- Check that your browser can access `accounts.spotify.com`
-- Try clearing your browser cookies for Spotify
+Another application is using port 3000. Either:
+- Close the conflicting application
+- Wait for MiniFy's timeout (5 minutes) and try again
 
-### Token refresh fails
+### "State mismatch" error
 
-- Delete the token file from the storage location above
-- Restart MiniFy and authenticate again
+This occurs when:
+- You have old browser tabs open from previous auth attempts
+- Solution: Close all Spotify auth tabs and try again
 
-### "Invalid redirect URI" error
+### Token refresh fails repeatedly
 
-This usually indicates a bug. Please [report it on GitHub](https://github.com/ModioStudio/MiniFy/issues).
+Your refresh token may have been revoked:
+1. Clear credentials: Settings → Connections → Disconnect
+2. Re-authenticate with Spotify
 
+### "Invalid redirect URI"
+
+Your Spotify app configuration doesn't include the callback URL:
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Edit your application
+3. Add `http://127.0.0.1:3000/callback` to Redirect URIs
+4. Save changes
+
+### Browser doesn't open
+
+MiniFy couldn't launch your default browser:
+- Ensure you have a default browser configured
+- Try manually opening the auth URL from the error message
+
+## For Developers
+
+### Environment Variables
+
+```bash
+# Embed Client ID at build time
+SPOTIFY_CLIENT_ID=your_client_id pnpm desktop:build
+```
+
+### Testing Authentication
+
+```bash
+# Clear all stored credentials for testing
+pnpm desktop:clear
+```
+
+### OAuth Flow Timeout
+
+The OAuth callback server automatically shuts down after:
+- 5 minutes of inactivity
+- Successful token exchange
+- User cancellation
 

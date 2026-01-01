@@ -9,12 +9,30 @@ pub struct Settings {
     pub spotify: SpotifyTokens,
     pub layout: String,
     pub theme: String,
+    #[serde(default)]
+    pub ai_providers: Vec<AIProviderConfig>,
+    #[serde(default)]
+    pub active_ai_provider: Option<String>,
+    #[serde(default = "default_music_provider")]
+    pub active_music_provider: Option<String>,
+}
+
+fn default_music_provider() -> Option<String> {
+    Some("spotify".to_string())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpotifyTokens {
     pub access_token: Option<String>,
     pub refresh_token: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AIProviderConfig {
+    pub provider: String,
+    #[serde(default, skip_serializing)]
+    pub api_key: String,
+    pub enabled: bool,
 }
 
 impl Default for Settings {
@@ -24,6 +42,9 @@ impl Default for Settings {
             spotify: SpotifyTokens { access_token: None, refresh_token: None },
             layout: "LayoutA".into(),
             theme: "dark".into(),
+            ai_providers: Vec::new(),
+            active_ai_provider: None,
+            active_music_provider: Some("spotify".into()),
         }
     }
 }
