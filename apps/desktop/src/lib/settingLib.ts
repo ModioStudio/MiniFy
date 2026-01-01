@@ -17,8 +17,22 @@ export async function saveAIApiKey(provider: AIProviderType, apiKey: string): Pr
   await invoke("save_ai_api_key", { provider, apiKey });
 }
 
-export async function getAIApiKey(provider: AIProviderType): Promise<string> {
-  return await invoke("get_ai_api_key", { provider });
+/**
+ * Retrieves an AI API key from the secure keyring.
+ * @param provider - The AI provider type
+ * @returns The API key if found, null if not found
+ * @throws Error for keyring access failures (not for missing keys)
+ */
+export async function getAIApiKey(provider: AIProviderType): Promise<string | null> {
+  try {
+    return await invoke("get_ai_api_key", { provider });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("not found") || message.includes("No password found")) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function hasAIApiKey(provider: AIProviderType): Promise<boolean> {

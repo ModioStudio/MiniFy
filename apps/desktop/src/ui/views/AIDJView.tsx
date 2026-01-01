@@ -52,10 +52,11 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   };
 
   useEffect(() => {
-    if (shouldAutoScroll) {
+    // Scroll when auto-scroll is enabled and messages change
+    if (shouldAutoScroll && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [shouldAutoScroll]);
+  }, [shouldAutoScroll, messages.length]);
 
   useEffect(() => {
     (async () => {

@@ -111,7 +111,7 @@ MiniFy offers multiple compact layouts to fit your workflow. Each layout is desi
 <details>
   <summary><b>Layout B</b> — Vertical card view</summary>
   <div align="center">
-    <img src=".docs/assets/Layoutb.png" alt="MiniFy Layout B" width="700">
+    <img src=".docs/assets/layoutb.png" alt="MiniFy Layout B" width="700">
   </div>
 </details>
 
@@ -124,7 +124,7 @@ Your personal AI-powered music assistant. Connect your preferred AI provider and
 <details open>
   <summary><b>AI DJ Chat</b> — Natural language music control</summary>
   <div align="center">
-    <img src=".docs/assets/aidj-prview-chat.png" alt="AI DJ Chat Interface" width="700">
+    <img src=".docs/assets/aidj-preview-chat.png" alt="AI DJ Chat Interface" width="700">
   </div>
   <p align="center"><i>Ask for recommendations, play songs, or analyze your music taste</i></p>
 </details>
@@ -132,7 +132,7 @@ Your personal AI-powered music assistant. Connect your preferred AI provider and
 <details>
   <summary><b>AI DJ Preview</b> — Context menu access</summary>
   <div align="center">
-    <img src=".docs/assets/aidj-prview.png" alt="AI DJ Preview" width="700">
+    <img src=".docs/assets/aidj-preview.png" alt="AI DJ Preview" width="700">
   </div>
 </details>
 

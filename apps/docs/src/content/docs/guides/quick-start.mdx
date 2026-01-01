@@ -106,16 +106,21 @@ Right-click anywhere to access the context menu:
 
 ```
 ┌────────────────────────┐
-│ 🎨 Themes        ▶     │
-│ 📐 Layout        ▶     │
-│ ─────────────────────  │
-│ 🤖 AI DJ               │
 │ ⚙️ Settings            │
+│ 🔍 Search              │
+│ 🤖 AI DJ *             │
 │ ─────────────────────  │
-│ 📌 Always on Top       │
-│ ❌ Exit                │
+│ 🔽 Minimize            │
+│ ❌ Close Window        │
 └────────────────────────┘
+
+* AI DJ only appears when an AI provider is configured
 ```
+
+:::note
+The exact menu structure may vary based on your configuration.
+See `apps/desktop/src/ui/index.tsx` for the current implementation.
+:::
 
 ### Try the Keyboard Shortcuts
 

@@ -18,16 +18,15 @@ from scratch, understanding the theme system, and sharing themes with the commun
 ├───────────────────────────────────────────────────────────────────────────────┤
 │                                                                                │
 │   ┌─────────────────────────────────────────────────────────────────────────┐ │
-│   │                      Theme JSON File                                     │ │
+│   │                      Theme JSON File (RawTheme)                          │ │
 │   │                                                                          │ │
 │   │   {                                                                      │ │
 │   │     "name": "Custom Theme",                                              │ │
-│   │     "colors": {                                                          │ │
-│   │       "background": "#1a1b26",                                           │ │
-│   │       "foreground": "#c0caf5",                                           │ │
-│   │       "primary": "#7aa2f7",                                              │ │
-│   │       ...                                                                │ │
-│   │     }                                                                    │ │
+│   │     "panel": { "background": "#1a1b26", "borderRadius": 18 },            │ │
+│   │     "controls": { "iconColor": "#fff", "iconColorActive": "#7aa2f7" },   │ │
+│   │     "playbar": { "trackBg": "...", "trackFill": "..." },                 │ │
+│   │     "typography": { "songTitle": {...}, "songArtist": {...} },           │ │
+│   │     "settings": { "panelBg": "...", "accent": "..." }                    │ │
 │   │   }                                                                      │ │
 │   │                                                                          │ │
 │   └─────────────────────────────────────────────────────────────────────────┘ │
@@ -36,7 +35,7 @@ from scratch, understanding the theme system, and sharing themes with the commun
 │   ┌─────────────────────────────────────────────────────────────────────────┐ │
 │   │                      Theme Loader (themeLoader.ts)                       │ │
 │   │                                                                          │ │
-│   │   Reads JSON → Validates → Converts to CSS Variables                    │ │
+│   │   transformTheme(RawTheme) → ThemeConfig → applyThemeConfig()           │ │
 │   │                                                                          │ │
 │   └─────────────────────────────────────────────────────────────────────────┘ │
 │                                       │                                        │
@@ -45,10 +44,10 @@ from scratch, understanding the theme system, and sharing themes with the commun
 │   │                      CSS Custom Properties                               │ │
 │   │                                                                          │ │
 │   │   :root {                                                                │ │
-│   │     --background: #1a1b26;                                               │ │
-│   │     --foreground: #c0caf5;                                               │ │
-│   │     --primary: #7aa2f7;                                                  │ │
-│   │     ...                                                                  │ │
+│   │     --player-panel-bg: #1a1b26;                                          │ │
+│   │     --player-controls-color: #c0caf5;                                    │ │
+│   │     --player-playbar-track-fill: linear-gradient(...);                   │ │
+│   │     --settings-accent: #7aa2f7;                                          │ │
 │   │   }                                                                      │ │
 │   │                                                                          │ │
 │   └─────────────────────────────────────────────────────────────────────────┘ │
@@ -136,17 +135,40 @@ Custom themes should be placed in the user themes directory:
    ```json
    {
      "name": "My Custom Theme",
-     "author": "Your Name",
-     "version": "1.0.0",
-     "description": "A brief description of your theme",
-     "colors": {
+     "panel": {
        "background": "#1e1e2e",
-       "foreground": "#cdd6f4",
-       "primary": "#89b4fa",
-       "secondary": "#313244",
-       "accent": "#f5c2e7",
-       "muted": "#6c7086",
-       "border": "#45475a"
+       "borderRadius": 18,
+       "shadow": "0 14px 40px rgba(0,0,0,0.55)"
+     },
+     "controls": {
+       "iconColor": "#cdd6f4",
+       "iconColorActive": "#89b4fa"
+     },
+     "playbar": {
+       "trackBg": "rgba(205,214,244,0.16)",
+       "trackFill": "linear-gradient(90deg, #89b4fa 0%, #f5c2e7 100%)",
+       "thumbColor": "#cdd6f4",
+       "timeTextColor": "#6c7086"
+     },
+     "typography": {
+       "songTitle": { "color": "#cdd6f4" },
+       "songArtist": { "color": "#a6adc8" }
+     },
+     "actions": {
+       "iconColor": "#cdd6f4",
+       "iconBackground": "rgba(205,214,244,0.04)",
+       "iconBackgroundHover": "rgba(205,214,244,0.10)"
+     },
+     "cover": {
+       "borderColor": "rgba(205,214,244,0.20)",
+       "borderRadius": 12
+     },
+     "settings": {
+       "panelBg": "#313244",
+       "panelBorder": "#45475a",
+       "text": "#cdd6f4",
+       "textMuted": "#6c7086",
+       "accent": "#89b4fa"
      }
    }
    ```
@@ -164,23 +186,48 @@ Custom themes should be placed in the user themes directory:
 
 ### Complete Schema
 
+The theme system uses a component-based structure matching `RawTheme` in `themeLoader.ts`:
+
 ```json
 {
   "name": "Theme Name",
-  "author": "Author Name",
-  "version": "1.0.0",
-  "description": "Theme description",
-  "colors": {
+  "panel": {
     "background": "#0a0a0a",
-    "foreground": "#ffffff",
-    "primary": "#1DB954",
-    "secondary": "#1a1a1a",
-    "accent": "#1ed760",
-    "muted": "#666666",
-    "border": "#2a2a2a",
-    "success": "#22c55e",
-    "warning": "#f59e0b",
-    "error": "#ef4444"
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0,0,0,0.55)"
+  },
+  "controls": {
+    "iconColor": "#ffffff",
+    "iconColorActive": "#1DB954"
+  },
+  "playbar": {
+    "trackBg": "rgba(255,255,255,0.16)",
+    "trackFill": "linear-gradient(90deg, #1DB954 0%, #1ed760 100%)",
+    "thumbColor": "#ffffff",
+    "timeTextColor": "#b0b0b0"
+  },
+  "typography": {
+    "songTitle": { "color": "#ffffff" },
+    "songArtist": { "color": "#b0b0b0" }
+  },
+  "actions": {
+    "iconColor": "#ffffff",
+    "iconBackground": "rgba(255,255,255,0.04)",
+    "iconBackgroundHover": "rgba(255,255,255,0.10)"
+  },
+  "cover": {
+    "borderColor": "rgba(255,255,255,0.20)",
+    "borderRadius": 12
+  },
+  "settings": {
+    "panelBg": "#0a0a0a",
+    "panelBorder": "#ffffff1a",
+    "text": "#ffffff",
+    "textMuted": "#b0b0b0",
+    "headerText": "#ffffff",
+    "itemHover": "#ffffff14",
+    "itemActive": "#ffffff24",
+    "accent": "#1DB954"
   }
 }
 ```
@@ -189,31 +236,68 @@ Custom themes should be placed in the user themes directory:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Display name in theme menu |
-| `colors` | object | Color definitions |
+| `name` | string | Display name in theme menu (required) |
 
-### Optional Fields
+### Component Properties
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `author` | string | Theme creator's name |
-| `version` | string | Theme version (semver) |
-| `description` | string | Brief description |
+#### Panel
 
-### Color Properties
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `panel.background` | string | `--player-panel-bg` | Main panel background |
+| `panel.borderRadius` | number | `--player-panel-radius` | Panel corner radius (px) |
+| `panel.shadow` | string | `--player-panel-shadow` | Panel box shadow |
 
-| Property | CSS Variable | Usage |
-|----------|--------------|-------|
-| `background` | `--background` | Main window background |
-| `foreground` | `--foreground` | Primary text color |
-| `primary` | `--primary` | Accent color (buttons, progress) |
-| `secondary` | `--secondary` | Secondary backgrounds (cards) |
-| `accent` | `--accent` | Hover states, highlights |
-| `muted` | `--muted` | Subdued text (timestamps) |
-| `border` | `--border` | Border colors, dividers |
-| `success` | `--success` | Success states (optional) |
-| `warning` | `--warning` | Warning states (optional) |
-| `error` | `--error` | Error states (optional) |
+#### Controls
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `controls.iconColor` | string | `--player-controls-color` | Control icons color |
+| `controls.iconColorActive` | string | `--player-controls-color-active` | Active control color |
+
+#### Playbar
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `playbar.trackBg` | string | `--player-playbar-track-bg` | Progress track background |
+| `playbar.trackFill` | string | `--player-playbar-track-fill` | Progress fill (supports gradients) |
+| `playbar.thumbColor` | string | `--player-playbar-thumb-color` | Scrubber thumb color |
+| `playbar.timeTextColor` | string | `--player-playbar-time-color` | Time display color |
+
+#### Typography
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `typography.songTitle.color` | string | `--player-song-title-color` | Song title color |
+| `typography.songArtist.color` | string | `--player-song-artist-color` | Artist name color |
+
+#### Actions
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `actions.iconColor` | string | `--player-actions-color` | Action icons color |
+| `actions.iconBackground` | string | `--player-actions-bg` | Action button background |
+| `actions.iconBackgroundHover` | string | `--player-actions-bg-hover` | Action button hover state |
+
+#### Cover
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `cover.borderColor` | string | `--player-cover-border-color` | Album art border |
+| `cover.borderRadius` | number | `--player-cover-radius` | Album art corner radius (px) |
+
+#### Settings Panel
+
+| Property | Type | CSS Variable | Description |
+|----------|------|--------------|-------------|
+| `settings.panelBg` | string | `--settings-panel-bg` | Settings panel background |
+| `settings.panelBorder` | string | `--settings-panel-border` | Settings panel border |
+| `settings.text` | string | `--settings-text` | Primary text color |
+| `settings.textMuted` | string | `--settings-text-muted` | Muted text color |
+| `settings.headerText` | string | `--settings-header-text` | Section header color |
+| `settings.itemHover` | string | `--settings-item-hover` | List item hover state |
+| `settings.itemActive` | string | `--settings-item-active` | List item active state |
+| `settings.accent` | string | `--settings-accent` | Accent color for toggles |
 
 ## Color Formats
 
@@ -221,17 +305,22 @@ Colors can be specified in multiple formats:
 
 ```json
 {
-  "colors": {
-    "background": "#0a0a0a",
-    "foreground": "rgb(255, 255, 255)",
-    "primary": "hsl(142, 76%, 36%)",
-    "accent": "rgba(30, 215, 96, 0.8)"
+  "panel": {
+    "background": "#0a0a0a"
+  },
+  "controls": {
+    "iconColor": "rgb(255, 255, 255)",
+    "iconColorActive": "hsl(142, 76%, 36%)"
+  },
+  "playbar": {
+    "trackFill": "linear-gradient(90deg, #1DB954 0%, #1ed760 100%)",
+    "trackBg": "rgba(255, 255, 255, 0.16)"
   }
 }
 ```
 
 <Aside type="tip">
-**Hex colors (#RRGGBB)** are recommended for consistency and ease of editing.
+**Hex colors (#RRGGBB)** are recommended for solid colors. Use **linear-gradient()** for `playbar.trackFill` to create beautiful progress bars.
 </Aside>
 
 ## Example Themes
@@ -243,16 +332,40 @@ A popular theme with cool, arctic colors:
 ```json
 {
   "name": "Nord",
-  "author": "Arctic Ice Studio",
-  "version": "1.0.0",
-  "colors": {
+  "panel": {
     "background": "#2e3440",
-    "foreground": "#eceff4",
-    "primary": "#88c0d0",
-    "secondary": "#3b4252",
-    "accent": "#81a1c1",
-    "muted": "#4c566a",
-    "border": "#434c5e"
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0,0,0,0.55)"
+  },
+  "controls": {
+    "iconColor": "#eceff4",
+    "iconColorActive": "#88c0d0"
+  },
+  "playbar": {
+    "trackBg": "rgba(236,239,244,0.16)",
+    "trackFill": "linear-gradient(90deg, #88c0d0 0%, #81a1c1 100%)",
+    "thumbColor": "#eceff4",
+    "timeTextColor": "#4c566a"
+  },
+  "typography": {
+    "songTitle": { "color": "#eceff4" },
+    "songArtist": { "color": "#d8dee9" }
+  },
+  "actions": {
+    "iconColor": "#eceff4",
+    "iconBackground": "rgba(236,239,244,0.04)",
+    "iconBackgroundHover": "rgba(236,239,244,0.10)"
+  },
+  "cover": {
+    "borderColor": "rgba(236,239,244,0.20)",
+    "borderRadius": 12
+  },
+  "settings": {
+    "panelBg": "#3b4252",
+    "panelBorder": "#434c5e",
+    "text": "#eceff4",
+    "textMuted": "#d8dee9",
+    "accent": "#88c0d0"
   }
 }
 ```
@@ -264,16 +377,40 @@ A popular developer theme:
 ```json
 {
   "name": "Tokyo Night",
-  "author": "enkia",
-  "version": "1.0.0",
-  "colors": {
+  "panel": {
     "background": "#1a1b26",
-    "foreground": "#c0caf5",
-    "primary": "#7aa2f7",
-    "secondary": "#24283b",
-    "accent": "#bb9af7",
-    "muted": "#565f89",
-    "border": "#414868"
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0,0,0,0.65)"
+  },
+  "controls": {
+    "iconColor": "#c0caf5",
+    "iconColorActive": "#7aa2f7"
+  },
+  "playbar": {
+    "trackBg": "rgba(192,202,245,0.12)",
+    "trackFill": "linear-gradient(90deg, #7aa2f7 0%, #bb9af7 100%)",
+    "thumbColor": "#c0caf5",
+    "timeTextColor": "#565f89"
+  },
+  "typography": {
+    "songTitle": { "color": "#c0caf5" },
+    "songArtist": { "color": "#9aa5ce" }
+  },
+  "actions": {
+    "iconColor": "#c0caf5",
+    "iconBackground": "rgba(192,202,245,0.04)",
+    "iconBackgroundHover": "rgba(192,202,245,0.10)"
+  },
+  "cover": {
+    "borderColor": "rgba(192,202,245,0.20)",
+    "borderRadius": 12
+  },
+  "settings": {
+    "panelBg": "#24283b",
+    "panelBorder": "#414868",
+    "text": "#c0caf5",
+    "textMuted": "#565f89",
+    "accent": "#7aa2f7"
   }
 }
 ```
@@ -285,16 +422,40 @@ A retro groove theme:
 ```json
 {
   "name": "Gruvbox Dark",
-  "author": "morhetz",
-  "version": "1.0.0",
-  "colors": {
+  "panel": {
     "background": "#282828",
-    "foreground": "#ebdbb2",
-    "primary": "#b8bb26",
-    "secondary": "#3c3836",
-    "accent": "#fabd2f",
-    "muted": "#928374",
-    "border": "#504945"
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0,0,0,0.55)"
+  },
+  "controls": {
+    "iconColor": "#ebdbb2",
+    "iconColorActive": "#b8bb26"
+  },
+  "playbar": {
+    "trackBg": "rgba(235,219,178,0.16)",
+    "trackFill": "linear-gradient(90deg, #b8bb26 0%, #fabd2f 100%)",
+    "thumbColor": "#ebdbb2",
+    "timeTextColor": "#928374"
+  },
+  "typography": {
+    "songTitle": { "color": "#ebdbb2" },
+    "songArtist": { "color": "#d5c4a1" }
+  },
+  "actions": {
+    "iconColor": "#ebdbb2",
+    "iconBackground": "rgba(235,219,178,0.04)",
+    "iconBackgroundHover": "rgba(235,219,178,0.10)"
+  },
+  "cover": {
+    "borderColor": "rgba(235,219,178,0.20)",
+    "borderRadius": 12
+  },
+  "settings": {
+    "panelBg": "#3c3836",
+    "panelBorder": "#504945",
+    "text": "#ebdbb2",
+    "textMuted": "#928374",
+    "accent": "#b8bb26"
   }
 }
 ```
@@ -306,16 +467,40 @@ The classic Solarized theme:
 ```json
 {
   "name": "Solarized Dark",
-  "author": "Ethan Schoonover",
-  "version": "1.0.0",
-  "colors": {
+  "panel": {
     "background": "#002b36",
-    "foreground": "#839496",
-    "primary": "#268bd2",
-    "secondary": "#073642",
-    "accent": "#2aa198",
-    "muted": "#586e75",
-    "border": "#073642"
+    "borderRadius": 18,
+    "shadow": "0 14px 40px rgba(0,0,0,0.55)"
+  },
+  "controls": {
+    "iconColor": "#839496",
+    "iconColorActive": "#268bd2"
+  },
+  "playbar": {
+    "trackBg": "rgba(131,148,150,0.16)",
+    "trackFill": "linear-gradient(90deg, #268bd2 0%, #2aa198 100%)",
+    "thumbColor": "#839496",
+    "timeTextColor": "#586e75"
+  },
+  "typography": {
+    "songTitle": { "color": "#93a1a1" },
+    "songArtist": { "color": "#839496" }
+  },
+  "actions": {
+    "iconColor": "#839496",
+    "iconBackground": "rgba(131,148,150,0.04)",
+    "iconBackgroundHover": "rgba(131,148,150,0.10)"
+  },
+  "cover": {
+    "borderColor": "rgba(131,148,150,0.20)",
+    "borderRadius": 12
+  },
+  "settings": {
+    "panelBg": "#073642",
+    "panelBorder": "#073642",
+    "text": "#839496",
+    "textMuted": "#586e75",
+    "accent": "#268bd2"
   }
 }
 ```
@@ -434,35 +619,47 @@ You can share theme JSON files directly:
 
 ### CSS Variable Reference
 
-All theme colors are available as CSS custom properties:
+All theme properties are mapped to CSS custom properties:
 
 ```css
 :root {
-  --background: #0a0a0a;
-  --foreground: #ffffff;
-  --primary: #1DB954;
-  --secondary: #1a1a1a;
-  --accent: #1ed760;
-  --muted: #666666;
-  --border: #2a2a2a;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
-}
-```
+  /* Panel */
+  --player-panel-bg: #0a0a0a;
+  --player-panel-radius: 18px;
+  --player-panel-shadow: 0 14px 40px rgba(0,0,0,0.55);
 
-### Derived Colors
+  /* Controls */
+  --player-controls-color: #ffffff;
+  --player-controls-color-active: #1DB954;
 
-The theme system also generates derived colors:
+  /* Playbar */
+  --player-playbar-track-bg: rgba(255,255,255,0.16);
+  --player-playbar-track-fill: linear-gradient(90deg, #1DB954 0%, #1ed760 100%);
+  --player-playbar-thumb-color: #ffffff;
+  --player-playbar-time-color: #b0b0b0;
 
-```css
-:root {
-  /* Settings panel specific */
-  --settings-panel-bg: /* derived from secondary */;
-  --settings-panel-border: /* derived from border */;
-  --settings-text: /* derived from foreground */;
-  --settings-text-muted: /* derived from muted */;
-  --settings-accent: /* derived from primary */;
+  /* Typography */
+  --player-song-title-color: #ffffff;
+  --player-song-artist-color: #b0b0b0;
+
+  /* Actions */
+  --player-actions-color: #ffffff;
+  --player-actions-bg: rgba(255,255,255,0.04);
+  --player-actions-bg-hover: rgba(255,255,255,0.10);
+
+  /* Cover */
+  --player-cover-border-color: rgba(255,255,255,0.20);
+  --player-cover-radius: 12px;
+
+  /* Settings Panel */
+  --settings-panel-bg: #0a0a0a;
+  --settings-panel-border: #ffffff1a;
+  --settings-text: #ffffff;
+  --settings-text-muted: #b0b0b0;
+  --settings-header-text: #ffffff;
+  --settings-item-hover: #ffffff14;
+  --settings-item-active: #ffffff24;
+  --settings-accent: #1DB954;
 }
 ```
 
