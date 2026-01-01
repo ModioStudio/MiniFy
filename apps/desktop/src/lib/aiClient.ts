@@ -93,6 +93,7 @@ export async function getActiveProviderWithKey(
 
   try {
     const apiKey = await getAIApiKey(config.provider);
+    if (!apiKey) return null;
     return { provider: config.provider, apiKey };
   } catch {
     return null;
