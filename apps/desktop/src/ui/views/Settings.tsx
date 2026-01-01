@@ -1,13 +1,16 @@
 import {
   AppleLogo,
   ArrowLeft,
+  Brain,
   Check,
+  CircleNotch,
   Download,
   Eye,
   FloppyDisk,
   GearSix,
   GithubLogo,
   Link,
+  MusicNote,
   PaintBrush,
   ShieldCheck,
   SignOut,
@@ -24,15 +27,84 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import {
+  type AIProviderConfig,
+  type AIProviderType,
   type CustomTheme,
+  type MusicProviderType,
+  deleteAIApiKey,
   deleteCustomTheme,
   exportCustomTheme,
+  hasAIApiKey,
   loadCustomThemes,
   readSettings,
+  saveAIApiKey,
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
 import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
+
+const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: string }[] = [
+  { id: "openai", name: "OpenAI", model: "GPT-4o Mini", color: "#10A37F" },
+  { id: "anthropic", name: "Anthropic", model: "Claude 3 Haiku", color: "#D97757" },
+  { id: "google", name: "Google AI", model: "Gemini 1.5 Flash", color: "#4285F4" },
+  { id: "groq", name: "Groq", model: "Llama 3.1 8B", color: "#F55036" },
+];
+
+const MUSIC_PROVIDERS: {
+  id: MusicProviderType;
+  name: string;
+  color: string;
+  available: boolean;
+}[] = [
+  { id: "spotify", name: "Spotify", color: "#1DB954", available: true },
+  { id: "apple", name: "Apple Music", color: "#FC3C44", available: false },
+  { id: "youtube", name: "YouTube Music", color: "#FF0000", available: false },
+];
+
+async function validateAIApiKey(provider: AIProviderType, apiKey: string): Promise<boolean> {
+  try {
+    switch (provider) {
+      case "openai": {
+        const res = await fetch("https://api.openai.com/v1/models", {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        return res.ok;
+      }
+      case "anthropic": {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307",
+            max_tokens: 1,
+            messages: [{ role: "user", content: "hi" }],
+          }),
+        });
+        return res.ok || res.status === 400;
+      }
+      case "google": {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`
+        );
+        return res.ok;
+      }
+      case "groq": {
+        const res = await fetch("https://api.groq.com/openai/v1/models", {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        return res.ok;
+      }
+      default:
+        return false;
+    }
+  } catch {
+    return false;
+  }
+}
 
 type SettingsProps = {
   onBack: () => void;
@@ -101,7 +173,12 @@ const DEFAULT_THEME_JSON = `{
   }
 }`;
 
-export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onResetAuth }: SettingsProps) {
+export default function Settings({
+  onBack,
+  onUpdateLayout,
+  onUpdateTheme,
+  onResetAuth,
+}: SettingsProps) {
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
   const [currentTheme, setCurrentTheme] = useState<string>("dark");
@@ -117,6 +194,25 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
 
   const [spotifyConnected, setSpotifyConnected] = useState<boolean>(false);
   const [spotifyLoading, setSpotifyLoading] = useState<boolean>(false);
+
+  const [aiProviders, setAiProviders] = useState<AIProviderConfig[]>([]);
+  const [activeAIProvider, setActiveAIProvider] = useState<AIProviderType | null>(null);
+  const [activeMusicProvider, setActiveMusicProvider] = useState<MusicProviderType>("spotify");
+  const [aiKeyInputs, setAiKeyInputs] = useState<Record<AIProviderType, string>>({
+    openai: "",
+    anthropic: "",
+    google: "",
+    groq: "",
+  });
+  const [aiValidating, setAiValidating] = useState<AIProviderType | null>(null);
+  const [aiValidationResults, setAiValidationResults] = useState<
+    Record<AIProviderType, boolean | null>
+  >({
+    openai: null,
+    anthropic: null,
+    google: null,
+    groq: null,
+  });
 
   const refreshCustomThemes = useCallback(async () => {
     const themes = await loadCustomThemes();
@@ -135,6 +231,28 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
       const settings = await readSettings();
       if (settings.theme) setCurrentTheme(settings.theme);
       if (settings.layout) setCurrentLayout(settings.layout);
+      if (settings.ai_providers) {
+        setAiProviders(settings.ai_providers);
+        const results: Record<AIProviderType, boolean | null> = {
+          openai: null,
+          anthropic: null,
+          google: null,
+          groq: null,
+        };
+        for (const p of settings.ai_providers) {
+          if (p.enabled) {
+            const keyExists = await hasAIApiKey(p.provider);
+            results[p.provider] = keyExists;
+          }
+        }
+        setAiValidationResults(results);
+      }
+      if (settings.active_ai_provider) {
+        setActiveAIProvider(settings.active_ai_provider);
+      }
+      if (settings.active_music_provider) {
+        setActiveMusicProvider(settings.active_music_provider);
+      }
       await refreshCustomThemes();
       await checkSpotifyConnection();
     })();
@@ -172,6 +290,68 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
 
   const handleSpotifyConnect = async () => {
     onResetAuth?.();
+  };
+
+  const handleValidateAIKey = async (provider: AIProviderType) => {
+    const key = aiKeyInputs[provider];
+    if (!key.trim()) return;
+
+    setAiValidating(provider);
+    const valid = await validateAIApiKey(provider, key);
+    setAiValidationResults((prev) => ({ ...prev, [provider]: valid }));
+    setAiValidating(null);
+
+    if (valid) {
+      await saveAIApiKey(provider, key);
+
+      const existingIndex = aiProviders.findIndex((p) => p.provider === provider);
+      let newProviders: AIProviderConfig[];
+      if (existingIndex >= 0) {
+        newProviders = [...aiProviders];
+        newProviders[existingIndex] = { provider, enabled: true };
+      } else {
+        newProviders = [...aiProviders, { provider, enabled: true }];
+      }
+      setAiProviders(newProviders);
+
+      const newActive = activeAIProvider ?? provider;
+      setActiveAIProvider(newActive);
+
+      await writeSettings({
+        ai_providers: newProviders,
+        active_ai_provider: newActive,
+      });
+    }
+  };
+
+  const handleRemoveAIProvider = async (provider: AIProviderType) => {
+    await deleteAIApiKey(provider);
+
+    const newProviders = aiProviders.filter((p) => p.provider !== provider);
+    setAiProviders(newProviders);
+    setAiKeyInputs((prev) => ({ ...prev, [provider]: "" }));
+    setAiValidationResults((prev) => ({ ...prev, [provider]: null }));
+
+    const newActive =
+      activeAIProvider === provider
+        ? (newProviders.find((p) => p.enabled)?.provider ?? null)
+        : activeAIProvider;
+    setActiveAIProvider(newActive);
+
+    await writeSettings({
+      ai_providers: newProviders,
+      active_ai_provider: newActive,
+    });
+  };
+
+  const handleSetActiveAIProvider = async (provider: AIProviderType) => {
+    setActiveAIProvider(provider);
+    await writeSettings({ active_ai_provider: provider });
+  };
+
+  const handleSetActiveMusicProvider = async (provider: MusicProviderType) => {
+    setActiveMusicProvider(provider);
+    await writeSettings({ active_music_provider: provider });
   };
 
   const applyLayout = async (layout: string) => {
@@ -331,121 +511,240 @@ export default function Settings({ onBack, onUpdateLayout, onUpdateTheme, onRese
         >
           {active === "connections" && (
             <div className="flex flex-col gap-4">
-              <div className="font-medium">Music Services</div>
+              <div className="font-medium flex items-center gap-2">
+                <MusicNote size={18} weight="fill" />
+                Music Provider
+              </div>
               <p className="text-xs text-[--settings-text-muted]">
                 Connect your music streaming accounts to control playback
               </p>
 
-              <div
-                className="flex items-center justify-between p-4 rounded-xl border"
-                style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: spotifyConnected
-                    ? "rgba(30, 215, 96, 0.3)"
-                    : "rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                <div className="flex items-center gap-3">
+              {MUSIC_PROVIDERS.map(({ id, name, color, available }) => {
+                const isSpotifyConnected = id === "spotify" && spotifyConnected;
+                const isActive = activeMusicProvider === id;
+                const IconComponent =
+                  id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
+
+                return (
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ background: "#1DB954" }}
+                    key={id}
+                    className={`flex items-center justify-between p-4 rounded-xl border ${!available ? "opacity-50" : ""}`}
+                    style={{
+                      background: "rgba(0, 0, 0, 0.2)",
+                      borderColor:
+                        isSpotifyConnected && isActive
+                          ? `${color}50`
+                          : isSpotifyConnected
+                            ? `${color}30`
+                            : "rgba(255, 255, 255, 0.1)",
+                    }}
                   >
-                    <SpotifyLogo size={24} weight="fill" color="#000" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Spotify</span>
-                    <span
-                      className="text-xs flex items-center gap-1"
-                      style={{
-                        color: spotifyConnected ? "#1DB954" : "var(--settings-text-muted)",
-                      }}
-                    >
-                      {spotifyConnected ? (
-                        <>
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ background: "#1DB954" }}
-                          />
-                          Connected
-                        </>
-                      ) : (
-                        "Not connected"
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ background: color }}
+                      >
+                        <IconComponent
+                          size={24}
+                          weight="fill"
+                          color={id === "spotify" ? "#000" : "#fff"}
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{name}</span>
+                        <span
+                          className="text-xs flex items-center gap-1"
+                          style={{
+                            color: isSpotifyConnected ? color : "var(--settings-text-muted)",
+                          }}
+                        >
+                          {!available ? (
+                            "Coming soon"
+                          ) : isSpotifyConnected ? (
+                            <>
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ background: color }}
+                              />
+                              {isActive ? "Active" : "Connected"}
+                            </>
+                          ) : (
+                            "Not connected"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isSpotifyConnected && !isActive && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetActiveMusicProvider(id)}
+                          className="text-xs px-2 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
+                        >
+                          Set Active
+                        </button>
                       )}
-                    </span>
-                  </div>
-                </div>
 
-                {spotifyConnected ? (
-                  <button
-                    type="button"
-                    onClick={handleSpotifyLogout}
-                    disabled={spotifyLoading}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      {id === "spotify" && spotifyConnected ? (
+                        <button
+                          type="button"
+                          onClick={handleSpotifyLogout}
+                          disabled={spotifyLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <SignOut size={16} />
+                          <span className="text-sm">Disconnect</span>
+                        </button>
+                      ) : id === "spotify" && available ? (
+                        <button
+                          type="button"
+                          onClick={handleSpotifyConnect}
+                          disabled={spotifyLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-black font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: color }}
+                        >
+                          {spotifyLoading ? (
+                            <span className="text-sm">Connecting...</span>
+                          ) : (
+                            <>
+                              <SpotifyLogo size={16} weight="fill" />
+                              <span className="text-sm">Connect</span>
+                            </>
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="border-t border-white/10 my-2" />
+
+              <div className="font-medium flex items-center gap-2">
+                <Brain size={18} weight="fill" />
+                AI Provider
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Connect an AI provider to enable the AI DJ feature
+              </p>
+
+              {AI_PROVIDERS.map(({ id, name, model, color }) => {
+                const isConnected = aiProviders.some((p) => p.provider === id && p.enabled);
+                const isActive = activeAIProvider === id;
+                const validationResult = aiValidationResults[id];
+                const isValidating = aiValidating === id;
+
+                return (
+                  <div
+                    key={id}
+                    className="flex flex-col gap-2 p-4 rounded-xl border"
+                    style={{
+                      background: "rgba(0, 0, 0, 0.2)",
+                      borderColor:
+                        isConnected && isActive
+                          ? `${color}50`
+                          : isConnected
+                            ? `${color}30`
+                            : "rgba(255, 255, 255, 0.1)",
+                    }}
                   >
-                    <SignOut size={16} />
-                    <span className="text-sm">Disconnect</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSpotifyConnect}
-                    disabled={spotifyLoading}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-black font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: "#1DB954" }}
-                  >
-                    {spotifyLoading ? (
-                      <span className="text-sm">Connecting...</span>
-                    ) : (
-                      <>
-                        <SpotifyLogo size={16} weight="fill" />
-                        <span className="text-sm">Connect</span>
-                      </>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ background: color }}
+                        >
+                          <Brain size={24} weight="fill" color="#fff" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{name}</span>
+                          <span className="text-[10px] text-[--settings-text-muted] opacity-70">
+                            {model}
+                          </span>
+                          <span
+                            className="text-xs flex items-center gap-1 mt-0.5"
+                            style={{
+                              color: isConnected ? color : "var(--settings-text-muted)",
+                            }}
+                          >
+                            {isConnected ? (
+                              <>
+                                <span
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ background: color }}
+                                />
+                                {isActive ? "Active" : "Connected"}
+                              </>
+                            ) : (
+                              "Not connected"
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isConnected && !isActive && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetActiveAIProvider(id)}
+                            className="text-xs px-2 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
+                          >
+                            Set Active
+                          </button>
+                        )}
+
+                        {isConnected && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAIProvider(id)}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer text-xs"
+                          >
+                            <Trash size={12} />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isConnected && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="password"
+                          placeholder="Enter API key..."
+                          value={aiKeyInputs[id]}
+                          onChange={(e) =>
+                            setAiKeyInputs((prev) => ({ ...prev, [id]: e.target.value }))
+                          }
+                          className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-xs focus:outline-none focus:border-[--settings-accent]"
+                          style={{ color: "var(--settings-text)" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleValidateAIKey(id)}
+                          disabled={isValidating || !aiKeyInputs[id].trim()}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg text-white font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                          style={{ background: color }}
+                        >
+                          {isValidating ? (
+                            <CircleNotch size={14} className="animate-spin" />
+                          ) : (
+                            <Check size={14} />
+                          )}
+                          {isValidating ? "Validating..." : "Connect"}
+                        </button>
+                      </div>
                     )}
-                  </button>
-                )}
-              </div>
 
-              <div
-                className="flex items-center justify-between p-4 rounded-xl border opacity-50"
-                style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ background: "#FC3C44" }}
-                  >
-                    <AppleLogo size={24} weight="fill" color="#fff" />
+                    {validationResult === false && !isConnected && (
+                      <div className="flex items-center gap-1 text-xs text-red-400">
+                        <Warning size={12} />
+                        Invalid API key. Please check and try again.
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">Apple Music</span>
-                    <span className="text-xs text-[--settings-text-muted]">Coming soon</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="flex items-center justify-between p-4 rounded-xl border opacity-50"
-                style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ background: "#FF0000" }}
-                  >
-                    <YoutubeLogo size={24} weight="fill" color="#fff" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium">YouTube Music</span>
-                    <span className="text-xs text-[--settings-text-muted]">Coming soon</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           )}
 

@@ -5,11 +5,56 @@ export type SpotifyTokens = {
   refresh_token: string | null;
 };
 
+export type AIProviderType = "openai" | "anthropic" | "google" | "groq";
+export type MusicProviderType = "spotify" | "apple" | "youtube";
+
+export type AIProviderConfig = {
+  provider: AIProviderType;
+  enabled: boolean;
+};
+
+export async function saveAIApiKey(provider: AIProviderType, apiKey: string): Promise<void> {
+  await invoke("save_ai_api_key", { provider, apiKey });
+}
+
+/**
+ * Retrieves an AI API key from the secure keyring.
+ * @param provider - The AI provider type
+ * @returns The API key if found, null if not found
+ * @throws Error for keyring access failures (not for missing keys)
+ */
+export async function getAIApiKey(provider: AIProviderType): Promise<string | null> {
+  try {
+    return await invoke("get_ai_api_key", { provider });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("not found") || message.includes("No password found")) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function hasAIApiKey(provider: AIProviderType): Promise<boolean> {
+  return await invoke("has_ai_api_key", { provider });
+}
+
+export async function deleteAIApiKey(provider: AIProviderType): Promise<void> {
+  await invoke("delete_ai_api_key", { provider });
+}
+
+export async function clearAllAIKeys(): Promise<void> {
+  await invoke("clear_all_ai_keys");
+}
+
 export type Settings = {
   first_boot_done: boolean;
   spotify: SpotifyTokens;
   layout: string;
   theme: string;
+  ai_providers: AIProviderConfig[];
+  active_ai_provider: AIProviderType | null;
+  active_music_provider: MusicProviderType | null;
 };
 
 export type CustomTheme = {
@@ -59,7 +104,12 @@ export type CustomTheme = {
 export async function readSettings(): Promise<Settings> {
   try {
     const settings: Settings = await invoke("read_settings");
-    return settings;
+    return {
+      ...settings,
+      ai_providers: settings.ai_providers ?? [],
+      active_ai_provider: settings.active_ai_provider ?? null,
+      active_music_provider: settings.active_music_provider ?? "spotify",
+    };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
     return {
@@ -67,6 +117,9 @@ export async function readSettings(): Promise<Settings> {
       spotify: { access_token: null, refresh_token: null },
       layout: "LayoutA",
       theme: "dark",
+      ai_providers: [],
+      active_ai_provider: null,
+      active_music_provider: "spotify",
     };
   }
 }

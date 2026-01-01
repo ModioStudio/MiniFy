@@ -1,0 +1,465 @@
+---
+title: AI DJ
+description: Your personal AI-powered music assistant - architecture, capabilities, and configuration.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# AI DJ
+
+MiniFy includes an integrated AI DJ that acts as your personal music assistant. It understands your
+listening habits, analyzes your music taste, and can discover and play songs based on your preferences.
+
+## Overview
+
+The AI DJ uses advanced language models combined with Spotify data access to have natural conversations
+about music. It's like having a knowledgeable friend who knows your entire listening history.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            AI DJ Architecture                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                          User Interface                              │   │
+│   │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐   │   │
+│   │  │  Chat Input   │  │  Message      │  │  Quick Suggestions    │   │   │
+│   │  │  Component    │  │  Display      │  │  (Prompt Buttons)     │   │   │
+│   │  └───────────────┘  └───────────────┘  └───────────────────────┘   │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                       │                                      │
+│                                       ▼                                      │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                       AI Client (Vercel AI SDK)                      │   │
+│   │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐   │   │
+│   │  │ System Prompt │  │  Tool         │  │  Conversation         │   │   │
+│   │  │ (DJ Persona)  │  │  Definitions  │  │  History              │   │   │
+│   │  └───────────────┘  └───────────────┘  └───────────────────────┘   │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                          │                        │                          │
+│           ┌──────────────┘                        └──────────────┐           │
+│           ▼                                                      ▼           │
+│   ┌───────────────────┐                              ┌───────────────────┐  │
+│   │   AI Provider     │                              │   Spotify Tools   │  │
+│   │   (LLM API)       │                              │   (Function Calls)│  │
+│   ├───────────────────┤                              ├───────────────────┤  │
+│   │ • OpenAI GPT-4o   │                              │ • getCurrentTrack │  │
+│   │ • Anthropic Claude│                              │ • searchTracks    │  │
+│   │ • Google Gemini   │                              │ • playTrack       │  │
+│   │ • Groq Llama      │                              │ • getTopTracks    │  │
+│   └───────────────────┘                              │ • getMusicTaste   │  │
+│                                                       │ • getRecommendations│
+│                                                       └─────────┬─────────┘  │
+│                                                                 │            │
+│                                                                 ▼            │
+│                                                       ┌───────────────────┐  │
+│                                                       │   Spotify API     │  │
+│                                                       │   (via tokens)    │  │
+│                                                       └───────────────────┘  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## How It Works
+
+### 1. Conversation Processing
+
+When you send a message to the AI DJ:
+
+1. Your message is added to the conversation history
+2. The AI model receives the conversation + system prompt + available tools
+3. The AI decides whether to respond directly or call tools
+4. If tools are called, results are fed back to the AI
+5. The AI generates a final response
+
+### 2. Tool Calling (Function Calling)
+
+The AI DJ uses Spotify "tools" - functions it can call to interact with your music:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Tool Calling Flow Example                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  User: "Play something upbeat based on my taste"                       │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ Step 1: AI calls getMusicTaste tool                              │   │
+│  │         → Returns: avg energy: 0.72, avg valence: 0.65           │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ Step 2: AI calls getRecommendations tool                         │   │
+│  │         params: targetEnergy: 0.8, targetValence: 0.75           │   │
+│  │         → Returns: 10 track recommendations                      │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ Step 3: AI calls playTrack tool                                  │   │
+│  │         params: trackUri: "spotify:track:abc123"                 │   │
+│  │         → Track starts playing                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  AI Response: "I noticed you've been enjoying energetic tracks with    │
+│  positive vibes. Here's 'Track Name' by Artist - it matches your       │
+│  taste perfectly with high energy and an uplifting feel!"              │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+## Available Tools
+
+The AI DJ has access to these Spotify tools:
+
+### Playback Control
+
+| Tool | Description | Example Use |
+|------|-------------|-------------|
+| `getCurrentTrack` | Get currently playing track info | "What's playing now?" |
+| `playTrack` | Play a specific track by URI | "Play that song" |
+| `searchTracks` | Search for tracks by query | "Find songs by artist X" |
+
+### User Profile Analysis
+
+| Tool | Description | Example Use |
+|------|-------------|-------------|
+| `getRecentlyPlayed` | Last 50 played tracks | "What did I listen to today?" |
+| `getTopTracks` | Most played tracks (various time ranges) | "What are my top songs?" |
+| `getTopArtists` | Most listened artists with genres | "Who do I listen to most?" |
+| `getMusicTaste` | Deep analysis of audio features | "Analyze my music taste" |
+| `getUserProfile` | Account info and library size | "How many songs do I have saved?" |
+
+### Smart Recommendations
+
+| Tool | Description | Example Use |
+|------|-------------|-------------|
+| `getRecommendations` | Spotify-powered recommendations | "Suggest something similar" |
+
+### Tool Parameters
+
+**Time Ranges for Historical Data:**
+- `short_term`: Last 4 weeks
+- `medium_term`: Last 6 months (default)
+- `long_term`: Several years
+
+**Audio Feature Targets:**
+- `targetEnergy`: 0.0 (calm) → 1.0 (intense)
+- `targetValence`: 0.0 (sad) → 1.0 (happy)
+- `targetDanceability`: 0.0 (still) → 1.0 (dance)
+
+## Audio Features Explained
+
+The AI DJ understands these Spotify audio characteristics:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Audio Feature Spectrum                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Energy        ├─────────────────────────────────────────────────────┤  │
+│                0.0                    0.5                          1.0  │
+│                Calm, ambient          Moderate           High-energy    │
+│                                                                         │
+│  Valence       ├─────────────────────────────────────────────────────┤  │
+│  (Mood)        0.0                    0.5                          1.0  │
+│                Sad, dark              Neutral            Happy, upbeat  │
+│                                                                         │
+│  Danceability  ├─────────────────────────────────────────────────────┤  │
+│                0.0                    0.5                          1.0  │
+│                Not suitable           Moderate            Great for     │
+│                for dancing            rhythm              dancing       │
+│                                                                         │
+│  Acousticness  ├─────────────────────────────────────────────────────┤  │
+│                0.0                    0.5                          1.0  │
+│                Electronic,            Mixed               Acoustic,     │
+│                produced                                   organic       │
+│                                                                         │
+│  Tempo (BPM)   ├─────────────────────────────────────────────────────┤  │
+│                60        80       100       120       140       180+    │
+│                Slow      Chill    Moderate  Upbeat    Fast      Very    │
+│                                                                  fast   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Example Analysis Output
+
+When you ask "analyze my music taste", the AI might process:
+
+```json
+{
+  "averageFeatures": {
+    "energy": 0.72,
+    "valence": 0.58,
+    "danceability": 0.65,
+    "tempo": 118,
+    "acousticness": 0.23
+  },
+  "moodDescription": "energetic, danceable",
+  "interpretation": {
+    "energy": "Prefers energetic music",
+    "mood": "Generally positive/happy music taste",
+    "style": "Prefers produced/electronic sounds",
+    "tempo": "Average tempo: 118 BPM"
+  }
+}
+```
+
+## Supported AI Providers
+
+<Tabs>
+  <TabItem label="OpenAI">
+    **Model**: GPT-4o Mini
+
+    - **Best for**: General purpose, balanced performance
+    - **Response speed**: Fast
+    - **Tool calling**: Excellent
+    - **Cost**: Low per query
+
+    ```typescript
+    const model = openai("gpt-4o-mini");
+    ```
+  </TabItem>
+  <TabItem label="Anthropic">
+    **Model**: Claude 3 Haiku
+
+    - **Best for**: Nuanced conversations, detailed explanations
+    - **Response speed**: Fast
+    - **Tool calling**: Good
+    - **Cost**: Low per query
+
+    ```typescript
+    const model = anthropic("claude-3-haiku-20240307");
+    ```
+  </TabItem>
+  <TabItem label="Google AI">
+    **Model**: Gemini 1.5 Flash
+
+    - **Best for**: Quick recommendations
+    - **Response speed**: Very fast
+    - **Tool calling**: Good
+    - **Cost**: Free tier available
+
+    ```typescript
+    const model = google("gemini-1.5-flash");
+    ```
+  </TabItem>
+  <TabItem label="Groq">
+    **Model**: Llama 3.1 8B Instant
+
+    - **Best for**: Fast, open-source option
+    - **Response speed**: Extremely fast
+    - **Tool calling**: Good
+    - **Cost**: Free tier available
+
+    ```typescript
+    const model = groq("llama-3.1-8b-instant");
+    ```
+  </TabItem>
+</Tabs>
+
+## Setting Up AI DJ
+
+<Steps>
+1. **Open Settings**
+
+   Right-click anywhere in MiniFy → Settings, or press `Ctrl+,` / `⌘+,`
+
+2. **Navigate to Connections**
+
+   Click on the "Connections" tab in the settings sidebar
+
+3. **Choose your AI provider**
+
+   Select from OpenAI, Anthropic, Google AI, or Groq
+
+4. **Enter your API key**
+
+   Get an API key from your chosen provider's dashboard:
+   - [OpenAI API Keys](https://platform.openai.com/api-keys)
+   - [Anthropic Console](https://console.anthropic.com/)
+   - [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - [Groq Console](https://console.groq.com/keys)
+
+5. **Validate and activate**
+
+   Click "Connect" to validate your API key, then set the provider as **Active**
+
+6. **Access AI DJ**
+
+   Right-click in MiniFy → Select "AI DJ" from the context menu
+</Steps>
+
+## API Key Security
+
+Your AI API keys are stored securely in your operating system's credential manager:
+
+| Platform | Storage Location | Encryption |
+|----------|------------------|------------|
+| Windows | Windows Credential Manager | DPAPI |
+| macOS | Keychain | AES-256 |
+| Linux | Secret Service (GNOME Keyring) | AES |
+
+<Aside type="note">
+API keys are **never** stored in plain text files. Each provider's key is stored
+separately and only used for that provider's API calls.
+</Aside>
+
+## Privacy and Data Flow
+
+### What AI DJ Accesses
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       AI DJ Data Access                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌──────────────────────────────────┐                                   │
+│  │      Your Spotify Data           │                                   │
+│  │  ┌────────────────────────────┐  │                                   │
+│  │  │ Currently playing track    │  │                                   │
+│  │  │ Recently played (50 max)   │  │  ───▶  Processed locally         │
+│  │  │ Top tracks (time ranges)   │  │        in MiniFy                  │
+│  │  │ Top artists with genres    │  │                                   │
+│  │  │ Audio features (numbers)   │  │  ───▶  Text summary sent         │
+│  │  │ Library size count         │  │        to AI provider            │
+│  │  └────────────────────────────┘  │                                   │
+│  └──────────────────────────────────┘                                   │
+│                                                                          │
+│  ┌──────────────────────────────────┐                                   │
+│  │    What AI Provider Sees         │                                   │
+│  │  ┌────────────────────────────┐  │                                   │
+│  │  │ ✅ Track names             │  │                                   │
+│  │  │ ✅ Artist names            │  │                                   │
+│  │  │ ✅ Genre labels            │  │                                   │
+│  │  │ ✅ Audio feature numbers   │  │                                   │
+│  │  │ ✅ Your chat messages      │  │                                   │
+│  │  │ ❌ Spotify tokens          │  │                                   │
+│  │  │ ❌ Your account email      │  │                                   │
+│  │  │ ❌ Other API keys          │  │                                   │
+│  │  └────────────────────────────┘  │                                   │
+│  └──────────────────────────────────┘                                   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### API Calls Flow
+
+```
+Your Device                          External Services
+─────────────                        ─────────────────
+    │
+    │  (1) User sends message
+    │  ──────────────────────▶  AI Provider (OpenAI, etc.)
+    │                           Receives: text + track metadata
+    │                           Returns: response + tool calls
+    │
+    │  (2) Tool execution
+    │  ──────────────────────▶  Spotify API
+    │                           Receives: API request + token
+    │                           Returns: music data
+    │
+    │  (All API calls use HTTPS encryption)
+```
+
+## Example Conversations
+
+### Mood-Based Request
+
+**You**: "I'm feeling energetic, play something upbeat!"
+
+**AI DJ**: *Calls getMusicTaste → getRecommendations(targetEnergy: 0.9, targetValence: 0.8) → playTrack*
+
+"I can see you usually enjoy tracks with high energy! Here's 'Blinding Lights' by The Weeknd -
+it has an energy level of 0.79 and a super positive vibe. Perfect for your current mood! 🎵"
+
+### Discovery Request
+
+**You**: "Find me something similar to what I've been listening to lately"
+
+**AI DJ**: *Calls getRecentlyPlayed → getRecommendations(seedTracks: [...]) → playTrack*
+
+"Based on your recent listening, you've been into electronic pop with artists like Dua Lipa.
+Here's 'Don't Start Now' - it matches your vibe with high danceability (0.79) and positive
+energy. Now playing!"
+
+### Analysis Request
+
+**You**: "What does my music taste say about me?"
+
+**AI DJ**: *Calls getMusicTaste → getTopArtists → getTopTracks*
+
+"Your music profile is fascinating! Here's what I found:
+- **Energy**: 0.72 average - you prefer upbeat, energetic tracks
+- **Mood**: 0.65 valence - generally positive and cheerful music
+- **Style**: Low acousticness (0.23) - you lean toward produced, electronic sounds
+- **Tempo**: 118 BPM average - you like music with a solid groove
+
+Your top genres are pop, indie pop, and electronic. You seem to use music to energize
+and uplift your mood!"
+
+## Troubleshooting
+
+### AI DJ not appearing in menu
+
+1. Ensure you have an AI provider configured in Settings → Connections
+2. Make sure the provider is marked as **Active**
+3. Restart MiniFy if needed
+
+### "No AI provider configured" error
+
+1. Go to Settings → Connections
+2. Add an API key for at least one provider
+3. Click "Connect" to validate
+4. Set the provider as **Active**
+
+### API key validation fails
+
+1. Double-check your API key is correct (no extra spaces)
+2. Ensure you have API credits available in your provider account
+3. Check your internet connection
+4. Some providers require billing setup before API access
+
+### Tool calls failing
+
+1. Check that Spotify is connected and authenticated
+2. Ensure you have an active Spotify playback device
+3. Try playing something in Spotify first, then ask AI DJ
+
+### Slow responses
+
+- Try switching to a faster provider (Groq is typically fastest)
+- Check your internet connection
+- The first message may be slower as the AI loads your profile
+
+## Technical Details
+
+### System Prompt
+
+The AI DJ uses a carefully crafted system prompt that defines its personality and capabilities:
+
+```
+You are an AI DJ assistant for MiniFy, a desktop music player app.
+Your role is to help users discover and play music based on their
+listening history, preferences, and mood.
+
+Strategy Guidelines:
+- For new users: Call getMusicTaste and getTopArtists to understand profile
+- For "play something good": Use getMusicTaste then getRecommendations
+- For mood requests: Use targetValence/targetEnergy parameters
+- Always explain WHY you chose tracks based on user data
+```
+
+### Max Tool Steps
+
+The AI can execute up to **5 tool calls** per message to ensure comprehensive responses
+while preventing infinite loops.
+
+### Conversation Memory
+
+The AI DJ maintains conversation history within a session. When you close and reopen
+the AI DJ, the conversation resets.
+

@@ -3,15 +3,40 @@ title: Introduction
 description: Learn about MiniFy - the lightweight Spotify mini player for your desktop.
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
 
 # Welcome to MiniFy
 
-MiniFy is a **lightweight, beautiful Spotify mini player** designed to enhance your music experience without getting in the way. Built with modern technologies like [Tauri](https://tauri.app/) and [React](https://react.dev/), it delivers native performance while maintaining a sleek, customizable interface.
+MiniFy is a **lightweight, beautiful Spotify mini player** designed to enhance your music experience
+without getting in the way. Built with modern technologies like [Tauri](https://tauri.app/) and
+[React](https://react.dev/), it delivers native performance while maintaining a sleek, customizable interface.
 
 ## What is MiniFy?
 
-MiniFy gives you quick access to your Spotify playback controls from a compact window that stays out of your way. Whether you're coding, gaming, or just browsing the web, MiniFy keeps your music controls within reach.
+MiniFy gives you quick access to your Spotify playback controls from a compact window that stays out
+of your way. Whether you're coding, gaming, or just browsing the web, MiniFy keeps your music controls
+within reach.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                          MiniFy at a Glance                                     │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   Your Spotify Account                     MiniFy Desktop                       │
+│   ────────────────────                     ──────────────                       │
+│   ┌──────────────────┐                     ┌──────────────────────────────┐    │
+│   │  Playing music   │◀───── OAuth ───────│  🎵 Now Playing              │    │
+│   │  on any device   │                     │  ┌──────────────────────┐   │    │
+│   │  (phone, PC,     │                     │  │  Album Art    Title  │   │    │
+│   │   smart speaker) │                     │  │  [  🖼️  ]    Artist │   │    │
+│   │                  │                     │  │             ▶  ▶▶    │   │    │
+│   └──────────────────┘                     │  └──────────────────────┘   │    │
+│                                            │                              │    │
+│                                            │  + Themes, Layouts, AI DJ   │    │
+│                                            └──────────────────────────────┘    │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 <CardGrid>
   <Card title="Compact Design" icon="rocket">
@@ -30,28 +55,148 @@ MiniFy gives you quick access to your Spotify playback controls from a compact w
 
 ## Key Features
 
+### Core Features
+
 - **🎵 Now Playing Display** - See album art, track name, artist, and playback progress at a glance
 - **⏯️ Playback Controls** - Play, pause, skip, and control volume without switching windows
 - **🎨 Multiple Themes** - 8 built-in themes including Catppuccin, Dracula, and more
 - **📐 Flexible Layouts** - Choose from compact, standard, or expanded layouts
 - **⌨️ Global Shortcuts** - Control music even when MiniFy is in the background
-- **🔒 Privacy Focused** - Open source, no telemetry, your data stays local
+
+### AI DJ (AI-Powered Assistant)
+
+MiniFy includes an AI DJ that understands your music taste:
+
+- **Taste Analysis** - Deep analysis of your listening patterns
+- **Smart Recommendations** - Get personalized suggestions based on mood, energy, or genre
+- **Natural Language** - Ask for music in plain language ("play something upbeat")
+- **Multiple Providers** - Choose from OpenAI, Anthropic, Google AI, or Groq
+
+### Privacy & Security
+
+- **🔒 Open Source** - Full transparency, no hidden code
+- **📊 No Telemetry** - We don't track or collect any data
+- **🔐 Secure Storage** - Credentials stored in OS-level encrypted keyring
+- **🛡️ OAuth PKCE** - Most secure authentication flow for desktop apps
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            How MiniFy Works                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   1. Authentication                                                              │
+│   ─────────────────                                                             │
+│   MiniFy connects to Spotify using OAuth 2.0 PKCE                               │
+│   Your tokens are stored securely in the OS keyring                             │
+│                                                                                  │
+│   2. Playback Monitoring                                                         │
+│   ──────────────────────                                                        │
+│   MiniFy polls Spotify's API every 1-5 seconds                                  │
+│   Updates display with current track info                                        │
+│                                                                                  │
+│   3. Control Commands                                                            │
+│   ───────────────────                                                           │
+│   When you press play/pause/skip, MiniFy sends commands                         │
+│   to Spotify's API which controls your active device                            │
+│                                                                                  │
+│   4. AI DJ (Optional)                                                            │
+│   ───────────────────                                                           │
+│   Configure an AI provider to enable intelligent recommendations                 │
+│   AI analyzes your listening history and responds to requests                    │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## System Requirements
 
-| Platform | Minimum Version |
-|----------|-----------------|
-| Windows  | Windows 10 (64-bit) |
-| macOS    | macOS 10.15 (Catalina) |
-| Linux    | Ubuntu 18.04 or equivalent |
+### Minimum Requirements
+
+| Platform | Version |
+|----------|---------|
+| Windows | Windows 10 (64-bit) or later |
+| macOS | macOS 10.15 (Catalina) or later |
+| Linux | Ubuntu 18.04 or equivalent |
 
 ### Prerequisites
 
 - **Spotify Account** - You need an active Spotify account (Free or Premium)
-- **Spotify Desktop App** - The official Spotify app must be installed for OAuth authentication
+- **Active Playback Device** - Music must be playing on some device for MiniFy to control it
 
-## Next Steps
+<Aside type="note">
+MiniFy is a **controller** - it displays and controls music that's already playing on your
+Spotify account. You'll need Spotify open on some device (phone, computer, smart speaker, etc.)
+for MiniFy to work.
+</Aside>
 
-Ready to get started? Continue to the [Installation Guide](/guides/installation/) to set up MiniFy on your system.
+### Hardware Requirements
 
+| Metric | Requirement |
+|--------|-------------|
+| RAM | 50MB minimum |
+| Disk Space | ~10MB |
+| CPU | Minimal (< 1% idle) |
+
+## Architecture Overview
+
+MiniFy is built with a modern, efficient architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           MiniFy Architecture                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                     Frontend (React + TypeScript)                        │   │
+│   │                                                                          │   │
+│   │   • UI Components (Player, Settings, AI DJ)                             │   │
+│   │   • State Management (React Hooks)                                       │   │
+│   │   • Theme System (CSS Variables)                                         │   │
+│   │   • AI SDK Integration (Vercel AI)                                       │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                       │                                          │
+│                                       │ Tauri IPC                                │
+│                                       ▼                                          │
+│   ┌─────────────────────────────────────────────────────────────────────────┐   │
+│   │                        Backend (Rust + Tauri)                            │   │
+│   │                                                                          │   │
+│   │   • OAuth PKCE Authentication                                            │   │
+│   │   • Secure Keyring Access                                                │   │
+│   │   • Settings Management                                                  │   │
+│   │   • Window Management                                                    │   │
+│   └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why Tauri?
+
+We chose Tauri over Electron for several reasons:
+
+| Aspect | Tauri (MiniFy) | Electron |
+|--------|----------------|----------|
+| Bundle Size | ~10MB | 50-150MB |
+| Memory Usage | ~50MB | 150-300MB |
+| Security | Rust backend, minimal attack surface | Node.js backend |
+| Startup Time | < 1 second | 2-5 seconds |
+
+## What's Next?
+
+Ready to get started? Here are your next steps:
+
+<CardGrid>
+  <Card title="Installation" icon="seti:config">
+    [Install MiniFy on your system →](/guides/installation/)
+  </Card>
+  <Card title="Quick Start" icon="rocket">
+    [Get up and running in 5 minutes →](/guides/quick-start/)
+  </Card>
+  <Card title="Desktop Overview" icon="laptop">
+    [Learn about all features →](/desktop/overview/)
+  </Card>
+  <Card title="Themes" icon="seti:svg">
+    [Customize your experience →](/desktop/themes/)
+  </Card>
+</CardGrid>
 

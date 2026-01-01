@@ -1,11 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useCallback } from "react";
 
-export type Layout = "A" | "B" | "C" | "D" | "Settings" | "SearchSongs";
+export type Layout = "A" | "B" | "C" | "D" | "Settings" | "SearchSongs" | "AIDJ";
 
 export default function useWindowLayout() {
-  const setLayout = async (layout: Layout) => {
+  const setLayout = useCallback(async (layout: Layout) => {
     await invoke("set_layout", { layout });
-  };
+  }, []);
 
   return { setLayout };
 }

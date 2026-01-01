@@ -1,138 +1,301 @@
 ---
 title: Settings
-description: Configure MiniFy to work exactly how you want.
+description: Complete guide to configuring MiniFy - all settings and options explained.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 # Settings
 
-MiniFy offers various settings to customize your experience. Access settings by pressing `Ctrl+,` (Windows/Linux) or `⌘+,` (macOS).
+MiniFy offers various settings to customize your experience. Access settings by pressing
+`Ctrl+,` (Windows/Linux) or `⌘+,` (macOS), or right-click → Settings.
+
+## Settings Architecture
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                           Settings Storage                                     │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      settings.json (Plain Text)                          │ │
+│   │                                                                          │ │
+│   │   Non-sensitive configuration:                                           │ │
+│   │   • Theme preference                                                     │ │
+│   │   • Layout preference                                                    │ │
+│   │   • AI provider names (not keys!)                                        │ │
+│   │   • Active provider selection                                            │ │
+│   │   • First boot status                                                    │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                      OS Keyring (Encrypted)                              │ │
+│   │                                                                          │ │
+│   │   Sensitive credentials:                                                 │ │
+│   │   • Spotify access token                                                 │ │
+│   │   • Spotify refresh token                                                │ │
+│   │   • Spotify client ID                                                    │ │
+│   │   • AI API keys (OpenAI, Anthropic, etc.)                               │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Settings File Location
+
+<Tabs>
+  <TabItem label="Windows">
+    ```
+    %APPDATA%\MiniFy\settings.json
+    ```
+    Example: `C:\Users\YourName\AppData\Roaming\MiniFy\settings.json`
+  </TabItem>
+  <TabItem label="macOS">
+    ```
+    ~/Library/Application Support/MiniFy/settings.json
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```
+    ~/.config/MiniFy/settings.json
+    ```
+  </TabItem>
+</Tabs>
+
+## Settings Schema
+
+```json
+{
+  "first_boot_done": true,
+  "spotify": {
+    "access_token": null,
+    "refresh_token": null
+  },
+  "layout": "LayoutB",
+  "theme": "dark",
+  "ai_providers": [
+    { "provider": "openai", "enabled": true },
+    { "provider": "anthropic", "enabled": false }
+  ],
+  "active_ai_provider": "openai",
+  "active_music_provider": "spotify"
+}
+```
+
+<Aside type="note">
+Notice that `access_token` and `refresh_token` are always `null` in the settings file.
+Actual tokens are stored in the encrypted OS keyring.
+</Aside>
 
 ## General Settings
 
-### Startup
+### First Boot
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Launch on startup | Start MiniFy when your computer boots | Off |
-| Start minimized | Hide MiniFy window on startup | Off |
-| Check for updates | Automatically check for new versions | On |
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `first_boot_done` | boolean | false | Tracks if initial setup is complete |
 
-### Window Behavior
+### Music Provider
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Always on top | Keep MiniFy above other windows | Off |
-| Show in taskbar | Display MiniFy in the system taskbar | On |
-| Click-through mode | Allow clicks to pass through the window | Off |
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `active_music_provider` | string | "spotify" | Currently active music service |
 
 ## Appearance Settings
 
 ### Theme
 
-Select from built-in themes or custom themes you've added.
+| Setting | Type | Default | Options |
+|---------|------|---------|---------|
+| `theme` | string | "dark" | dark, light, catppuccin, dracula, chatgpt, YouTube, bmw, milka, or custom |
+
+**Changing themes:**
+1. Right-click anywhere → Themes → Select theme
+2. Or via Settings → Appearance → Theme dropdown
 
 ### Layout
 
-Choose your preferred layout:
-- **Compact**: Minimal information, small footprint
-- **Standard**: Balanced view with all controls
-- **Expanded**: Full-featured with large album art
+| Setting | Type | Default | Options |
+|---------|------|---------|---------|
+| `layout` | string | "LayoutA" | LayoutA (Compact), LayoutB (Standard), LayoutC (Expanded) |
 
-### Transparency
+**Layout dimensions:**
 
-Adjust window transparency from 0% (fully opaque) to 90% (mostly transparent).
+| Layout | Size | Best For |
+|--------|------|----------|
+| LayoutA | Compact | Minimal footprint |
+| LayoutB | Standard | Daily use |
+| LayoutC | Expanded | Large album art |
 
-<Aside type="note">
-  High transparency levels may affect readability depending on your desktop background.
-</Aside>
+## AI Settings
 
-### Custom CSS
+### Provider Configuration
 
-Advanced users can inject custom CSS to further customize the appearance.
-
-```css
-/* Example: Make all text uppercase */
-.track-title {
-  text-transform: uppercase;
+```json
+{
+  "ai_providers": [
+    { "provider": "openai", "enabled": true },
+    { "provider": "anthropic", "enabled": false },
+    { "provider": "google", "enabled": false },
+    { "provider": "groq", "enabled": false }
+  ],
+  "active_ai_provider": "openai"
 }
 ```
 
-## Playback Settings
+| Setting | Type | Description |
+|---------|------|-------------|
+| `ai_providers` | array | List of configured AI providers |
+| `ai_providers[].provider` | string | Provider name (openai, anthropic, google, groq) |
+| `ai_providers[].enabled` | boolean | Whether provider is enabled |
+| `active_ai_provider` | string | Currently active provider for AI DJ |
 
-### Progress Bar
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Show progress bar | Display the playback progress | On |
-| Clickable progress | Allow seeking by clicking the progress bar | On |
-| Show timestamps | Display current and total time | On |
-
-### Controls
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Show volume slider | Display the volume control | On |
-| Show shuffle button | Display the shuffle toggle | Off |
-| Show repeat button | Display the repeat toggle | Off |
-
-## Privacy Settings
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Send analytics | Help improve MiniFy with anonymous usage data | Off |
-| Clear cache on exit | Delete cached album art when closing | Off |
-
-<Aside type="tip">
-  MiniFy is privacy-focused. Analytics are opt-in and completely anonymous.
+<Aside type="caution">
+API keys are **never** stored in settings.json. They're stored in the encrypted OS keyring.
 </Aside>
 
-## Data & Storage
+## Spotify Settings
 
-### Cache Location
+### Token Storage
 
-Album art and other temporary data are stored in:
+```json
+{
+  "spotify": {
+    "access_token": null,
+    "refresh_token": null
+  }
+}
+```
 
-- **Windows**: `%LOCALAPPDATA%\MiniFy\cache\`
-- **macOS**: `~/Library/Caches/MiniFy/`
-- **Linux**: `~/.cache/MiniFy/`
+These fields exist for historical reasons but are always `null`. Actual tokens are stored in:
 
-### Clear Cache
+| Platform | Storage |
+|----------|---------|
+| Windows | Windows Credential Manager |
+| macOS | Keychain |
+| Linux | Secret Service (GNOME Keyring) |
 
-Clear the cache to free up disk space or resolve display issues:
+## Managing Settings
+
+### Via UI
+
+1. Press `Ctrl+,` (or `⌘+,` on macOS)
+2. Or right-click → Settings
+3. Modify settings in the graphical interface
+
+### Via File
+
+Edit `settings.json` directly:
+
+```bash
+# Windows PowerShell
+notepad "$env:APPDATA\MiniFy\settings.json"
+
+# macOS
+open ~/Library/Application\ Support/MiniFy/settings.json
+
+# Linux
+xdg-open ~/.config/MiniFy/settings.json
+```
+
+<Aside type="caution">
+MiniFy must be restarted for file changes to take effect.
+</Aside>
+
+### Via Command Line
+
+```bash
+# Clear all settings and credentials
+pnpm desktop:clear
+```
+
+This removes:
+- settings.json
+- All keyring entries (tokens, API keys)
+
+## Resetting Settings
+
+### Reset to Defaults
 
 1. Open Settings
-2. Navigate to "Data & Storage"
-3. Click "Clear Cache"
+2. Scroll to bottom
+3. Click "Reset All Settings"
+4. Confirm the reset
+
+### Manual Reset
+
+Delete the settings file:
+
+<Tabs>
+  <TabItem label="Windows">
+    ```powershell
+    Remove-Item "$env:APPDATA\MiniFy\settings.json"
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```bash
+    rm ~/Library/Application\ Support/MiniFy/settings.json
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```bash
+    rm ~/.config/MiniFy/settings.json
+    ```
+  </TabItem>
+</Tabs>
+
+## Export and Import
 
 ### Export Settings
-
-Export your settings to a JSON file for backup or sharing:
 
 1. Open Settings
 2. Click "Export Settings"
 3. Choose a save location
+4. Save as JSON file
+
+**Note:** Exported settings do **not** include:
+- Spotify tokens
+- AI API keys
+- Any sensitive credentials
 
 ### Import Settings
-
-Import previously exported settings:
 
 1. Open Settings
 2. Click "Import Settings"
 3. Select your settings file
+4. Settings are applied immediately
 
-## Resetting Settings
+## Settings Best Practices
 
-To reset all settings to their defaults:
+1. **Backup your settings** before major changes
+2. **Don't edit while app is running** - changes may be overwritten
+3. **Never share settings exports** containing custom theme data if it includes sensitive info
+4. **Use the UI** when possible - it validates settings automatically
 
-1. Open Settings
-2. Scroll to the bottom
-3. Click "Reset All Settings"
-4. Confirm the reset
+## Troubleshooting
 
-<Aside type="caution">
-  Resetting settings cannot be undone. Export your settings first if you want to keep a backup.
-</Aside>
+### Settings not saving
 
+- Ensure MiniFy has write permissions to the config directory
+- Check if another instance of MiniFy is running
+- Try running as administrator (Windows) or with sudo (Linux)
+
+### Settings reset after update
+
+- Updates may add new settings with defaults
+- Your existing settings should be preserved
+- If not, restore from your backup export
+
+### Corrupted settings file
+
+If MiniFy won't start due to corrupted settings:
+
+```bash
+# Backup corrupted file
+mv settings.json settings.json.backup
+
+# MiniFy will create fresh defaults on next launch
+```
 

@@ -1,92 +1,376 @@
 ---
 title: Desktop App Overview
-description: A complete overview of the MiniFy desktop application.
+description: Complete overview of the MiniFy desktop application - features, architecture, and capabilities.
 ---
+
+import { Card, CardGrid, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 # Desktop App Overview
 
-MiniFy is a desktop application built with [Tauri](https://tauri.app/) and [React](https://react.dev/). This page provides an overview of the application's features and architecture.
+MiniFy is a desktop application built with [Tauri](https://tauri.app/) and [React](https://react.dev/).
+This page provides a comprehensive overview of the application's features, architecture, and how all
+the pieces work together.
+
+## System Overview
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│                              MiniFy Desktop Application                            │
+├───────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                    │
+│   ┌──────────────────────────────────────────────────────────────────────────┐    │
+│   │                         User Interface (React + CSS)                      │    │
+│   │  ┌──────────────────────────────────────────────────────────────────┐    │    │
+│   │  │                      Player Views                                 │    │    │
+│   │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │    │    │
+│   │  │  │   LayoutA    │  │   LayoutB    │  │      LayoutC         │   │    │    │
+│   │  │  │  (Compact)   │  │  (Standard)  │  │     (Expanded)       │   │    │    │
+│   │  │  └──────────────┘  └──────────────┘  └──────────────────────┘   │    │    │
+│   │  └──────────────────────────────────────────────────────────────────┘    │    │
+│   │  ┌────────────────────┐  ┌────────────────────┐  ┌──────────────────┐   │    │
+│   │  │   Settings View    │  │     AI DJ View     │  │   Context Menu   │   │    │
+│   │  │   (Configuration)  │  │   (Chat Interface) │  │   (Quick Access) │   │    │
+│   │  └────────────────────┘  └────────────────────┘  └──────────────────┘   │    │
+│   └──────────────────────────────────────────────────────────────────────────┘    │
+│                                          │                                         │
+│                                          │ IPC (Tauri Commands/Events)             │
+│                                          ▼                                         │
+│   ┌──────────────────────────────────────────────────────────────────────────┐    │
+│   │                          Backend (Rust + Tauri)                           │    │
+│   │  ┌────────────────┐  ┌────────────────┐  ┌────────────────────────────┐  │    │
+│   │  │  Spotify OAuth │  │  AI Keyring    │  │  Settings Manager          │  │    │
+│   │  │  (PKCE Flow)   │  │  (API Keys)    │  │  (JSON Config)             │  │    │
+│   │  └───────┬────────┘  └───────┬────────┘  └────────────┬───────────────┘  │    │
+│   │          │                   │                        │                   │    │
+│   │          ▼                   ▼                        ▼                   │    │
+│   │  ┌─────────────────────────────────────────────────────────────────────┐ │    │
+│   │  │              OS Credential Manager (Encrypted Keyring)               │ │    │
+│   │  │  • Spotify Tokens  • AI API Keys  • Client IDs                      │ │    │
+│   │  └─────────────────────────────────────────────────────────────────────┘ │    │
+│   └──────────────────────────────────────────────────────────────────────────┘    │
+│                        │                                    │                      │
+│                        ▼                                    ▼                      │
+│               ┌─────────────────┐                 ┌─────────────────┐              │
+│               │   Spotify API   │                 │   AI Providers  │              │
+│               │   (Web API)     │                 │   (LLM APIs)    │              │
+│               └─────────────────┘                 └─────────────────┘              │
+│                                                                                    │
+└────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Technology Stack
 
-MiniFy leverages cutting-edge technologies for optimal performance:
+MiniFy leverages cutting-edge technologies for optimal performance and developer experience:
 
-| Component | Technology |
-|-----------|------------|
-| **Runtime** | Tauri 2.0 |
-| **Backend** | Rust |
-| **Frontend** | React + TypeScript |
-| **Build Tool** | Vite |
-| **Styling** | CSS with theme variables |
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Runtime** | Tauri 2.0 | Native app shell, system integration |
+| **Backend** | Rust | Secure operations, OAuth, keyring access |
+| **Frontend** | React 18 | Modern UI with hooks and functional components |
+| **Build** | Vite | Fast development and optimized production builds |
+| **Styling** | CSS Variables | Theme system with runtime switching |
+| **AI** | Vercel AI SDK | Multi-provider AI integration |
+| **Auth** | OAuth 2.0 PKCE | Secure Spotify authentication |
 
-## Application Features
+## Core Features
 
 ### Now Playing Display
 
-The main interface shows:
-- Album artwork (high resolution)
-- Track name and artist
-- Playback progress bar
-- Playback controls
+The main interface shows your current playback with rich information:
+
+<CardGrid>
+  <Card title="Album Artwork" icon="seti:image">
+    High-resolution album art with adaptive sizing based on layout
+  </Card>
+  <Card title="Track Information" icon="information">
+    Track name, artist, and album with overflow handling
+  </Card>
+  <Card title="Progress Bar" icon="right-arrow">
+    Interactive progress bar with seeking capability
+  </Card>
+  <Card title="Playback Status" icon="rocket">
+    Real-time play/pause state with visual indicator
+  </Card>
+</CardGrid>
 
 ### Playback Controls
 
-Control your music directly from MiniFy:
-- Play / Pause
-- Skip to next track
-- Go to previous track
-- Seek within track
-- Volume control
+Full control over your Spotify playback:
+
+| Control | Description | Keyboard |
+|---------|-------------|----------|
+| Play/Pause | Toggle playback | `Space` |
+| Next Track | Skip to next song | `→` or `N` |
+| Previous Track | Go back | `←` or `P` |
+| Seek | Jump to position | Click progress bar |
+| Volume | Adjust volume | `↑` / `↓` |
+
+### AI DJ
+
+MiniFy includes an AI-powered music assistant that understands your listening habits:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           AI DJ Capabilities                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    Music Profile Analysis                        │   │
+│  │  • Top tracks and artists (short/medium/long term)              │   │
+│  │  • Genre preferences and distribution                            │   │
+│  │  • Audio feature analysis (energy, mood, tempo, etc.)           │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                     │                                   │
+│                                     ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                   Intelligent Recommendations                    │   │
+│  │  • Mood-based suggestions ("play something upbeat")             │   │
+│  │  • History-based discovery ("more like what I've been playing") │   │
+│  │  • Spotify's recommendation engine integration                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                     │                                   │
+│                                     ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                      Direct Playback Control                     │   │
+│  │  • Search and play any track                                     │   │
+│  │  • Natural language commands ("find songs by...")               │   │
+│  │  • Automatic playback of recommendations                         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  Supported Providers: OpenAI • Anthropic • Google AI • Groq            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+[Learn more about AI DJ →](/desktop/ai-dj/)
+
+### Theming System
+
+MiniFy comes with 8 carefully crafted themes and supports custom themes:
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                           Theme System                                      │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Built-in Themes                    Custom Themes                          │
+│  ─────────────────                  ─────────────────                      │
+│  ┌──────────────┐                   ┌──────────────────────────────────┐  │
+│  │ • Dark       │  Theme JSON →     │ {                                │  │
+│  │ • Light      │                   │   "name": "Custom Theme",        │  │
+│  │ • Catppuccin │                   │   "colors": {                    │  │
+│  │ • Dracula    │                   │     "background": "#1a1b26",     │  │
+│  │ • ChatGPT    │                   │     "foreground": "#c0caf5",     │  │
+│  │ • YouTube    │                   │     "primary": "#7aa2f7",        │  │
+│  │ • BMW        │                   │     ...                          │  │
+│  │ • Milka      │                   │   }                              │  │
+│  └──────────────┘                   │ }                                │  │
+│                                     └──────────────────────────────────┘  │
+│         │                                         │                        │
+│         └─────────────────┬───────────────────────┘                        │
+│                           ▼                                                │
+│                  ┌──────────────────────────┐                             │
+│                  │   CSS Variables Applied   │                             │
+│                  │   --background: #1a1b26   │                             │
+│                  │   --foreground: #c0caf5   │                             │
+│                  │   --primary: #7aa2f7      │                             │
+│                  └──────────────────────────┘                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+[Learn more about Themes →](/desktop/themes/)
 
 ### Window Behavior
 
-MiniFy offers flexible window options:
-- **Always on Top**: Keep MiniFy visible over other windows
-- **Transparent Background**: Blend with your desktop
-- **Resizable**: Adjust the window size to your preference
-- **Draggable**: Position anywhere on your screen
+MiniFy offers flexible window options for different workflows:
 
-## Architecture
+| Option | Description | Use Case |
+|--------|-------------|----------|
+| **Always on Top** | Keep MiniFy above other windows | Multi-tasking |
+| **Multiple Layouts** | Compact, Standard, Expanded | Screen space |
+| **Draggable** | Position anywhere on screen | Custom placement |
+| **Resizable** | Adjust to your preference | Fine-tuning |
+
+## Application Flow
+
+### Startup Sequence
 
 ```
-┌─────────────────────────────────────┐
-│           React Frontend            │
-│  ┌──────────────────────────────┐  │
-│  │       UI Components          │  │
-│  │   (Layouts, Themes, etc.)    │  │
-│  └──────────────────────────────┘  │
-│                 ▼                   │
-│  ┌──────────────────────────────┐  │
-│  │        State Management      │  │
-│  │     (Player State, Theme)    │  │
-│  └──────────────────────────────┘  │
-└─────────────────────────────────────┘
-                 ▼ Tauri Commands
-┌─────────────────────────────────────┐
-│            Rust Backend             │
-│  ┌──────────────────────────────┐  │
-│  │      Spotify OAuth           │  │
-│  │      Window Management       │  │
-│  │      Settings Storage        │  │
-│  └──────────────────────────────┘  │
-└─────────────────────────────────────┘
-                 ▼ HTTP API
-┌─────────────────────────────────────┐
-│          Spotify Web API            │
-└─────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                          Application Startup Flow                              │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌─────────────────┐                                                         │
+│   │  App Launches   │                                                         │
+│   └────────┬────────┘                                                         │
+│            │                                                                   │
+│            ▼                                                                   │
+│   ┌─────────────────┐     No      ┌─────────────────────────────────────┐    │
+│   │ Spotify Client  │────────────▶│  Show Client ID Setup Screen        │    │
+│   │ ID Configured?  │             │  (User enters their own Client ID)  │    │
+│   └────────┬────────┘             └─────────────────────────────────────┘    │
+│            │ Yes                                                              │
+│            ▼                                                                   │
+│   ┌─────────────────┐     No      ┌─────────────────────────────────────┐    │
+│   │  Valid Tokens   │────────────▶│  Show Connect to Spotify Button     │    │
+│   │   in Keyring?   │             │  (Initiates OAuth PKCE Flow)        │    │
+│   └────────┬────────┘             └─────────────────────────────────────┘    │
+│            │ Yes                                                              │
+│            ▼                                                                   │
+│   ┌─────────────────┐                                                         │
+│   │  Load Settings  │◀─── Theme, Layout, AI Providers                        │
+│   │  from JSON file │                                                         │
+│   └────────┬────────┘                                                         │
+│            │                                                                   │
+│            ▼                                                                   │
+│   ┌─────────────────┐                                                         │
+│   │  Start Token    │◀─── Background task every 5 minutes                    │
+│   │  Refresh Task   │                                                         │
+│   └────────┬────────┘                                                         │
+│            │                                                                   │
+│            ▼                                                                   │
+│   ┌─────────────────┐                                                         │
+│   │  Show Player    │◀─── Begin polling Spotify for current track            │
+│   │      View       │                                                         │
+│   └─────────────────┘                                                         │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Performance
+### Main Application Loop
 
-MiniFy is designed to be lightweight:
-- **Download size**: ~10MB
-- **Memory usage**: Less than 50MB RAM
-- **CPU usage**: Less than 1% when idle
-- **Startup time**: Under 1 second
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                          Main Application Loop                                 │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                          Playback Polling Loop                           │ │
+│   │                                                                          │ │
+│   │   ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐ │ │
+│   │   │ Fetch        │───▶│ Update React │───▶│ Re-render Components     │ │ │
+│   │   │ Currently    │    │ State        │    │ (Layout, Controls, etc.) │ │ │
+│   │   │ Playing      │    │              │    │                          │ │ │
+│   │   └──────────────┘    └──────────────┘    └──────────────────────────┘ │ │
+│   │          ▲                                                               │ │
+│   │          │ Wait 1-5 seconds (based on playback state)                   │ │
+│   │          └──────────────────────────────────────────────────────────────┘ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                          User Interactions                               │ │
+│   │                                                                          │ │
+│   │   Play/Pause ─────▶ PUT /me/player/play or /pause                       │ │
+│   │   Next Track ─────▶ POST /me/player/next                                │ │
+│   │   Previous ───────▶ POST /me/player/previous                            │ │
+│   │   Seek ───────────▶ PUT /me/player/seek?position_ms=...                 │ │
+│   │   Theme Change ───▶ Update CSS variables + save to settings             │ │
+│   │   Layout Change ──▶ Update window size + save to settings               │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+│   ┌─────────────────────────────────────────────────────────────────────────┐ │
+│   │                        Background Tasks                                  │ │
+│   │                                                                          │ │
+│   │   Token Refresh ──▶ Every 5 min, check expiry, refresh if needed        │ │
+│   │                                                                          │ │
+│   └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Performance Characteristics
+
+MiniFy is designed to be lightweight and efficient:
+
+| Metric | Target | Description |
+|--------|--------|-------------|
+| **Download Size** | ~10MB | Significantly smaller than Electron apps |
+| **Memory Usage** | < 50MB | Efficient Rust backend |
+| **CPU (Idle)** | < 1% | Optimized polling intervals |
+| **CPU (Active)** | < 3% | During playback updates |
+| **Startup Time** | < 1s | Native performance |
+
+### Why So Lightweight?
+
+1. **Tauri vs Electron**: Tauri uses the system's native webview instead of bundling Chromium
+2. **Rust Backend**: Compiled native code is more efficient than Node.js
+3. **Minimal Dependencies**: Only essential libraries included
+4. **Smart Polling**: Adjusts poll rate based on playback state
+
+## Security Model
+
+MiniFy follows security best practices:
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              Security Layers                                   │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   Layer 1: Authentication                                                      │
+│   ───────────────────────                                                     │
+│   • OAuth 2.0 PKCE (most secure flow for public clients)                      │
+│   • No client secret stored in app                                             │
+│   • CSRF protection with state parameter                                       │
+│                                                                                │
+│   Layer 2: Credential Storage                                                  │
+│   ──────────────────────────                                                  │
+│   • OS-level encrypted keyring (DPAPI/Keychain/Secret Service)                │
+│   • Tokens never stored in plain text                                         │
+│   • Each credential isolated by key name                                       │
+│                                                                                │
+│   Layer 3: Network Security                                                    │
+│   ─────────────────────────                                                   │
+│   • All API calls over HTTPS/TLS                                              │
+│   • OAuth callback on localhost only                                           │
+│   • No data sent to MiniFy servers                                            │
+│                                                                                │
+│   Layer 4: AI Isolation                                                        │
+│   ────────────────────                                                        │
+│   • AI providers never receive tokens                                          │
+│   • Only metadata (track names, etc.) shared with AI                          │
+│   • Each AI key stored separately                                              │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+[Learn more about Security →](/desktop/security/)
+
+## Feature Matrix
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Now Playing | ✅ | Real-time track display |
+| Playback Control | ✅ | Play, pause, skip, seek |
+| Multiple Themes | ✅ | 8 built-in + custom themes |
+| Multiple Layouts | ✅ | 3 layout options |
+| Keyboard Shortcuts | ✅ | Global and in-app shortcuts |
+| AI DJ | ✅ | Multi-provider AI assistant |
+| Custom Themes | ✅ | JSON-based theme creation |
+| Always on Top | ✅ | Window pinning |
+| Cross-platform | ✅ | Windows, macOS, Linux |
 
 ## Next Steps
 
-- [Authentication](/desktop/authentication/) - How Spotify OAuth works
-- [Layouts](/desktop/layouts/) - Available layout options
-- [Themes](/desktop/themes/) - Customize your experience
+<CardGrid>
+  <Card title="Authentication" icon="setting">
+    [Learn how OAuth works →](/desktop/authentication/)
+  </Card>
+  <Card title="Themes" icon="seti:svg">
+    [Explore theme options →](/desktop/themes/)
+  </Card>
+  <Card title="Layouts" icon="laptop">
+    [Choose your layout →](/desktop/layouts/)
+  </Card>
+  <Card title="AI DJ" icon="rocket">
+    [Set up AI assistant →](/desktop/ai-dj/)
+  </Card>
+  <Card title="Security" icon="approve-check">
+    [Security details →](/desktop/security/)
+  </Card>
+  <Card title="Shortcuts" icon="setting">
+    [Keyboard shortcuts →](/desktop/shortcuts/)
+  </Card>
+</CardGrid>
 

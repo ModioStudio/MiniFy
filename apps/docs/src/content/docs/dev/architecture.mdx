@@ -1,190 +1,514 @@
 ---
 title: Architecture
-description: Technical architecture overview of MiniFy.
+description: Complete technical architecture documentation for MiniFy.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 # Architecture
 
-This document provides an overview of MiniFy's technical architecture, helping developers understand how the different parts of the application work together.
+This document provides a comprehensive overview of MiniFy's technical architecture, helping developers
+understand how the different parts of the application work together.
 
-## High-Level Overview
+## High-Level System Architecture
 
-MiniFy is a monorepo containing multiple applications:
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MiniFy System Architecture                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌───────────────────────────────────────────────────────────────────┐     │
+│   │                         MiniFy Monorepo                            │     │
+│   │                                                                    │     │
+│   │   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │     │
+│   │   │  apps/desktop   │  │    apps/www     │  │   apps/docs     │  │     │
+│   │   │  Tauri + React  │  │    Next.js      │  │   Starlight     │  │     │
+│   │   │  Desktop App    │  │    Website      │  │  Documentation  │  │     │
+│   │   └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  │     │
+│   │            │                    │                    │           │     │
+│   └────────────┼────────────────────┼────────────────────┼───────────┘     │
+│                │                    │                    │                  │
+│                ▼                    ▼                    ▼                  │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                     Build & Development Tools                        │  │
+│   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐            │  │
+│   │  │  pnpm    │  │ Turborepo│  │  Biome   │  │ Lefthook │            │  │
+│   │  │ Workspace│  │  (Tasks) │  │  (Lint)  │  │ (Hooks)  │            │  │
+│   │  └──────────┘  └──────────┘  └──────────┘  └──────────┘            │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Monorepo Structure
+
+MiniFy uses a monorepo architecture with pnpm workspaces:
 
 ```
 MiniFy/
 ├── apps/
-│   ├── desktop/     # Tauri + React desktop application
-│   ├── www/         # Next.js marketing website
-│   └── docs/        # Starlight documentation site
-├── package.json     # Root package with workspace scripts
-└── turbo.json       # Turborepo configuration
+│   ├── desktop/          # Tauri + React desktop application
+│   │   ├── src/          # React frontend code
+│   │   ├── src-tauri/    # Rust backend code
+│   │   ├── public/       # Static assets
+│   │   └── package.json
+│   │
+│   ├── www/              # Next.js marketing website
+│   │   ├── app/          # Next.js App Router pages
+│   │   ├── components/   # React components
+│   │   └── package.json
+│   │
+│   └── docs/             # Astro Starlight documentation
+│       ├── src/content/  # MDX documentation files
+│       └── package.json
+│
+├── package.json          # Root package with workspace scripts
+├── pnpm-workspace.yaml   # Workspace configuration
+├── turbo.json            # Turborepo task configuration
+├── biome.json            # Code formatting/linting config
+└── lefthook.yml          # Git hooks configuration
 ```
 
-## Desktop Application
+## Desktop Application Architecture
 
-The desktop app is the core of MiniFy, built with Tauri 2.0.
+The desktop app is the core of MiniFy, built with **Tauri 2.0** (Rust backend) and **React** (TypeScript frontend).
 
-### Frontend (React)
+### Component Layers
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Desktop Application Layers                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌───────────────────────────────────────────────────────────────────────┐ │
+│   │                      Presentation Layer (React)                        │ │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐ │ │
+│   │  │   Views     │  │   Layouts   │  │ Components  │  │    Hooks     │ │ │
+│   │  │ • Player    │  │ • LayoutA   │  │ • Button    │  │ • usePlaying │ │ │
+│   │  │ • Settings  │  │ • LayoutB   │  │ • Controls  │  │ • useTheme   │ │ │
+│   │  │ • AI DJ     │  │ • LayoutC   │  │ • TrackInfo │  │ • useLayout  │ │ │
+│   │  └─────────────┘  └─────────────┘  └─────────────┘  └──────────────┘ │ │
+│   └───────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                      │
+│                                       ▼                                      │
+│   ┌───────────────────────────────────────────────────────────────────────┐ │
+│   │                       Service Layer (TypeScript)                       │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │ │
+│   │  │  spotifyClient  │  │    aiClient     │  │    settingLib       │   │ │
+│   │  │  (API Calls)    │  │  (AI Provider)  │  │  (Config Mgmt)      │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │ │
+│   │  │  spotifyTools   │  │   playerState   │  │    themeLoader      │   │ │
+│   │  │  (AI Tools)     │  │  (State Store)  │  │  (Theme Loading)    │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                      │
+│                           Tauri IPC   │   invoke() / listen()                │
+│                                       ▼                                      │
+│   ┌───────────────────────────────────────────────────────────────────────┐ │
+│   │                        Backend Layer (Rust)                            │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │ │
+│   │  │  spotify_auth   │  │   ai_keyring    │  │     settings        │   │ │
+│   │  │  (OAuth PKCE)   │  │  (AI Key Mgmt)  │  │   (JSON Config)     │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │ │
+│   │  │     resize      │  │  custom_themes  │  │       debug         │   │ │
+│   │  │  (Window Size)  │  │  (Theme IO)     │  │   (DevTools)        │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                      │
+│                                       ▼                                      │
+│   ┌───────────────────────────────────────────────────────────────────────┐ │
+│   │                     OS Integration Layer                               │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │ │
+│   │  │    Keyring      │  │   File System   │  │    WebView          │   │ │
+│   │  │  (Credentials)  │  │   (Settings)    │  │   (UI Renderer)     │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Structure
 
 ```
 apps/desktop/src/
+├── main.tsx                 # Application entry point
+├── vite-env.d.ts           # Vite type definitions
+│
 ├── ui/
-│   ├── components/     # Reusable UI components
-│   ├── layouts/        # Layout components (A, B, C)
-│   └── views/          # Full page views
-├── hooks/              # React hooks
-├── lib/                # Utility functions
-├── loader/             # Theme and config loaders
-└── themes/             # Theme JSON files
+│   ├── index.tsx           # Root React component
+│   ├── global.css          # Global styles with CSS variables
+│   ├── spotifyClient.ts    # Spotify API client
+│   │
+│   ├── views/              # Full-page view components
+│   │   ├── PlayerView.tsx  # Main player view
+│   │   ├── AIDJView.tsx    # AI DJ chat interface
+│   │   ├── SettingsView.tsx # Settings panel
+│   │   └── ...
+│   │
+│   ├── layouts/            # Player layout variations
+│   │   ├── LayoutA.tsx     # Compact horizontal layout
+│   │   ├── LayoutB.tsx     # Standard layout
+│   │   └── LayoutC.tsx     # Expanded layout
+│   │
+│   └── components/         # Reusable UI components
+│       ├── Button.tsx
+│       ├── TrackControls/
+│       ├── TrackDataComponent/
+│       └── LayoutTrackInfo/
+│
+├── hooks/                  # React hooks
+│   ├── useCurrentlyPlaying.ts  # Playback state hook
+│   └── useWindowLayout.ts      # Layout management hook
+│
+├── lib/                    # Utility libraries
+│   ├── aiClient.ts         # AI provider client
+│   ├── playerState.ts      # Player state management
+│   ├── settingLib.ts       # Settings utilities
+│   ├── spotifyTools.ts     # AI DJ Spotify tools
+│   └── trackInfoProps.ts   # Track info type definitions
+│
+├── loader/                 # Data loaders
+│   └── themeLoader.ts      # Theme loading utilities
+│
+├── themes/                 # Built-in theme definitions
+│   ├── dark.json
+│   ├── light.json
+│   ├── catppuccin.json
+│   ├── dracula.json
+│   └── ...
+│
+└── config/                 # Configuration files
+    └── shortcuts.json      # Keyboard shortcut definitions
 ```
 
-### Backend (Rust)
+### Backend Structure (Rust)
 
 ```
 apps/desktop/src-tauri/
+├── Cargo.toml              # Rust dependencies
+├── Cargo.lock              # Dependency lockfile
+├── build.rs                # Build script
+├── tauri.conf.json         # Tauri configuration
+│
 ├── src/
-│   ├── main.rs         # Application entry point
-│   ├── lib.rs          # Library exports
-│   ├── spotify_auth.rs # Spotify OAuth handling
-│   ├── settings.rs     # Settings management
-│   └── resize.rs       # Window resize handling
-├── capabilities/       # Tauri capability configurations
-└── icons/              # Application icons
+│   ├── main.rs             # Application entry point
+│   ├── lib.rs              # Library entry, command registration
+│   │
+│   ├── spotify_auth.rs     # Spotify OAuth PKCE implementation
+│   │   - OAuth flow management
+│   │   - Token storage/retrieval
+│   │   - Token refresh logic
+│   │   - Callback server
+│   │
+│   ├── ai_keyring.rs       # AI API key management
+│   │   - Key storage per provider
+│   │   - Key retrieval
+│   │   - Provider listing
+│   │
+│   ├── settings.rs         # Settings management
+│   │   - Settings file IO
+│   │   - Default settings
+│   │   - Settings structure
+│   │
+│   ├── resize.rs           # Window size management
+│   │   - Layout-based sizing
+│   │   - Window constraints
+│   │
+│   ├── custom_themes.rs    # Custom theme handling
+│   │   - Theme file IO
+│   │   - Theme validation
+│   │   - Theme export
+│   │
+│   └── debug.rs            # Debug utilities
+│       - DevTools opening
+│
+├── capabilities/           # Tauri capability configs
+│   └── default.json        # Default permissions
+│
+└── icons/                  # Application icons
+    ├── icon.ico
+    ├── icon.icns
+    └── ...
 ```
 
-## Data Flow
+## Data Flow Diagrams
 
-### Spotify Authentication
-
-```
-┌─────────┐    ┌─────────────┐    ┌─────────────┐
-│  User   │───▶│   MiniFy    │───▶│   Browser   │
-└─────────┘    └─────────────┘    └─────────────┘
-                     │                   │
-                     │                   ▼
-                     │            ┌─────────────┐
-                     │            │  Spotify    │
-                     │            │  Auth Page  │
-                     │            └─────────────┘
-                     │                   │
-                     ▼                   ▼
-              ┌─────────────┐    ┌─────────────┐
-              │   Callback  │◀───│  Redirect   │
-              │   Handler   │    │  with Code  │
-              └─────────────┘    └─────────────┘
-                     │
-                     ▼
-              ┌─────────────┐
-              │   Token     │
-              │   Storage   │
-              └─────────────┘
-```
-
-### Playback State
+### Playback State Flow
 
 ```
-┌─────────────────┐         ┌─────────────────┐
-│  React State    │◀────────│  Spotify API    │
-│  (playerState)  │         │  (Polling)      │
-└─────────────────┘         └─────────────────┘
-        │
-        ▼
-┌─────────────────┐
-│  UI Components  │
-│  (re-render)    │
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Playback State Flow                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌────────────────┐                                                        │
+│   │ useCurrently   │  Polls every 1-5 seconds                               │
+│   │ Playing Hook   │  (adjusts based on playback state)                     │
+│   └───────┬────────┘                                                        │
+│           │                                                                  │
+│           ▼                                                                  │
+│   ┌────────────────┐      ┌────────────────┐      ┌────────────────────┐   │
+│   │ spotifyClient  │─────▶│  Spotify API   │─────▶│ CurrentlyPlaying   │   │
+│   │ fetchCurrent() │      │  /v1/me/player │      │ Response           │   │
+│   └────────────────┘      └────────────────┘      └─────────┬──────────┘   │
+│                                                              │              │
+│                                                              ▼              │
+│                                                   ┌────────────────────┐   │
+│                                                   │  State Update      │   │
+│                                                   │  { track, progress,│   │
+│                                                   │    isPlaying }     │   │
+│                                                   └─────────┬──────────┘   │
+│                                                              │              │
+│                           ┌──────────────────────────────────┘              │
+│                           ▼                                                 │
+│   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐              │
+│   │  Layout        │  │  Track         │  │  Progress      │              │
+│   │  Component     │  │  Controls      │  │  Bar           │              │
+│   │  (re-render)   │  │  (re-render)   │  │  (re-render)   │              │
+│   └────────────────┘  └────────────────┘  └────────────────┘              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Token Refresh Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Token Refresh Flow                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                    Background Task (Every 5 min)                     │   │
+│   │                                                                      │   │
+│   │   ┌─────────────┐                                                   │   │
+│   │   │ Check token │                                                   │   │
+│   │   │ expiry time │                                                   │   │
+│   │   └──────┬──────┘                                                   │   │
+│   │          │                                                          │   │
+│   │          ▼                                                          │   │
+│   │   ┌─────────────────────────┐                                       │   │
+│   │   │ Expires within 5 min?   │                                       │   │
+│   │   └──────┬──────────────────┘                                       │   │
+│   │          │                                                          │   │
+│   │    No    │    Yes                                                   │   │
+│   │    ▼     ▼                                                          │   │
+│   │   Done   ┌─────────────────┐      ┌─────────────────┐              │   │
+│   │          │ refresh_token() │─────▶│ Spotify Token   │              │   │
+│   │          │ (Rust backend)  │      │ Endpoint        │              │   │
+│   │          └─────────────────┘      └────────┬────────┘              │   │
+│   │                                            │                        │   │
+│   │                                            ▼                        │   │
+│   │                                   ┌─────────────────┐               │   │
+│   │                                   │ New Access Token│               │   │
+│   │                                   │ (Maybe new      │               │   │
+│   │                                   │  refresh token) │               │   │
+│   │                                   └────────┬────────┘               │   │
+│   │                                            │                        │   │
+│   │                                            ▼                        │   │
+│   │                                   ┌─────────────────┐               │   │
+│   │                                   │ Store in        │               │   │
+│   │                                   │ OS Keyring      │               │   │
+│   │                                   └─────────────────┘               │   │
+│   │                                                                      │   │
+│   └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Settings Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Settings Data Flow                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   React Frontend                        Rust Backend                         │
+│   ──────────────                        ────────────                         │
+│                                                                              │
+│   ┌────────────────┐                   ┌────────────────────┐               │
+│   │  Settings View │                   │  settings.rs       │               │
+│   │  Component     │                   │                    │               │
+│   └───────┬────────┘                   │  Tauri Commands:   │               │
+│           │                            │  • read_settings   │               │
+│           │ invoke("read_settings")    │  • write_settings  │               │
+│           ├───────────────────────────▶│  • clear_settings  │               │
+│           │                            │                    │               │
+│           │◀──────────────────────────│  Returns Settings  │               │
+│           │        Settings JSON       │  struct            │               │
+│           │                            └─────────┬──────────┘               │
+│           │                                      │                          │
+│   ┌───────▼────────┐                             │                          │
+│   │ Update local   │                             ▼                          │
+│   │ React state    │               ┌─────────────────────────┐              │
+│   └───────┬────────┘               │  File System            │              │
+│           │                        │  ~/.config/MiniFy/      │              │
+│           │ User makes changes     │  settings.json          │              │
+│           ▼                        └─────────────────────────┘              │
+│   ┌────────────────┐                                                        │
+│   │ Update state   │                                                        │
+│   │ + invoke       │                                                        │
+│   │ write_settings │                                                        │
+│   └────────────────┘                                                        │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Communication Patterns
+
+### Frontend → Backend (Tauri Commands)
+
+Commands are synchronous request-response calls:
+
+```typescript
+// Frontend: Invoke a Tauri command
+import { invoke } from '@tauri-apps/api/core';
+
+// Reading settings
+const settings = await invoke<Settings>('read_settings');
+
+// Saving an AI key
+await invoke('save_ai_api_key', {
+  provider: 'openai',
+  apiKey: 'sk-...'
+});
+
+// Starting OAuth flow
+await invoke('start_oauth_flow');
+```
+
+```rust
+// Backend: Define a Tauri command
+#[tauri::command]
+pub fn read_settings() -> Settings {
+    // Load and return settings
+    let path = get_settings_path();
+    // ...
+}
+
+#[tauri::command]
+pub async fn save_ai_api_key(provider: String, api_key: String) -> Result<(), String> {
+    // Save key to keyring
+    // ...
+}
+```
+
+### Backend → Frontend (Events)
+
+Events are one-way notifications from backend to frontend:
+
+```rust
+// Backend: Emit an event
+use tauri::Emitter;
+
+#[tauri::command]
+fn complete_auth(app: tauri::AppHandle) -> Result<(), String> {
+    // After successful auth...
+    app.emit("oauth-success", serde_json::json!({}))?;
+    Ok(())
+}
+
+// On auth failure...
+app.emit("oauth-failed", serde_json::json!({ "error": "reason" }))?;
+```
+
+```typescript
+// Frontend: Listen for events
+import { listen } from '@tauri-apps/api/event';
+
+await listen('oauth-success', (event) => {
+  console.log('Auth successful!');
+  // Update UI state
+});
+
+await listen('oauth-failed', (event) => {
+  console.error('Auth failed:', event.payload.error);
+  // Show error to user
+});
+```
+
+## State Management
+
+MiniFy uses React's built-in state management with custom hooks:
+
+### Player State
+
+```typescript
+// useCurrentlyPlaying hook
+interface CurrentlyPlayingState {
+  track: SimplifiedTrack | null;
+  progress_ms: number;
+  duration: number;
+  isPlaying: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+function useCurrentlyPlaying() {
+  const [state, setState] = useState<CurrentlyPlayingState>(initialState);
+
+  useEffect(() => {
+    const poll = async () => {
+      const data = await fetchCurrentlyPlaying();
+      setState(/* updated state */);
+    };
+
+    const interval = setInterval(poll, pollInterval);
+    return () => clearInterval(interval);
+  }, []);
+
+  return state;
+}
+```
+
+### Settings State
+
+```typescript
+// Settings are loaded via Tauri commands
+const settings = await readSettings();  // invoke('read_settings')
+
+// And saved on change
+await writeSettings(newSettings);  // invoke('write_settings', { settings })
+```
+
+<Aside type="note">
+We intentionally avoid heavy state management libraries (Redux, Zustand, etc.) to keep
+the bundle size small. The app's state needs are modest and well-served by React hooks.
+</Aside>
 
 ## Key Technologies
 
 ### Tauri 2.0
 
 Tauri provides the native shell for the application:
-- **Webview**: Renders the React UI
-- **IPC**: Communicates between frontend and backend
-- **Native APIs**: File system, window management, etc.
 
-### React
+| Feature | Description |
+|---------|-------------|
+| **Webview** | System webview renders React UI (WebView2/WebKit) |
+| **IPC** | Type-safe communication between frontend/backend |
+| **Plugins** | fs, opener plugins for system integration |
+| **Security** | Capability-based permission system |
 
-The frontend uses modern React patterns:
-- Functional components with hooks
-- CSS variables for theming
-- Vite for fast development
+### React 18
+
+Frontend uses modern React patterns:
+
+| Pattern | Usage |
+|---------|-------|
+| Functional Components | All components are functions with hooks |
+| CSS Variables | Theming via CSS custom properties |
+| Concurrent Features | useTransition for non-blocking updates |
 
 ### Rust
 
-The backend handles:
-- OAuth token management
-- Secure storage
-- Window management
-- System integration
+Backend handles secure operations:
 
-## State Management
-
-MiniFy uses React's built-in state management with custom hooks:
-
-```typescript
-// useCurrentlyPlaying hook returns
-interface CurrentlyPlayingState {
-  track: SimplifiedTrack | null;
-  progress_ms: number;
-  duration: number;
-  isPlaying: boolean;
-}
-
-// useTheme hook returns
-interface ThemeHook {
-  theme: "light" | "dark";
-  toggleTheme: () => void;
-  setTheme: (theme: "light" | "dark") => void;
-}
-```
-
-<Aside type="note">
-  We intentionally avoid heavy state management libraries to keep the bundle size small. State is managed through React hooks and Spotify SDK types.
-</Aside>
-
-## Communication Patterns
-
-### Frontend → Backend (Tauri Commands)
-
-```typescript
-// Frontend call
-import { invoke } from '@tauri-apps/api/core';
-
-const settings = await invoke<Settings>('get_settings');
-```
-
-```rust
-// Backend handler
-#[tauri::command]
-fn get_settings() -> Result<Settings, Error> {
-    // Load and return settings
-}
-```
-
-### Backend → Frontend (Events)
-
-```rust
-// Backend emit using AppHandle
-#[tauri::command]
-fn complete_auth(app: tauri::AppHandle, payload: AuthPayload) -> Result<(), Error> {
-    app.emit("auth_complete", &payload)?;
-    Ok(())
-}
-```
-
-```typescript
-// Frontend listener
-import { listen } from '@tauri-apps/api/event';
-
-await listen('auth_complete', (event) => {
-  // Handle auth completion
-});
-```
+| Module | Purpose |
+|--------|---------|
+| keyring | Secure credential storage |
+| reqwest | HTTP client for OAuth |
+| axum | OAuth callback server |
+| serde | JSON serialization |
 
 ## Build Process
 
@@ -195,7 +519,7 @@ pnpm desktop:dev
 ```
 
 This starts:
-1. Vite dev server (hot reload)
+1. Vite dev server with HMR (Hot Module Replacement)
 2. Tauri development window
 3. Rust compilation in debug mode
 
@@ -205,41 +529,39 @@ This starts:
 pnpm desktop:build
 ```
 
-This creates:
-1. Optimized React bundle
-2. Platform-specific installer
+Build outputs:
+1. Optimized React bundle (Vite)
+2. Platform-specific installer (Tauri)
 3. Code signing (if configured)
 
-## Monorepo Structure
-
-We use pnpm workspaces with Turborepo:
-
-```yaml
-# pnpm-workspace.yaml
-packages:
-  - 'apps/*'
-```
-
-```json
-// turbo.json
-{
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    }
-  }
-}
-```
+Output locations:
+- Windows: `src-tauri/target/release/bundle/msi/*.msi`
+- macOS: `src-tauri/target/release/bundle/dmg/*.dmg`
+- Linux: `src-tauri/target/release/bundle/deb/*.deb`
 
 ## Performance Considerations
 
-- **Bundle size**: React app is less than 200KB gzipped
-- **Memory usage**: Target less than 50MB RAM
-- **Startup time**: Target under 1 second
-- **API polling**: Optimized intervals based on playback state
+### Bundle Size
+
+| Component | Target | Actual |
+|-----------|--------|--------|
+| React bundle (gzipped) | < 200KB | ~150KB |
+| Rust binary | < 10MB | ~8MB |
+| Total download | < 15MB | ~10MB |
+
+### Runtime Performance
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Memory usage | < 50MB | Rust backend is lightweight |
+| CPU idle | < 1% | Efficient polling intervals |
+| Startup time | < 1s | Native app, no Electron overhead |
+| API polling | 1-5s | Adjusts based on playback state |
+
+### Optimization Techniques
+
+1. **Lazy loading**: AI DJ view loads on demand
+2. **Polling optimization**: Faster polling when playing, slower when paused
+3. **Image caching**: Album art cached in memory
+4. **Minimal re-renders**: Component memoization where needed
 

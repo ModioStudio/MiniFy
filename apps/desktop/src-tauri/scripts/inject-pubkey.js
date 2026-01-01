@@ -37,5 +37,5 @@ if (!config.plugins.updater) {
 config.bundle.createUpdaterArtifacts = "v1Compatible";
 config.plugins.updater.pubkey = pubkey;
 
-writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 console.log("Injected updater pubkey into tauri.conf.json");

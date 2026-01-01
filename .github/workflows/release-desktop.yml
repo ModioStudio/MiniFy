@@ -240,15 +240,22 @@ jobs:
             for file in .changeset/*.md; do
               if [ -f "$file" ] && [ "$(basename $file)" != "README.md" ]; then
                 content=$(cat "$file")
-                if echo "$content" | grep -q "minor"; then
-                  change=$(echo "$content" | tail -n +6)
-                  if [ -n "$change" ]; then
-                    MINOR_CHANGES+="- $change\n"
-                  fi
-                elif echo "$content" | grep -q "patch"; then
-                  change=$(echo "$content" | tail -n +6)
-                  if [ -n "$change" ]; then
-                    PATCH_CHANGES+="- $change\n"
+                # Extract title (first non-empty line after frontmatter, line 5)
+                title=$(echo "$content" | sed -n '5p' | xargs)
+                # Extract details (lines 7+, the bullet points)
+                details=$(echo "$content" | tail -n +7 | grep -v "^$" || true)
+                
+                if [ -n "$title" ]; then
+                  if echo "$content" | grep -q '"MiniFy": minor'; then
+                    MINOR_CHANGES+="- ${title}\n"
+                    if [ -n "$details" ]; then
+                      MINOR_CHANGES+="$(echo "$details" | sed 's/^/  /')\n"
+                    fi
+                  elif echo "$content" | grep -q '"MiniFy": patch'; then
+                    PATCH_CHANGES+="- ${title}\n"
+                    if [ -n "$details" ]; then
+                      PATCH_CHANGES+="$(echo "$details" | sed 's/^/  /')\n"
+                    fi
                   fi
                 fi
               fi

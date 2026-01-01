@@ -22,6 +22,10 @@ const KEYRING_KEYS = [
   "token_expiry",
   "music_provider",
   "spotify_client_id",
+  "ai_key_openai",
+  "ai_key_anthropic",
+  "ai_key_google",
+  "ai_key_groq",
 ];
 
 /**
@@ -86,10 +90,7 @@ async function clearMacOSCredentials() {
       console.log(`  ✓ Deleted: ${service}`);
     } catch (err) {
       const message = err?.stderr || err?.message || String(err);
-      if (
-        message.includes("could not be found") ||
-        message.includes("SecKeychainSearchCopyNext")
-      ) {
+      if (message.includes("could not be found") || message.includes("SecKeychainSearchCopyNext")) {
         console.log(`  - Not found: ${service}`);
       } else {
         console.error(`  ✗ Error deleting ${service}:`, message);
@@ -159,6 +160,7 @@ async function clearCredentials() {
  */
 async function clearSettingsFile() {
   console.log("\n📁 Clearing settings file...");
+  console.log("   This includes: provider settings, themes, layout");
 
   try {
     const settingsPath = getSettingsPath();
@@ -166,9 +168,9 @@ async function clearSettingsFile() {
     console.log(`  ✓ Deleted: ${settingsPath}`);
   } catch (err) {
     if (err?.code === "ENOENT") {
-      console.log(`  - Not found: settings.json`);
+      console.log("  - Not found: settings.json (already clean)");
     } else {
-      console.error(`  ✗ Error deleting settings file:`, err?.message || err);
+      console.error("  ✗ Error deleting settings file:", err?.message || err);
       process.exit(1);
     }
   }
@@ -177,13 +179,18 @@ async function clearSettingsFile() {
 async function main() {
   console.log("🧹 MiniFy Auth Clear Tool\n");
   console.log(`   Platform: ${process.platform}`);
+  console.log("   Clears: Spotify tokens, AI API keys, settings");
   console.log("=".repeat(40));
 
   await clearCredentials();
   await clearSettingsFile();
 
   console.log(`\n${"=".repeat(40)}`);
-  console.log("✅ Auth data cleared. Restart the app to trigger first-boot flow.");
+  console.log("✅ All credentials and settings cleared.");
+  console.log("   - Spotify tokens removed from keyring");
+  console.log("   - AI API keys removed from keyring");
+  console.log("   - Settings file deleted");
+  console.log("\nRestart the app to trigger first-boot flow.");
 }
 
 main().catch((err) => {

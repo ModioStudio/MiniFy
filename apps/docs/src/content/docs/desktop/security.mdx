@@ -1,0 +1,435 @@
+---
+title: Security
+description: Comprehensive security documentation for MiniFy - credential storage, data protection, and privacy.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Security
+
+MiniFy is designed with security as a core principle. This document explains how your credentials are
+stored, how your data is protected, and what privacy measures are in place.
+
+## Security Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MiniFy Security Architecture                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌────────────────────────────────────────────────────────────────────┐    │
+│   │                      MiniFy Desktop Application                     │    │
+│   ├────────────────────────────────────────────────────────────────────┤    │
+│   │                                                                     │    │
+│   │   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐        │    │
+│   │   │   React UI   │    │  State Mgmt  │    │  AI Client   │        │    │
+│   │   │  (Webview)   │    │   (Memory)   │    │  (Vercel AI) │        │    │
+│   │   └──────┬───────┘    └──────────────┘    └──────┬───────┘        │    │
+│   │          │                                        │                │    │
+│   │          │ IPC (Tauri Commands)                   │ HTTPS          │    │
+│   │          ▼                                        ▼                │    │
+│   │   ┌──────────────────────────────────────────────────────────┐    │    │
+│   │   │                     Rust Backend                          │    │    │
+│   │   ├──────────────────────────────────────────────────────────┤    │    │
+│   │   │  ┌────────────┐  ┌────────────┐  ┌────────────┐         │    │    │
+│   │   │  │   OAuth    │  │  Settings  │  │  Keyring   │         │    │    │
+│   │   │  │  Handler   │  │  Manager   │  │  Manager   │         │    │    │
+│   │   │  └────────────┘  └────────────┘  └─────┬──────┘         │    │    │
+│   │   └────────────────────────────────────────┼────────────────┘    │    │
+│   └────────────────────────────────────────────┼────────────────────┘    │
+│                                                 │                         │
+│                                                 ▼                         │
+│   ┌────────────────────────────────────────────────────────────────────┐ │
+│   │                  OS Credential Manager (Encrypted)                  │ │
+│   │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │ │
+│   │  │ Spotify  │  │ Spotify  │  │   AI     │  │   AI Keys       │   │ │
+│   │  │ Access   │  │ Refresh  │  │  OpenAI  │  │   (Anthropic,   │   │ │
+│   │  │ Token    │  │ Token    │  │   Key    │  │   Google, Groq) │   │ │
+│   │  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │ │
+│   └────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+## Credential Storage
+
+All sensitive credentials are stored in your operating system's secure credential manager,
+never in plain text files.
+
+### OS Credential Managers
+
+<Tabs>
+  <TabItem label="Windows">
+    **Windows Credential Manager**
+
+    - **Encryption**: DPAPI (Data Protection API)
+    - **Key derivation**: Based on user's Windows login credentials
+    - **Access control**: Only the logged-in user can access their credentials
+    - **Location**: Encrypted in registry at `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Credentials`
+
+    ```
+    Credential Names:
+    ├── minify:access_token      → Spotify access token
+    ├── minify:refresh_token     → Spotify refresh token
+    ├── minify:token_expiry      → Token expiration timestamp
+    ├── minify:spotify_client_id → Spotify application ID
+    ├── minify:music_provider    → Active music provider
+    ├── minify:ai_key_openai     → OpenAI API key
+    ├── minify:ai_key_anthropic  → Anthropic API key
+    ├── minify:ai_key_google     → Google AI API key
+    └── minify:ai_key_groq       → Groq API key
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    **Keychain Services**
+
+    - **Encryption**: AES-256-GCM
+    - **Key derivation**: Based on user's login keychain password
+    - **Access control**: Per-application access lists
+    - **Location**: `~/Library/Keychains/login.keychain-db`
+
+    ```
+    Keychain Items (Service: minify):
+    ├── Account: access_token      → Spotify access token
+    ├── Account: refresh_token     → Spotify refresh token
+    ├── Account: token_expiry      → Token expiration timestamp
+    ├── Account: spotify_client_id → Spotify application ID
+    ├── Account: music_provider    → Active music provider
+    ├── Account: ai_key_openai     → OpenAI API key
+    ├── Account: ai_key_anthropic  → Anthropic API key
+    ├── Account: ai_key_google     → Google AI API key
+    └── Account: ai_key_groq       → Groq API key
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    **Secret Service API** (GNOME Keyring / KDE Wallet)
+
+    - **Encryption**: AES-128 or AES-256 (implementation dependent)
+    - **Key derivation**: Based on login credentials or master password
+    - **Access control**: D-Bus-based, per-application
+    - **Location**: `~/.local/share/keyrings/` (GNOME) or `~/.local/share/kwalletd/` (KDE)
+
+    ```
+    Secret Service Items:
+    ├── minify:access_token      → Spotify access token
+    ├── minify:refresh_token     → Spotify refresh token
+    ├── minify:token_expiry      → Token expiration timestamp
+    ├── minify:spotify_client_id → Spotify application ID
+    ├── minify:music_provider    → Active music provider
+    ├── minify:ai_key_openai     → OpenAI API key
+    ├── minify:ai_key_anthropic  → Anthropic API key
+    ├── minify:ai_key_google     → Google AI API key
+    └── minify:ai_key_groq       → Groq API key
+    ```
+
+    <Aside type="note">
+      On Linux, ensure a Secret Service provider is running (gnome-keyring-daemon or kwalletd5).
+    </Aside>
+  </TabItem>
+</Tabs>
+
+### What's Stored Where
+
+| Data Type | Storage Location | Encryption | Sensitivity |
+|-----------|------------------|------------|-------------|
+| Spotify Access Token | OS Keyring | ✅ OS-level | High |
+| Spotify Refresh Token | OS Keyring | ✅ OS-level | High |
+| AI API Keys | OS Keyring | ✅ OS-level | High |
+| Spotify Client ID | OS Keyring | ✅ OS-level | Medium |
+| Theme Preference | settings.json | ❌ Plain text | Low |
+| Layout Preference | settings.json | ❌ Plain text | Low |
+| AI Provider Config | settings.json | ❌ Plain text | Low |
+
+<Aside type="tip">
+The settings.json file only contains non-sensitive configuration like theme names and
+provider preferences. **API keys are never stored in the settings file.**
+</Aside>
+
+### Settings File Location
+
+<Tabs>
+  <TabItem label="Windows">
+    ```
+    %APPDATA%\MiniFy\settings.json
+    ```
+    Example: `C:\Users\YourName\AppData\Roaming\MiniFy\settings.json`
+  </TabItem>
+  <TabItem label="macOS">
+    ```
+    ~/Library/Application Support/MiniFy/settings.json
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    ```
+    ~/.config/MiniFy/settings.json
+    ```
+  </TabItem>
+</Tabs>
+
+**Example settings.json content:**
+
+```json
+{
+  "first_boot_done": true,
+  "spotify": {
+    "access_token": null,
+    "refresh_token": null
+  },
+  "layout": "LayoutB",
+  "theme": "dark",
+  "ai_providers": [
+    { "provider": "openai", "enabled": true },
+    { "provider": "anthropic", "enabled": false }
+  ],
+  "active_ai_provider": "openai",
+  "active_music_provider": "spotify"
+}
+```
+
+<Aside type="note">
+Notice that `access_token` and `refresh_token` are always `null` in the settings file.
+Tokens are stored in the OS keyring, not in this file.
+</Aside>
+
+## Spotify OAuth Security
+
+### PKCE Implementation
+
+MiniFy uses **OAuth 2.0 with PKCE** (RFC 7636), the gold standard for public clients:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PKCE Security Flow                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Client (MiniFy)                        Authorization Server    │
+│       │                                        │                │
+│       │  1. Generate code_verifier             │                │
+│       │     (64 random chars, URL-safe)        │                │
+│       │                                        │                │
+│       │  2. Compute code_challenge             │                │
+│       │     = Base64URL(SHA256(verifier))      │                │
+│       │                                        │                │
+│       │ ──────── Auth Request ──────────────▶  │                │
+│       │          code_challenge                │                │
+│       │          (verifier stays local)        │                │
+│       │                                        │                │
+│       │ ◀─────── Auth Code ─────────────────  │                │
+│       │          (one-time use)                │                │
+│       │                                        │                │
+│       │ ──────── Token Request ─────────────▶  │                │
+│       │          auth_code + code_verifier     │                │
+│       │                                        │                │
+│       │          Server computes:              │                │
+│       │          SHA256(verifier) == challenge?│                │
+│       │                                        │                │
+│       │ ◀─────── Access + Refresh Token ────  │                │
+│       │                                        │                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why PKCE Matters
+
+| Attack Vector | Without PKCE | With PKCE |
+|---------------|--------------|-----------|
+| Authorization code interception | ❌ Attacker can exchange code | ✅ Code useless without verifier |
+| Client secret extraction | ❌ Secret embedded in app | ✅ No secret needed |
+| Replay attacks | ❌ Possible | ✅ Codes are one-time use |
+| Man-in-the-middle | ❌ Secret could be intercepted | ✅ Verifier never transmitted |
+
+### State Parameter (CSRF Protection)
+
+Every OAuth flow includes a random state nonce:
+
+```rust
+// Generated at auth start
+let mut state_bytes = [0u8; 16];
+rand::thread_rng().fill_bytes(&mut state_bytes);
+let state_nonce = hex::encode(state_bytes); // 32 hex chars
+```
+
+The callback validates that the returned state matches, preventing:
+- Cross-site request forgery attacks
+- Old browser tab reuse attempts
+- Session fixation attacks
+
+## AI Provider Security
+
+### Isolation Model
+
+The AI never has direct access to your Spotify account:
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                        AI Provider Isolation                               │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│   ┌─────────────────┐                         ┌─────────────────────────┐ │
+│   │  AI Provider    │                         │   MiniFy Application    │ │
+│   │  (OpenAI, etc.) │                         │                         │ │
+│   ├─────────────────┤                         ├─────────────────────────┤ │
+│   │                 │                         │  ┌───────────────────┐  │ │
+│   │  Receives:      │  ◀─── Text Only ────   │  │   AI DJ Module    │  │ │
+│   │  • User prompts │                         │  │                   │  │ │
+│   │  • Track names  │                         │  │  Prepares data:   │  │ │
+│   │  • Artist names │                         │  │  - Track names    │  │ │
+│   │  • Genre info   │                         │  │  - Artists        │  │ │
+│   │  • Audio stats  │                         │  │  - Genres         │  │ │
+│   │    (numbers)    │                         │  │  - Audio features │  │ │
+│   │                 │                         │  └─────────┬─────────┘  │ │
+│   │  Never receives:│                         │            │            │ │
+│   │  ✗ Tokens       │                         │            ▼            │ │
+│   │  ✗ Client ID    │                         │  ┌───────────────────┐  │ │
+│   │  ✗ Account ID   │                         │  │  Spotify Client   │  │ │
+│   │  ✗ Other AI keys│                         │  │  (Token Auth)     │  │ │
+│   │                 │                         │  └─────────┬─────────┘  │ │
+│   └─────────────────┘                         │            │            │ │
+│                                               │            ▼            │ │
+│                                               │  ┌───────────────────┐  │ │
+│                                               │  │   Spotify API     │  │ │
+│                                               │  │  (HTTPS + Token)  │  │ │
+│                                               │  └───────────────────┘  │ │
+│                                               │                         │ │
+│                                               └─────────────────────────┘ │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Shared with AI Providers
+
+**✅ Shared (necessary for recommendations):**
+- Track names and artists
+- Genre information
+- Audio feature values (energy: 0.7, valence: 0.5, etc.)
+- Your text messages/prompts
+
+**❌ Never shared:**
+- Spotify access tokens
+- Spotify refresh tokens
+- Your Spotify account ID or email
+- Other AI provider's API keys
+- Any personally identifiable information
+
+### API Key Isolation
+
+Each AI provider's key is stored separately and only used for its respective provider:
+
+```
+OS Keyring Entries:
+├── minify:ai_key_openai    → Only used for OpenAI calls
+├── minify:ai_key_anthropic → Only used for Anthropic calls
+├── minify:ai_key_google    → Only used for Google AI calls
+└── minify:ai_key_groq      → Only used for Groq calls
+```
+
+## Spotify API Permissions
+
+MiniFy follows the principle of least privilege:
+
+### Read-Only Scopes
+
+| Scope | Purpose | Access Level |
+|-------|---------|--------------|
+| `user-read-playback-state` | Current playback info | Read |
+| `user-read-currently-playing` | Currently playing track | Read |
+| `user-top-read` | Top tracks/artists for AI DJ | Read |
+| `user-read-recently-played` | Play history for AI DJ | Read |
+| `user-library-read` | Saved tracks count | Read |
+| `playlist-read-private` | View playlists | Read |
+
+### Write Scopes (Limited)
+
+| Scope | Purpose | Access Level |
+|-------|---------|--------------|
+| `user-modify-playback-state` | Play, pause, skip, seek | Write (playback only) |
+
+<Aside type="note">
+MiniFy **does not** request write access to your library, playlists, or profile.
+It cannot modify your saved tracks, create playlists, or change your account settings.
+</Aside>
+
+## Network Security
+
+### Encryption in Transit
+
+All network communications use TLS 1.2 or higher:
+
+| Connection | Protocol | Certificate Validation |
+|------------|----------|------------------------|
+| Spotify API | HTTPS (TLS 1.2+) | ✅ System trust store |
+| Spotify Auth | HTTPS (TLS 1.2+) | ✅ System trust store |
+| AI Providers | HTTPS (TLS 1.2+) | ✅ System trust store |
+| OAuth Callback | HTTP (localhost only) | N/A (local only) |
+
+### No External Data Collection
+
+MiniFy does not:
+- Send telemetry to MiniFy servers
+- Track usage analytics
+- Phone home for any reason
+- Include any third-party analytics SDKs
+
+All data stays between your device and the APIs you configure (Spotify, AI providers).
+
+## Clearing Credentials
+
+### Using the CLI
+
+```bash
+# Clear all credentials (Spotify tokens, AI keys, settings)
+pnpm desktop:clear
+```
+
+### Using the App
+
+1. Open Settings (right-click → Settings)
+2. Navigate to "Connections"
+3. Click "Disconnect" for each service
+
+### What Gets Cleared
+
+| Item | CLI Clear | App Disconnect |
+|------|-----------|----------------|
+| Spotify Access Token | ✅ | ✅ |
+| Spotify Refresh Token | ✅ | ✅ |
+| Spotify Client ID | ✅ | ✅ |
+| AI API Keys | ✅ | ✅ (per provider) |
+| Settings File | ✅ | ❌ |
+| Custom Themes | ❌ | ❌ |
+
+## Security Best Practices
+
+### For Users
+
+1. **Keep API keys private** - Never share them or commit them to version control
+2. **Use unique API keys** - Create keys specifically for MiniFy in each provider's dashboard
+3. **Revoke if compromised** - Immediately rotate keys if you suspect exposure
+4. **Keep MiniFy updated** - Updates may include security fixes
+5. **Use strong OS passwords** - Your keyring security depends on your login credentials
+
+### For Developers
+
+1. **Never log tokens** - Access and refresh tokens should never appear in logs
+2. **Use environment variables** - For build-time secrets like client IDs
+3. **Validate OAuth state** - Always check the state parameter in callbacks
+4. **Clear sensitive memory** - Zero-out sensitive data after use
+
+## Reporting Security Issues
+
+If you discover a security vulnerability:
+
+1. **Do not** open a public GitHub issue
+2. Email the maintainers at the address in SECURITY.md
+3. Include:
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
+4. Allow reasonable time for a fix before public disclosure
+
+## Compliance Notes
+
+- **GDPR**: MiniFy stores minimal data locally. No data is transmitted to MiniFy servers.
+- **Data Portability**: All data is stored in standard formats (JSON, OS keyring).
+- **Right to Erasure**: Users can delete all data using `pnpm desktop:clear`.
+

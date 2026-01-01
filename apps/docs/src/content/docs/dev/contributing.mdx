@@ -1,108 +1,276 @@
 ---
 title: Contributing
-description: Learn how to contribute to MiniFy.
+description: Complete guide to contributing to MiniFy - code, documentation, themes, and more.
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Aside, Tabs, TabItem, Card, CardGrid } from '@astrojs/starlight/components';
 
 # Contributing
 
-Thank you for your interest in contributing to MiniFy! This guide will help you get started.
+Thank you for your interest in contributing to MiniFy! This guide will help you get started
+with contributing code, documentation, themes, or ideas.
 
 ## Ways to Contribute
 
-- 🐛 **Report bugs** - Found an issue? Let us know!
-- 💡 **Suggest features** - Have an idea? We'd love to hear it
-- 📖 **Improve docs** - Help make the documentation better
-- 🎨 **Create themes** - Design new themes for the community
-- 🔧 **Submit code** - Fix bugs or implement features
+<CardGrid stagger>
+  <Card title="Report Bugs" icon="warning">
+    Found an issue? Let us know so we can fix it!
+  </Card>
+  <Card title="Suggest Features" icon="rocket">
+    Have an idea? We'd love to hear it.
+  </Card>
+  <Card title="Improve Docs" icon="open-book">
+    Help make the documentation better.
+  </Card>
+  <Card title="Create Themes" icon="seti:svg">
+    Design new themes for the community.
+  </Card>
+  <Card title="Submit Code" icon="setting">
+    Fix bugs or implement new features.
+  </Card>
+  <Card title="Review PRs" icon="approve-check">
+    Help review pull requests.
+  </Card>
+</CardGrid>
+
+## Contribution Workflow
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                          Contribution Workflow                                 │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌─────────────┐                                                             │
+│   │  1. Fork    │  Create your own copy of the repository                     │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  2. Clone   │  Clone your fork to your local machine                      │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  3. Branch  │  Create a feature branch for your changes                   │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  4. Develop │  Make your changes with tests                               │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  5. Commit  │  Commit with conventional commit messages                   │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  6. Push    │  Push your branch to your fork                              │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  7. PR      │  Open a Pull Request                                        │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  8. Review  │  Address feedback and iterate                               │
+│   └──────┬──────┘                                                             │
+│          │                                                                     │
+│          ▼                                                                     │
+│   ┌─────────────┐                                                             │
+│   │  9. Merge   │  Your contribution is merged! 🎉                            │
+│   └─────────────┘                                                             │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Getting Started
 
 <Steps>
 1. **Fork the repository**
-   
+
    Click the "Fork" button on the [GitHub repository](https://github.com/ModioStudio/MiniFy).
 
 2. **Clone your fork**
-   
+
    ```bash
    git clone https://github.com/YOUR-USERNAME/MiniFy.git
    cd MiniFy
    ```
 
 3. **Install dependencies**
-   
+
    ```bash
    pnpm install
    ```
 
-4. **Create a branch**
-   
+4. **Create a feature branch**
+
    ```bash
-   git checkout -b feature/my-feature
+   git checkout -b feature/my-awesome-feature
+   ```
+
+   Or for bug fixes:
+   ```bash
+   git checkout -b fix/bug-description
    ```
 
 5. **Make your changes**
-   
+
    Write code, fix bugs, or update documentation.
 
 6. **Test your changes**
-   
+
    ```bash
-   pnpm dev
+   # Run the desktop app
+   pnpm desktop:dev
+
+   # Check formatting and linting
+   pnpm check
    ```
 
-7. **Submit a pull request**
-   
-   Push your changes and open a PR on GitHub.
+7. **Commit your changes**
+
+   ```bash
+   git add .
+   git commit -m "feat(desktop): add amazing feature"
+   ```
+
+8. **Push and create PR**
+
+   ```bash
+   git push origin feature/my-awesome-feature
+   ```
+
+   Then open a Pull Request on GitHub.
 </Steps>
 
 ## Development Setup
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm 10+
-- Rust (for Tauri development)
-- Platform-specific build tools
+| Tool | Version | Installation |
+|------|---------|--------------|
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| pnpm | 9+ | `npm install -g pnpm` |
+| Rust | Latest | [rustup.rs](https://rustup.rs/) |
 
-### Running the Development Server
+For platform-specific requirements, see the [Building Guide](/dev/building/).
+
+### Development Commands
 
 ```bash
-# Run the desktop app in development
-pnpm desktop:dev
+# Desktop application
+pnpm desktop:dev    # Run in development mode
+pnpm desktop:build  # Build for production
+pnpm desktop:clear  # Clear stored credentials
 
-# Run the website in development
-pnpm www:dev
+# Website
+pnpm www:dev        # Run website in development
+pnpm www:build      # Build website
 
-# Run the docs in development  
-pnpm docs:dev
+# Documentation
+pnpm docs:dev       # Run docs in development
+pnpm docs:build     # Build documentation
+
+# Code quality
+pnpm check          # Run Biome linter
+pnpm format         # Format code with Biome
+
+# All packages
+pnpm dev            # Run all in development
+pnpm build          # Build all packages
 ```
 
 ## Code Style
 
+### Formatting and Linting
+
 We use [Biome](https://biomejs.dev/) for code formatting and linting:
 
 ```bash
-# Format code
-pnpm format
-
 # Check for issues
 pnpm check
+
+# Fix issues automatically
+pnpm format
 ```
 
-### Guidelines
+### TypeScript Guidelines
 
-- Use TypeScript for all new code
-- Write meaningful commit messages (see below)
-- Add tests for new features when applicable
-- Keep pull requests focused and small
-- Update documentation when changing behavior
+```typescript
+// ✅ Good: Proper type definitions
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// ✅ Good: Explicit function return types
+function processUser(user: UserData): ProcessedUser {
+  // ...
+}
+
+// ❌ Bad: Using 'any'
+function processData(data: any): any {
+  // ...
+}
+
+// ❌ Bad: Missing types
+function processData(data) {
+  // ...
+}
+```
+
+### Rust Guidelines
+
+```rust
+// ✅ Good: Handle errors explicitly
+#[tauri::command]
+pub async fn save_setting(value: String) -> Result<(), String> {
+    do_something()
+        .map_err(|e| format!("Failed to save: {}", e))?;
+    Ok(())
+}
+
+// ❌ Bad: Unwrap without context
+#[tauri::command]
+pub fn save_setting(value: String) {
+    do_something().unwrap(); // Panics without explanation
+}
+```
+
+### React Guidelines
+
+```tsx
+// ✅ Good: Functional component with proper typing
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+export function Button({ label, onClick, disabled = false }: ButtonProps) {
+  return (
+    <button onClick={onClick} disabled={disabled}>
+      {label}
+    </button>
+  );
+}
+
+// ✅ Good: Named exports for components
+export function MyComponent() { ... }
+
+// ❌ Bad: Default exports for components
+export default function MyComponent() { ... }
+```
 
 ## Commit Messages
 
-We use conventional commits:
+We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <description>
@@ -112,83 +280,198 @@ We use conventional commits:
 
 ### Types
 
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat` | New feature | `feat(desktop): add volume slider` |
+| `fix` | Bug fix | `fix(auth): handle expired tokens` |
+| `docs` | Documentation | `docs(readme): update installation` |
+| `style` | Formatting | `style: fix indentation` |
+| `refactor` | Code restructure | `refactor(ui): simplify layout` |
+| `perf` | Performance | `perf: optimize polling interval` |
+| `test` | Tests | `test: add auth tests` |
+| `chore` | Maintenance | `chore: update dependencies` |
+
+### Scopes
+
+| Scope | Description |
+|-------|-------------|
+| `desktop` | Desktop application |
+| `www` | Marketing website |
+| `docs` | Documentation |
+| `auth` | Authentication |
+| `ui` | User interface |
+| `ai` | AI DJ feature |
 
 ### Examples
 
-```
+```bash
 feat(desktop): add volume normalization option
+
+- Added slider in settings for volume normalization
+- Implemented audio processing in Rust backend
+- Updated settings schema with new field
+```
+
+```bash
 fix(auth): handle expired refresh tokens correctly
-docs(readme): update installation instructions
+
+Previously, expired refresh tokens would cause a silent failure.
+Now we properly detect this and prompt for re-authentication.
+
+Fixes #123
 ```
 
 ## Pull Request Process
 
 <Steps>
 1. **Update documentation**
-   
+
    If your change affects user-facing features, update the relevant docs.
 
 2. **Run all checks**
-   
+
    ```bash
    pnpm check
    pnpm build
    ```
 
-3. **Write a clear description**
-   
-   Explain what your PR does and why.
+3. **Write a clear PR description**
+
+   Include:
+   - What the change does
+   - Why it's needed
+   - How it was tested
+   - Screenshots if applicable
 
 4. **Link related issues**
-   
-   Reference any issues your PR addresses: "Fixes #123"
+
+   Reference issues: "Fixes #123" or "Relates to #456"
 
 5. **Request review**
-   
-   A maintainer will review your PR and provide feedback.
+
+   A maintainer will review and provide feedback.
+
+6. **Address feedback**
+
+   Make requested changes and push updates.
+
+7. **Celebrate! 🎉**
+
+   Once approved, your PR will be merged.
 </Steps>
+
+### PR Template
+
+```markdown
+## Description
+Brief description of changes.
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Documentation update
+- [ ] Other (describe)
+
+## Testing
+How was this tested?
+
+## Screenshots
+If applicable.
+
+## Related Issues
+Fixes #(issue number)
+```
 
 ## Reporting Bugs
 
-When reporting bugs, please include:
+When reporting bugs, include:
 
-- MiniFy version
-- Operating system and version
-- Steps to reproduce
-- Expected behavior
-- Actual behavior
-- Screenshots if applicable
+| Information | Description |
+|-------------|-------------|
+| MiniFy version | e.g., v1.0.0 |
+| Operating system | e.g., Windows 11, macOS 14, Ubuntu 22.04 |
+| Steps to reproduce | Numbered list of actions |
+| Expected behavior | What should happen |
+| Actual behavior | What actually happens |
+| Screenshots | If applicable |
+| Error messages | Console output, logs |
 
-Use the [bug report template](https://github.com/ModioStudio/MiniFy/issues/new?template=bug_report.md) on GitHub.
+Use the [bug report template](https://github.com/ModioStudio/MiniFy/issues/new?template=bug_report.md).
 
 ## Suggesting Features
 
-Feature suggestions are welcome! Please:
+Feature requests should include:
 
-- Check if the feature was already suggested
-- Provide a clear use case
-- Describe the expected behavior
-- Consider potential drawbacks
+- **Use case**: Why is this feature needed?
+- **Proposed solution**: How should it work?
+- **Alternatives considered**: Other approaches you thought of
+- **Additional context**: Screenshots, mockups, etc.
 
-Use the [feature request template](https://github.com/ModioStudio/MiniFy/issues/new?template=feature_request.md) on GitHub.
+Use the [feature request template](https://github.com/ModioStudio/MiniFy/issues/new?template=feature_request.md).
+
+## Creating Themes
+
+Want to contribute a theme?
+
+<Steps>
+1. **Create your theme JSON**
+
+   ```json
+   {
+     "name": "My Theme",
+     "author": "Your Name",
+     "colors": {
+       "background": "#1e1e2e",
+       "foreground": "#cdd6f4",
+       "primary": "#89b4fa",
+       "secondary": "#313244",
+       "accent": "#f5c2e7",
+       "muted": "#6c7086",
+       "border": "#45475a"
+     }
+   }
+   ```
+
+2. **Test your theme**
+
+   Place it in `apps/desktop/src/themes/` and test thoroughly.
+
+3. **Add to www themes**
+
+   Also add it to `apps/www/public/themes/` for the website preview.
+
+4. **Submit a PR**
+
+   Include screenshots of your theme in use.
+</Steps>
 
 <Aside type="tip">
-  Join our community discussions on GitHub to chat with other contributors!
+Check out existing themes in `apps/desktop/src/themes/` for reference.
 </Aside>
 
 ## Code of Conduct
 
-We are committed to providing a welcoming and inclusive experience. Please read our [Code of Conduct](https://github.com/ModioStudio/MiniFy/blob/main/CODE_OF_CONDUCT.md).
+We are committed to providing a welcoming and inclusive experience. Please read our
+[Code of Conduct](https://github.com/ModioStudio/MiniFy/blob/main/CODE_OF_CONDUCT.md).
+
+**Key points:**
+- Be respectful and inclusive
+- No harassment or discrimination
+- Constructive feedback only
+- Focus on the code, not the person
 
 ## License
 
-By contributing to MiniFy, you agree that your contributions will be licensed under the MIT License.
+By contributing to MiniFy, you agree that your contributions will be licensed under the
+[MIT License](https://github.com/ModioStudio/MiniFy/blob/main/LICENSE).
+
+## Getting Help
+
+- **Discord**: Join our community server
+- **GitHub Discussions**: Ask questions
+- **Issues**: Report bugs or request features
+
+<Aside type="note">
+We appreciate all contributions, no matter how small. Even fixing a typo helps!
+</Aside>
 

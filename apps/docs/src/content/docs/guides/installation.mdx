@@ -3,102 +3,349 @@ title: Installation
 description: Step-by-step guide to install MiniFy on Windows, macOS, or Linux.
 ---
 
-import { Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Steps, Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 # Installation
 
-MiniFy is available for Windows, macOS, and Linux. Choose your platform below and follow the installation instructions.
+MiniFy is available for Windows, macOS, and Linux. Choose your platform below and follow the
+installation instructions.
+
+## Download
+
+Get the latest release from GitHub:
+
+<CardGrid>
+  <Card title="Windows" icon="seti:windows">
+    [Download .msi Installer](https://github.com/ModioStudio/MiniFy/releases/latest)
+  </Card>
+  <Card title="macOS" icon="seti:apple">
+    [Download .dmg](https://github.com/ModioStudio/MiniFy/releases/latest)
+  </Card>
+  <Card title="Linux" icon="seti:linux">
+    [Download .deb / .rpm / .AppImage](https://github.com/ModioStudio/MiniFy/releases/latest)
+  </Card>
+</CardGrid>
+
+## Platform-Specific Instructions
 
 <Tabs>
   <TabItem label="Windows">
     <Steps>
     1. **Download the installer**
-       
-       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page and download the `.msi` installer for Windows.
+
+       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page
+       and download the `.msi` installer for Windows.
 
     2. **Run the installer**
-       
+
        Double-click the downloaded `.msi` file and follow the installation wizard.
 
+       ```
+       ┌─────────────────────────────────────────────────┐
+       │  MiniFy Setup                                   │
+       │                                                 │
+       │  Welcome to the MiniFy Setup Wizard            │
+       │                                                 │
+       │  This will install MiniFy on your computer.   │
+       │                                                 │
+       │              [ Next > ]  [ Cancel ]            │
+       └─────────────────────────────────────────────────┘
+       ```
+
     3. **Launch MiniFy**
-       
+
        Find MiniFy in your Start Menu and launch it.
 
     4. **Authenticate with Spotify**
-       
+
        Click "Connect to Spotify" and authorize MiniFy to access your account.
     </Steps>
+
+    <Aside type="note">
+      **Windows Defender SmartScreen**: You may see a warning because MiniFy is a new application.
+      Click "More info" → "Run anyway" to proceed. MiniFy is open source and safe.
+    </Aside>
+
+    ### System Requirements (Windows)
+
+    | Requirement | Value |
+    |-------------|-------|
+    | OS | Windows 10 or later (64-bit) |
+    | WebView | WebView2 (usually pre-installed) |
+    | RAM | 50MB minimum |
+    | Disk | 10MB |
   </TabItem>
 
   <TabItem label="macOS">
     <Steps>
     1. **Download the DMG**
-       
-       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page and download the `.dmg` file for macOS.
+
+       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page
+       and download the `.dmg` file for macOS.
 
     2. **Mount and install**
-       
+
        Open the DMG file and drag MiniFy to your Applications folder.
 
+       ```
+       ┌───────────────────────────────────────────────────────────────┐
+       │                                                               │
+       │     [ MiniFy.app ]    ───────────▶    [ Applications ]       │
+       │                                                               │
+       │         Drag to install                                       │
+       │                                                               │
+       └───────────────────────────────────────────────────────────────┘
+       ```
+
     3. **Launch MiniFy**
-       
-       Open MiniFy from your Applications folder or Spotlight.
+
+       Open MiniFy from your Applications folder or Spotlight (⌘+Space → "MiniFy").
 
     4. **Authenticate with Spotify**
-       
+
        Click "Connect to Spotify" and authorize MiniFy to access your account.
     </Steps>
 
-    <Aside type="note">
-      On first launch, macOS may show a security warning. Right-click MiniFy and select "Open" to bypass the warning.
+    <Aside type="caution" title="macOS Security">
+      On first launch, macOS may show a security warning because MiniFy isn't signed with an
+      Apple Developer certificate.
+
+      **To bypass:**
+      1. Try to open MiniFy (you'll see a warning)
+      2. Open **System Settings** → **Privacy & Security**
+      3. Scroll down and click **"Open Anyway"** next to the MiniFy message
+      4. Click **Open** in the confirmation dialog
     </Aside>
+
+    ### System Requirements (macOS)
+
+    | Requirement | Value |
+    |-------------|-------|
+    | OS | macOS 10.15 (Catalina) or later |
+    | Architecture | Intel or Apple Silicon |
+    | RAM | 50MB minimum |
+    | Disk | 10MB |
   </TabItem>
 
   <TabItem label="Linux">
     <Steps>
     1. **Download the package**
-       
-       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page and download the appropriate package for your distribution:
-       - `.deb` for Debian/Ubuntu
-       - `.rpm` for Fedora/RHEL
-       - `.AppImage` for other distributions
+
+       Go to the [GitHub Releases](https://github.com/ModioStudio/MiniFy/releases/latest) page
+       and download the appropriate package:
+
+       | Distribution | Package |
+       |--------------|---------|
+       | Debian/Ubuntu | `.deb` |
+       | Fedora/RHEL | `.rpm` |
+       | Other | `.AppImage` |
 
     2. **Install the package**
-       
+
+       **Debian/Ubuntu:**
        ```bash
-       # Debian/Ubuntu
        sudo dpkg -i minify_*.deb
+       sudo apt-get install -f  # Install dependencies if needed
+       ```
 
-       # Fedora
+       **Fedora/RHEL:**
+       ```bash
        sudo rpm -i minify_*.rpm
+       ```
 
-       # AppImage (no installation needed)
+       **AppImage (universal):**
+       ```bash
        chmod +x MiniFy_*.AppImage
        ./MiniFy_*.AppImage
        ```
 
     3. **Launch MiniFy**
-       
-       Find MiniFy in your application menu or run it from the terminal.
+
+       Find MiniFy in your application menu or run from terminal:
+       ```bash
+       minify
+       ```
 
     4. **Authenticate with Spotify**
-       
+
        Click "Connect to Spotify" and authorize MiniFy to access your account.
     </Steps>
+
+    <Aside type="note" title="Linux Dependencies">
+      MiniFy requires some system libraries. If you encounter issues, install:
+      ```bash
+      # Debian/Ubuntu
+      sudo apt install libwebkit2gtk-4.1-dev libssl-dev
+
+      # Fedora
+      sudo dnf install webkit2gtk4.1-devel openssl-devel
+      ```
+    </Aside>
+
+    ### System Requirements (Linux)
+
+    | Requirement | Value |
+    |-------------|-------|
+    | OS | Ubuntu 18.04+ or equivalent |
+    | Desktop | GNOME, KDE, or other GTK-compatible |
+    | Keyring | GNOME Keyring or KDE Wallet |
+    | RAM | 50MB minimum |
+    | Disk | 10MB |
   </TabItem>
 </Tabs>
+
+## Post-Installation Setup
+
+After installation, you'll need to connect MiniFy to Spotify:
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         First-Time Setup Flow                                  │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│   ┌────────────────┐                                                          │
+│   │  Launch MiniFy │                                                          │
+│   └───────┬────────┘                                                          │
+│           │                                                                    │
+│           ▼                                                                    │
+│   ┌────────────────────────────────────────┐                                  │
+│   │  Click "Connect to Spotify"             │                                  │
+│   └───────┬────────────────────────────────┘                                  │
+│           │                                                                    │
+│           ▼                                                                    │
+│   ┌────────────────────────────────────────┐                                  │
+│   │  Browser opens → Log in to Spotify      │                                  │
+│   │  → Click "Agree" to authorize           │                                  │
+│   └───────┬────────────────────────────────┘                                  │
+│           │                                                                    │
+│           ▼                                                                    │
+│   ┌────────────────────────────────────────┐                                  │
+│   │  Success! MiniFy shows your music       │                                  │
+│   └────────────────────────────────────────┘                                  │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Build from Source
 
 If you prefer to build MiniFy from source, see the [Building Guide](/dev/building/).
 
+## Verifying the Installation
+
+After installation, verify everything works:
+
+1. **Launch MiniFy** - The app should open without errors
+2. **Connect to Spotify** - Authentication should complete successfully
+3. **Check playback** - If Spotify is playing, MiniFy should show the track
+4. **Test controls** - Press Space to toggle play/pause
+
 ## Troubleshooting
 
-Having issues? Check these common solutions:
+### Common Installation Issues
 
-- **Installation fails on Windows**: Make sure you're running the installer as administrator
-- **App doesn't open on macOS**: Check System Preferences > Security & Privacy
-- **Linux dependencies missing**: Install `libwebkit2gtk-4.0` and `libssl`
+<Tabs>
+  <TabItem label="Windows">
+    **"Windows protected your PC" message**
+    - Click "More info" → "Run anyway"
+    - MiniFy is open source and safe to run
 
-For more help, visit our [GitHub Issues](https://github.com/ModioStudio/MiniFy/issues).
+    **Installer fails**
+    - Run as administrator
+    - Check that WebView2 is installed
+    - Download WebView2 from [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+  </TabItem>
+  <TabItem label="macOS">
+    **"MiniFy is damaged and can't be opened"**
+    - Open Terminal and run: `xattr -d com.apple.quarantine /Applications/MiniFy.app`
+    - Or use the System Settings method described above
+
+    **"MiniFy cannot be opened because the developer cannot be verified"**
+    - Right-click the app → Open → Open
+    - Or adjust Security settings as described above
+  </TabItem>
+  <TabItem label="Linux">
+    **"libwebkit2gtk not found"**
+    ```bash
+    # Debian/Ubuntu
+    sudo apt install libwebkit2gtk-4.1-dev
+
+    # Fedora
+    sudo dnf install webkit2gtk4.1-devel
+    ```
+
+    **AppImage won't run**
+    ```bash
+    chmod +x MiniFy_*.AppImage
+    # If still failing, try with FUSE:
+    sudo apt install fuse libfuse2
+    ```
+
+    **Keyring issues**
+    - Ensure GNOME Keyring or KDE Wallet is running
+    - Try: `gnome-keyring-daemon --start --components=secrets`
+  </TabItem>
+</Tabs>
+
+### Authentication Issues
+
+- **Can't connect to Spotify**: Check your internet connection
+- **Browser doesn't open**: Ensure you have a default browser configured
+- **Redirect fails**: Make sure no other app is using port 3000
+
+## Uninstalling
+
+<Tabs>
+  <TabItem label="Windows">
+    1. Open Settings → Apps → Installed Apps
+    2. Find MiniFy and click Uninstall
+    3. Follow the uninstall wizard
+
+    **Remove all data:**
+    ```powershell
+    Remove-Item -Recurse "$env:APPDATA\MiniFy"
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    1. Drag MiniFy from Applications to Trash
+    2. Empty Trash
+
+    **Remove all data:**
+    ```bash
+    rm -rf ~/Library/Application\ Support/MiniFy
+    ```
+  </TabItem>
+  <TabItem label="Linux">
+    **Debian/Ubuntu:**
+    ```bash
+    sudo apt remove minify
+    ```
+
+    **Fedora:**
+    ```bash
+    sudo dnf remove minify
+    ```
+
+    **Remove all data:**
+    ```bash
+    rm -rf ~/.config/MiniFy
+    ```
+  </TabItem>
+</Tabs>
+
+## Next Steps
+
+<CardGrid>
+  <Card title="Quick Start" icon="rocket">
+    [Get up and running →](/guides/quick-start/)
+  </Card>
+  <Card title="Features Overview" icon="laptop">
+    [Explore all features →](/desktop/overview/)
+  </Card>
+  <Card title="Customize Themes" icon="seti:svg">
+    [Make it yours →](/desktop/themes/)
+  </Card>
+  <Card title="Build from Source" icon="setting">
+    [Developer guide →](/dev/building/)
+  </Card>
+</CardGrid>
 

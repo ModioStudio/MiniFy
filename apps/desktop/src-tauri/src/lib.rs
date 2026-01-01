@@ -1,5 +1,6 @@
 pub mod settings;
 pub mod spotify_auth;
+pub mod ai_keyring;
 pub mod debug;
 pub mod resize;
 pub mod custom_themes;
@@ -24,6 +25,12 @@ pub fn run() {
             spotify_auth::cancel_oauth_flow,
             spotify_auth::refresh_access_token,
             spotify_auth::clear_credentials,
+            ai_keyring::save_ai_api_key,
+            ai_keyring::get_ai_api_key,
+            ai_keyring::has_ai_api_key,
+            ai_keyring::delete_ai_api_key,
+            ai_keyring::get_all_ai_providers,
+            ai_keyring::clear_all_ai_keys,
             debug::open_webview_devtools,
             resize::set_layout,
             custom_themes::save_custom_theme,

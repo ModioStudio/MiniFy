@@ -358,7 +358,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
 
     // Build authorization URL and open browser
     let redirect_uri = urlencoding::encode("http://127.0.0.1:3000/callback");
-    let scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private";
+    let scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private user-top-read user-read-recently-played user-library-read";
     let auth_url = format!(
         "https://accounts.spotify.com/authorize?client_id={}&response_type=code&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
         urlencoding::encode(&client_id),
