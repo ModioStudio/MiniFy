@@ -60,13 +60,13 @@ export function PlaybackBar({
   );
 
   const handlePointer = useCallback(
-    async (e: React.PointerEvent<HTMLDivElement>) => {
+    (e: React.PointerEvent<HTMLDivElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
       const ratio = rect.width > 0 ? x / rect.width : 0;
       const newMs = Math.floor(ratio * durationMs);
       setLocalProgress(newMs);
-      await seek(newMs);
+      seek(newMs);
       onSeek?.(newMs);
     },
     [durationMs, onSeek]
@@ -90,11 +90,11 @@ export function PlaybackBar({
   );
 
   const endDrag = useCallback(
-    async (e: React.PointerEvent<HTMLDivElement>) => {
+    (e: React.PointerEvent<HTMLDivElement>) => {
       if (!dragging.current) return;
       dragging.current = false;
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      await handlePointer(e);
+      handlePointer(e);
     },
     [handlePointer]
   );
@@ -121,16 +121,16 @@ export function PlaybackBar({
         onPointerMove={onDrag}
         onPointerUp={endDrag}
         onClick={handlePointer}
-        onKeyDown={async (e) => {
+        onKeyDown={(e) => {
           if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
             const newMs = Math.max(0, localProgress - 5000);
             setLocalProgress(newMs);
-            await seek(newMs);
+            seek(newMs);
             onSeek?.(newMs);
           } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
             const newMs = Math.min(durationMs, localProgress + 5000);
             setLocalProgress(newMs);
-            await seek(newMs);
+            seek(newMs);
             onSeek?.(newMs);
           }
         }}

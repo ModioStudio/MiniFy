@@ -1,14 +1,20 @@
+use tauri::Manager;
+
+pub mod ai_keyring;
+pub mod custom_themes;
+pub mod debug;
+pub mod discord_rpc;
+pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
-pub mod ai_keyring;
-pub mod debug;
-pub mod resize;
-pub mod custom_themes;
 
 pub fn run() {
+    let discord_state = discord_rpc::DiscordState::new();
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .manage(discord_state)
         .invoke_handler(tauri::generate_handler![
             settings::read_settings,
             settings::write_settings,
@@ -37,10 +43,18 @@ pub fn run() {
             custom_themes::load_custom_themes,
             custom_themes::delete_custom_theme,
             custom_themes::export_custom_theme,
-            custom_themes::validate_theme_json
+            custom_themes::validate_theme_json,
+            discord_rpc::enable_discord_rpc,
+            discord_rpc::disable_discord_rpc,
+            discord_rpc::update_discord_presence,
+            discord_rpc::is_discord_rpc_enabled
         ])
         .setup(|app| {
             spotify_auth::spawn_token_refresh_task(app.handle().clone());
+
+            let state = app.state::<discord_rpc::DiscordState>();
+            discord_rpc::init_discord_rpc(&state);
+
             Ok(())
         })
         .build(tauri::generate_context!())

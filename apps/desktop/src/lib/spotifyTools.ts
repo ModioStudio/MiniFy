@@ -1,4 +1,5 @@
 import { tool } from "ai";
+import { encode } from "@toon-format/toon";
 import { z } from "zod";
 import {
   type AudioFeatures,
@@ -16,20 +17,37 @@ import {
   playTrack,
   searchTracks,
 } from "../ui/spotifyClient";
+import { startAIQueue, stopAIQueue } from "./aiQueueService";
+import { useAIQueueStore } from "./aiQueueStore";
 
 function formatTrack(track: SimplifiedTrack): string {
   const artists = track.artists.map((a) => a.name).join(", ");
   return `"${track.name}" by ${artists}`;
 }
 
-function formatTrackWithUri(track: SimplifiedTrack): string {
-  const artists = track.artists.map((a) => a.name).join(", ");
-  return `${track.name} by ${artists} (spotify:track:${track.id})`;
+function formatTrackForToon(track: SimplifiedTrack): { n: string; a: string; u: string } {
+  return {
+    n: track.name,
+    a: track.artists.map((a) => a.name).join(", "),
+    u: `spotify:track:${track.id}`,
+  };
 }
 
-function formatArtist(artist: FullArtist): string {
-  const genres = artist.genres.slice(0, 3).join(", ");
-  return `${artist.name} (genres: ${genres || "unknown"}, popularity: ${artist.popularity}/100)`;
+function formatArtistForToon(artist: FullArtist): { n: string; g: string; p: number; id: string } {
+  return {
+    n: artist.name,
+    g: artist.genres.slice(0, 3).join(", ") || "unknown",
+    p: artist.popularity,
+    id: artist.id,
+  };
+}
+
+function encodeTracks(tracks: SimplifiedTrack[]): string {
+  return encode(tracks.map(formatTrackForToon));
+}
+
+function encodeArtists(artists: FullArtist[]): string {
+  return encode(artists.map(formatArtistForToon));
 }
 
 function calculateAverageFeatures(features: AudioFeatures[]): Record<string, number> {
@@ -119,7 +137,7 @@ export const spotifyTools = {
   }),
 
   getRecentlyPlayed: tool({
-    description: "Get the user's recently played tracks on Spotify",
+    description: "Get the user's recently played tracks on Spotify. Returns TOON format: n=name, a=artists, u=uri",
     parameters: z.object({
       limit: z.number().min(1).max(50).default(10).describe("Number of tracks to retrieve (1-50)"),
     }),
@@ -131,8 +149,7 @@ export const spotifyTools = {
         }
         return {
           success: true,
-          tracks: tracks.map((t) => formatTrackWithUri(t)),
-          trackIds: tracks.map((t) => t.id),
+          tracks: encodeTracks(tracks),
           count: tracks.length,
         };
       } catch (err) {
@@ -144,7 +161,7 @@ export const spotifyTools = {
 
   searchTracks: tool({
     description:
-      "Search for tracks on Spotify by name, artist, or query. This is the most reliable way to find music.",
+      "Search for tracks on Spotify by name, artist, or query. Returns TOON format: n=name, a=artists, u=uri",
     parameters: z.object({
       query: z
         .string()
@@ -159,7 +176,7 @@ export const spotifyTools = {
         }
         return {
           success: true,
-          tracks: tracks.map((t) => formatTrackWithUri(t)),
+          tracks: encodeTracks(tracks),
           count: tracks.length,
         };
       } catch (err) {
@@ -190,7 +207,7 @@ export const spotifyTools = {
 
   getTopTracks: tool({
     description:
-      "Get the user's most played tracks over a time period to understand their music preferences",
+      "Get the user's most played tracks over a time period. Returns TOON format: n=name, a=artists, u=uri",
     parameters: z.object({
       timeRange: timeRangeSchema.default("medium_term" as TimeRange),
       limit: z.number().min(1).max(50).default(20).describe("Number of tracks (1-50)"),
@@ -204,8 +221,7 @@ export const spotifyTools = {
         return {
           success: true,
           timeRange,
-          tracks: tracks.map((t) => formatTrackWithUri(t)),
-          trackIds: tracks.map((t) => t.id),
+          tracks: encodeTracks(tracks),
           count: tracks.length,
         };
       } catch (err) {
@@ -216,7 +232,7 @@ export const spotifyTools = {
   }),
 
   getTopArtists: tool({
-    description: "Get the user's most listened artists to understand their genre preferences",
+    description: "Get the user's most listened artists. Returns TOON format: n=name, g=genres, p=popularity, id=artistId",
     parameters: z.object({
       timeRange: timeRangeSchema.default("medium_term" as TimeRange),
       limit: z.number().min(1).max(50).default(15).describe("Number of artists (1-50)"),
@@ -244,9 +260,8 @@ export const spotifyTools = {
         return {
           success: true,
           timeRange,
-          artists: artists.map(formatArtist),
-          artistIds: artists.map((a) => a.id),
-          topGenres,
+          artists: encodeArtists(artists),
+          topGenres: topGenres.join(", "),
           count: artists.length,
         };
       } catch (err) {
@@ -259,7 +274,7 @@ export const spotifyTools = {
   getMusicTaste: tool({
     description:
       "Analyze the user's music taste by examining audio features of their top tracks. " +
-      "Returns mood, energy levels, danceability, and other characteristics.",
+      "Returns mood, energy levels, danceability in TOON format.",
     parameters: z.object({
       timeRange: timeRangeSchema.default("medium_term" as TimeRange),
     }),
@@ -280,7 +295,7 @@ export const spotifyTools = {
             success: true,
             timeRange,
             tracksAnalyzed: tracks.length,
-            topTracks: tracks.slice(0, 10).map((t) => formatTrackWithUri(t)),
+            topTracks: encodeTracks(tracks.slice(0, 10)),
             note: "Audio feature analysis unavailable, but here are the top tracks",
           };
         }
@@ -290,7 +305,7 @@ export const spotifyTools = {
             success: true,
             timeRange,
             tracksAnalyzed: tracks.length,
-            topTracks: tracks.slice(0, 10).map((t) => formatTrackWithUri(t)),
+            topTracks: encodeTracks(tracks.slice(0, 10)),
             note: "Audio features not available for these tracks",
           };
         }
@@ -302,23 +317,12 @@ export const spotifyTools = {
           success: true,
           timeRange,
           tracksAnalyzed: features.length,
-          averageFeatures: avgFeatures,
-          moodDescription,
-          interpretation: {
-            energy:
-              avgFeatures.energy > 0.6
-                ? "User prefers energetic music"
-                : "User prefers calmer music",
-            mood:
-              avgFeatures.valence > 0.5
-                ? "Generally positive/happy music taste"
-                : "Tends toward melancholic/emotional music",
-            style:
-              avgFeatures.acousticness > 0.5
-                ? "Prefers acoustic/organic sounds"
-                : "Prefers produced/electronic sounds",
-            tempo: `Average tempo: ${avgFeatures.tempo} BPM`,
-          },
+          avgFeatures: encode(avgFeatures),
+          mood: moodDescription,
+          energy: avgFeatures.energy > 0.6 ? "energetic" : "calm",
+          valence: avgFeatures.valence > 0.5 ? "positive" : "melancholic",
+          style: avgFeatures.acousticness > 0.5 ? "acoustic" : "electronic",
+          tempo: avgFeatures.tempo,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -329,8 +333,7 @@ export const spotifyTools = {
 
   getRecommendations: tool({
     description:
-      "Get personalized track recommendations from Spotify based on seed tracks, artists, or genres. " +
-      "Can also target specific audio features like energy or mood. Use searchTracks as fallback if this fails.",
+      "Get personalized track recommendations. Returns TOON format: n=name, a=artists, u=uri. Use searchTracks as fallback.",
     parameters: z.object({
       seedTrackIds: z
         .array(z.string())
@@ -407,7 +410,7 @@ export const spotifyTools = {
 
         return {
           success: true,
-          tracks: tracks.map((t) => formatTrackWithUri(t)),
+          tracks: encodeTracks(tracks),
           count: tracks.length,
         };
       } catch (err) {
@@ -442,6 +445,79 @@ export const spotifyTools = {
         const message = err instanceof Error ? err.message : "Unknown error";
         return { success: false, message: `Could not get user profile: ${message}` };
       }
+    },
+  }),
+
+  startAIQueueWithMood: tool({
+    description:
+      "Start the AI Queue to continuously play music based on a specific mood, genre, or user request. " +
+      "Use this when the user wants continuous music playback with a specific vibe (e.g., 'lofi for work', 'energetic workout music', 'calm evening vibes'). " +
+      "The queue will automatically generate and play tracks matching the mood.",
+    parameters: z.object({
+      mood: z
+        .string()
+        .describe(
+          "The mood, genre, or context for the music queue (e.g., 'relaxing lofi beats for focus', 'upbeat pop for working out', 'chill jazz for evening')"
+        ),
+    }),
+    execute: async ({ mood }) => {
+      try {
+        const store = useAIQueueStore.getState();
+        if (store.isActive) {
+          return {
+            success: false,
+            message: "AI Queue is already active. Stop it first if you want to change the mood.",
+          };
+        }
+
+        await startAIQueue(mood);
+
+        return {
+          success: true,
+          message: `AI Queue started with mood: "${mood}". Music will play continuously based on this vibe.`,
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return { success: false, message: `Failed to start AI Queue: ${message}` };
+      }
+    },
+  }),
+
+  stopAIQueuePlayback: tool({
+    description: "Stop the AI Queue if it's currently running",
+    parameters: z.object({}),
+    execute: async () => {
+      try {
+        const store = useAIQueueStore.getState();
+        if (!store.isActive) {
+          return { success: false, message: "AI Queue is not currently active" };
+        }
+
+        stopAIQueue();
+        return { success: true, message: "AI Queue stopped" };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return { success: false, message: `Failed to stop AI Queue: ${message}` };
+      }
+    },
+  }),
+
+  getAIQueueStatus: tool({
+    description: "Check if the AI Queue is currently active and get its status",
+    parameters: z.object({}),
+    execute: async () => {
+      const store = useAIQueueStore.getState();
+      const nextIndex = store.currentIndex + 1;
+      const nextTrack = store.queue[nextIndex];
+      const remaining = Math.max(0, store.queue.length - store.currentIndex - 1);
+      return {
+        success: true,
+        isActive: store.isActive,
+        isLoading: store.isLoading,
+        queueLength: store.queue.length,
+        remaining,
+        nextTrack: nextTrack ? `${nextTrack.name} - ${nextTrack.artists}` : null,
+      };
     },
   }),
 };
