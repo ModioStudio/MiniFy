@@ -4,10 +4,12 @@ import { createAIModel, getActiveProviderWithKey } from "./aiClient";
 import { type QueuedTrack, useAIQueueStore } from "./aiQueueStore";
 import { readSettings } from "./settingLib";
 import {
+  addToQueue,
   fetchCurrentlyPlaying,
   fetchRecentlyPlayed,
   fetchTopArtists,
   playTracks,
+  searchTracks,
   type SimplifiedTrack,
   type FullArtist,
 } from "../ui/spotifyClient";
@@ -53,8 +55,6 @@ function formatArtistsForToon(
 
 async function searchAndGetUri(trackName: string, artistName: string): Promise<string | null> {
   try {
-    const { searchTracks } = await import("../ui/spotifyClient");
-    
     // Try exact search first
     let results = await searchTracks(`${trackName} ${artistName}`, 5);
     
@@ -163,7 +163,15 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
       throw new Error("Invalid AI response format");
     }
 
-    const suggestions: AISuggestion[] = JSON.parse(jsonMatch[0]);
+    let suggestions: AISuggestion[];
+    try {
+      suggestions = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      const errorMsg = parseError instanceof Error ? parseError.message : "Unknown parse error";
+      throw new Error(
+        `Failed to parse AI suggestions: ${errorMsg}. Raw match: ${jsonMatch[0].slice(0, 200)}`
+      );
+    }
 
     const queuedTracks: QueuedTrack[] = [];
 
@@ -180,9 +188,8 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
 
     if (queuedTracks.length === 0) {
       // Fallback: use recent tracks as base for recommendations
-      const { searchTracks } = await import("../ui/spotifyClient");
       const fallbackQueries = ["popular tracks", "top hits", "trending music"];
-      
+
       for (const query of fallbackQueries) {
         const results = await searchTracks(query, 10);
         if (results.length > 0) {
@@ -288,7 +295,6 @@ function startMonitoring(): void {
 
         // User manually started a song not in the AI queue - auto-stop
         if (currentIndex === -1 && !store.playedUris.has(currentUri)) {
-          console.log("AI Queue: User started manual playback, stopping queue");
           stopAIQueue();
           return;
         }
@@ -305,7 +311,6 @@ function startMonitoring(): void {
               store.addToQueue(newBatch);
 
               for (const track of newBatch) {
-                const { addToQueue } = await import("../ui/spotifyClient");
                 await addToQueue(track.uri);
               }
             } catch (err) {

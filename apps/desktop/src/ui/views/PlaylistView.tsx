@@ -36,8 +36,8 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("playlists");
   const [totalTracks, setTotalTracks] = useState<number>(0);
-  const [hasMoreTracks, setHasMoreTracks] = useState<boolean>(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
+  const loadedCountRef = useRef<number>(0);
 
   useEffect(() => {
     setLayout("SearchSongs");
@@ -63,11 +63,12 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
     setViewMode("tracks");
     setLoadingTracks(true);
     setTracks([]);
+    loadedCountRef.current = 0;
     try {
       const response = await fetchPlaylistTracks(playlist.id, TRACKS_PER_PAGE, 0);
       setTracks(response.tracks);
       setTotalTracks(response.total);
-      setHasMoreTracks(response.tracks.length < response.total);
+      loadedCountRef.current = response.tracks.length;
     } catch (err) {
       console.error("Failed to load playlist tracks:", err);
       setTracks([]);
@@ -77,40 +78,54 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   }, []);
 
   const loadMoreTracks = useCallback(async () => {
-    if (!selectedPlaylist || loadingMore || !hasMoreTracks) return;
+    if (!selectedPlaylist || loadingMore) return;
+
+    // Use ref to get accurate loaded count (avoids stale closure)
+    const currentOffset = loadedCountRef.current;
+
+    // Check if we have more tracks to load
+    if (currentOffset >= totalTracks && totalTracks > 0) return;
 
     setLoadingMore(true);
     try {
       const response = await fetchPlaylistTracks(
         selectedPlaylist.id,
         TRACKS_PER_PAGE,
-        tracks.length
+        currentOffset
       );
-      setTracks((prev) => [...prev, ...response.tracks]);
-      setHasMoreTracks(tracks.length + response.tracks.length < response.total);
+
+      // Only add tracks if we got new ones
+      if (response.tracks.length > 0) {
+        loadedCountRef.current = currentOffset + response.tracks.length;
+        setTracks((prev) => [...prev, ...response.tracks]);
+        setTotalTracks(response.total);
+      }
     } catch (err) {
       console.error("Failed to load more tracks:", err);
     } finally {
       setLoadingMore(false);
     }
-  }, [selectedPlaylist, loadingMore, hasMoreTracks, tracks.length]);
+  }, [selectedPlaylist, loadingMore, totalTracks]);
 
   const handleScroll = useCallback(() => {
     const container = tracksContainerRef.current;
-    if (!container || loadingMore || !hasMoreTracks) return;
+    if (!container || loadingMore) return;
+
+    // Check if all tracks are loaded using ref
+    if (loadedCountRef.current >= totalTracks && totalTracks > 0) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
     if (scrollHeight - scrollTop - clientHeight < 150) {
       loadMoreTracks();
     }
-  }, [loadMoreTracks, loadingMore, hasMoreTracks]);
+  }, [loadMoreTracks, loadingMore, totalTracks]);
 
   const handleBackToPlaylists = useCallback(() => {
     setViewMode("playlists");
     setSelectedPlaylist(null);
     setTracks([]);
     setTotalTracks(0);
-    setHasMoreTracks(false);
+    loadedCountRef.current = 0;
   }, []);
 
   const handlePlayTrack = async (track: SimplifiedTrack) => {
@@ -342,7 +357,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                     </div>
                   )}
 
-                  {hasMoreTracks && !loadingMore && (
+                  {tracks.length < totalTracks && !loadingMore && (
                     <div
                       className="text-center py-2 text-xs"
                       style={{ color: "var(--settings-text-muted)" }}
