@@ -112,6 +112,7 @@ export async function readSettings(): Promise<Settings> {
       active_ai_provider: settings.active_ai_provider ?? null,
       active_music_provider: settings.active_music_provider ?? "spotify",
       show_ai_queue_border: settings.show_ai_queue_border ?? true,
+      discord_rpc_enabled: settings.discord_rpc_enabled ?? false,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
@@ -124,6 +125,7 @@ export async function readSettings(): Promise<Settings> {
       active_ai_provider: null,
       active_music_provider: "spotify",
       show_ai_queue_border: true,
+      discord_rpc_enabled: false,
     };
   }
 }
