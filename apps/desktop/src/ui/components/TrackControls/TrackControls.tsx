@@ -9,43 +9,23 @@ type TrackControlsProps = {
 };
 
 export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: TrackControlsProps) {
-  const [busy, setBusy] = useState(false);
+  const handlePrev = useCallback(() => {
+    previousTrack();
+  }, []);
 
-  const handlePrev = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await previousTrack();
-    } finally {
-      setBusy(false);
-    }
-  }, [busy]);
+  const handleNext = useCallback(() => {
+    nextTrack();
+  }, []);
 
-  const handleNext = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await nextTrack();
-    } finally {
-      setBusy(false);
+  const handleToggle = useCallback(() => {
+    const next = !isPlaying;
+    onTogglePlaying?.(next);
+    if (next) {
+      play();
+    } else {
+      pause();
     }
-  }, [busy]);
-
-  const handleToggle = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const next = !isPlaying;
-      onTogglePlaying?.(next);
-      if (next) {
-        await play();
-      } else {
-        await pause();
-      }
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, isPlaying, onTogglePlaying]);
+  }, [isPlaying, onTogglePlaying]);
 
   const buttonStyle = {
     cursor: "pointer",

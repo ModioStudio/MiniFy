@@ -4,6 +4,7 @@ import {
   Brain,
   Check,
   CircleNotch,
+  DiscordLogo,
   Download,
   Eye,
   FloppyDisk,
@@ -111,6 +112,7 @@ type SettingsProps = {
   onUpdateLayout?: (layout: string) => void;
   onUpdateTheme?: (theme: string) => void;
   onResetAuth?: () => void;
+  onUpdateAIQueueBorder?: (show: boolean) => void;
 };
 
 const categories = [
@@ -118,6 +120,7 @@ const categories = [
   { key: "layout", label: "Layout", icon: SquaresFour },
   { key: "themestudio", label: "Theme Studio", icon: PaintBrush },
   { key: "connections", label: "Connections", icon: Link },
+  { key: "aidj", label: "AI DJ", icon: Brain },
   { key: "privacy", label: "Privacy", icon: ShieldCheck },
 ] as const;
 
@@ -178,6 +181,7 @@ export default function Settings({
   onUpdateLayout,
   onUpdateTheme,
   onResetAuth,
+  onUpdateAIQueueBorder,
 }: SettingsProps) {
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
@@ -213,6 +217,8 @@ export default function Settings({
     google: null,
     groq: null,
   });
+  const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
+  const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
 
   const refreshCustomThemes = useCallback(async () => {
     const themes = await loadCustomThemes();
@@ -253,6 +259,8 @@ export default function Settings({
       if (settings.active_music_provider) {
         setActiveMusicProvider(settings.active_music_provider);
       }
+      setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
+      setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
       await refreshCustomThemes();
       await checkSpotifyConnection();
     })();
@@ -352,6 +360,28 @@ export default function Settings({
   const handleSetActiveMusicProvider = async (provider: MusicProviderType) => {
     setActiveMusicProvider(provider);
     await writeSettings({ active_music_provider: provider });
+  };
+
+  const handleToggleAIQueueBorder = async () => {
+    const newValue = !showAIQueueBorder;
+    setShowAIQueueBorder(newValue);
+    await writeSettings({ show_ai_queue_border: newValue });
+    onUpdateAIQueueBorder?.(newValue);
+  };
+
+  const handleToggleDiscordRpc = async () => {
+    const newValue = !discordRpcEnabled;
+    setDiscordRpcEnabled(newValue);
+    await writeSettings({ discord_rpc_enabled: newValue });
+    try {
+      if (newValue) {
+        await invoke("enable_discord_rpc");
+      } else {
+        await invoke("disable_discord_rpc");
+      }
+    } catch (err) {
+      console.warn("Discord RPC toggle failed:", err);
+    }
   };
 
   const applyLayout = async (layout: string) => {
@@ -745,6 +775,63 @@ export default function Settings({
                   </div>
                 );
               })}
+
+              <div className="border-t border-white/10 my-2" />
+
+              <div className="font-medium flex items-center gap-2">
+                <DiscordLogo size={18} weight="fill" />
+                Discord Rich Presence
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Show what you're listening to on your Discord profile
+              </p>
+
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: discordRpcEnabled ? "#5865F230" : "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ background: "#5865F2" }}
+                  >
+                    <DiscordLogo size={24} weight="fill" color="#fff" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Discord Status</span>
+                    <span
+                      className="text-xs flex items-center gap-1"
+                      style={{ color: discordRpcEnabled ? "#5865F2" : "var(--settings-text-muted)" }}
+                    >
+                      {discordRpcEnabled ? (
+                        <>
+                          <span className="w-2 h-2 rounded-full" style={{ background: "#5865F2" }} />
+                          Showing activity
+                        </>
+                      ) : (
+                        "Disabled"
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleToggleDiscordRpc}
+                  className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                    discordRpcEnabled ? "bg-[#5865F2]" : "bg-white/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ${
+                      discordRpcEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           )}
 
@@ -986,8 +1073,78 @@ export default function Settings({
             </div>
           )}
 
+          {active === "aidj" && (
+            <div className="flex flex-col gap-4">
+              <div className="font-medium flex items-center gap-2">
+                <Brain size={18} weight="fill" />
+                AI Queue Settings
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Configure the AI DJ auto-queue feature that generates endless playlists based on
+                your listening history.
+              </p>
+
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">Show Token Warning Border</span>
+                  <span className="text-xs text-[--settings-text-muted]">
+                    Display a red border around the app when AI Queue is active to indicate token
+                    usage
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleAIQueueBorder}
+                  className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                    showAIQueueBorder ? "bg-red-500" : "bg-white/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ${
+                      showAIQueueBorder ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="border-t border-white/10 my-2" />
+
+              <div className="font-medium">How AI Queue Works</div>
+              <div className="text-xs text-[--settings-text-muted] space-y-2">
+                <p>
+                  1. Analyzes your last 30 played tracks and top artists using TOON format (saves
+                  ~40% tokens)
+                </p>
+                <p>2. AI generates 5 tracks that flow well with your listening history</p>
+                <p>3. Tracks are automatically queued and played</p>
+                <p>4. When 2 tracks remain, the next batch is fetched automatically</p>
+                <p>5. User preferences are cached for 10 minutes to minimize API calls</p>
+              </div>
+
+              <div
+                className="p-3 rounded-lg text-xs"
+                style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  borderLeft: "3px solid #ef4444",
+                }}
+              >
+                <span className="font-medium text-red-400">Note:</span>{" "}
+                <span className="text-[--settings-text-muted]">
+                  AI Queue uses your configured AI provider and will consume tokens. The red border
+                  serves as a visual reminder when active.
+                </span>
+              </div>
+            </div>
+          )}
+
           {active === "privacy" && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <GithubLogo size={18} weight="fill" />
                 <button
@@ -998,8 +1155,53 @@ export default function Settings({
                   View source code
                 </button>
               </div>
-              <p className="text-[settings-text-muted] leading-relaxed">
-                This app runs locally. No personal data is collected, sent, or processed.
+              <p className="text-[--settings-text-muted] leading-relaxed">
+                This app runs locally. No personal data is collected by us.
+              </p>
+
+              <div className="border-t border-white/10 my-1" />
+
+              <div className="font-medium flex items-center gap-2">
+                <Brain size={18} weight="fill" />
+                AI DJ Data Usage
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                When using the AI DJ feature, the following data is sent to your configured LLM
+                provider:
+              </p>
+
+              <div
+                className="p-3 rounded-lg text-xs space-y-1.5"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderLeft: "3px solid var(--settings-accent)",
+                }}
+              >
+                <div className="text-[--settings-text-muted]">
+                  <span className="font-medium text-[--settings-text]">• Display Name</span> – Your
+                  Spotify username
+                </div>
+                <div className="text-[--settings-text-muted]">
+                  <span className="font-medium text-[--settings-text]">• Currently Playing</span> –
+                  Track name and artist
+                </div>
+                <div className="text-[--settings-text-muted]">
+                  <span className="font-medium text-[--settings-text]">• Recent Tracks</span> – Last
+                  15 played songs (names and artists)
+                </div>
+                <div className="text-[--settings-text-muted]">
+                  <span className="font-medium text-[--settings-text]">• Top Artists</span> – Your
+                  most listened artists and genres
+                </div>
+                <div className="text-[--settings-text-muted]">
+                  <span className="font-medium text-[--settings-text]">• Time of Day</span> – For
+                  contextual recommendations
+                </div>
+              </div>
+
+              <p className="text-xs text-[--settings-text-muted]">
+                This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google,
+                or Groq). We do not store or process this data ourselves.
               </p>
             </div>
           )}

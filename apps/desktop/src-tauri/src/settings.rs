@@ -15,6 +15,14 @@ pub struct Settings {
     pub active_ai_provider: Option<String>,
     #[serde(default = "default_music_provider")]
     pub active_music_provider: Option<String>,
+    #[serde(default = "default_true")]
+    pub show_ai_queue_border: bool,
+    #[serde(default = "default_true")]
+    pub discord_rpc_enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_music_provider() -> Option<String> {
@@ -45,6 +53,8 @@ impl Default for Settings {
             ai_providers: Vec::new(),
             active_ai_provider: None,
             active_music_provider: Some("spotify".into()),
+            show_ai_queue_border: true,
+            discord_rpc_enabled: true,
         }
     }
 }

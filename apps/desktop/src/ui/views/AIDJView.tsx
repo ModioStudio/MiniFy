@@ -2,17 +2,28 @@ import {
   ArrowLeft,
   MusicNote,
   PaperPlaneRight,
+  Queue,
   Robot,
   SpinnerGap,
+  Stop,
   User,
   Waveform,
 } from "@phosphor-icons/react";
 import { type CoreMessage, generateText } from "ai";
+import { encode } from "@toon-format/toon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { AI_DJ_SYSTEM_PROMPT, createAIModel, getActiveProviderWithKey } from "../../lib/aiClient";
+import { useAIQueueStore } from "../../lib/aiQueueStore";
+import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
 import { readSettings } from "../../lib/settingLib";
 import { spotifyTools } from "../../lib/spotifyTools";
+import {
+  fetchCurrentlyPlaying,
+  fetchRecentlyPlayed,
+  fetchTopArtists,
+  fetchUserProfile,
+} from "../spotifyClient";
 
 type AIDJViewProps = {
   onBack: () => void;
@@ -29,6 +40,54 @@ type ChatMessage = {
   }>;
 };
 
+async function buildUserContext(): Promise<string> {
+  const contextParts: string[] = [];
+
+  try {
+    const [profile, currentTrack, recentTracks, topArtists] = await Promise.all([
+      fetchUserProfile().catch(() => null),
+      fetchCurrentlyPlaying().catch(() => null),
+      fetchRecentlyPlayed(15).catch(() => []),
+      fetchTopArtists("short_term", 10).catch(() => []),
+    ]);
+
+    if (profile) {
+      contextParts.push(`User: ${profile.display_name}`);
+    }
+
+    const now = new Date();
+    const timeOfDay = now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
+    contextParts.push(`Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`);
+
+    if (currentTrack?.item) {
+      const artists = currentTrack.item.artists.map((a) => a.name).join(", ");
+      contextParts.push(`Now playing: "${currentTrack.item.name}" by ${artists}`);
+    }
+
+    if (recentTracks.length > 0) {
+      const recentData = recentTracks.slice(0, 10).map((t) => ({
+        n: t.name,
+        a: t.artists.map((a) => a.name).join(", "),
+      }));
+      contextParts.push(`Recent tracks (TOON): ${encode(recentData)}`);
+    }
+
+    if (topArtists.length > 0) {
+      const artistData = topArtists.slice(0, 5).map((a) => ({
+        n: a.name,
+        g: a.genres.slice(0, 2).join(", ") || "unknown",
+      }));
+      contextParts.push(`Top artists (TOON): ${encode(artistData)}`);
+    }
+  } catch {
+    // Continue with partial context
+  }
+
+  return contextParts.length > 0
+    ? `[User Context]\n${contextParts.join("\n")}\n[End Context]`
+    : "";
+}
+
 export default function AIDJView({ onBack }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -39,6 +98,20 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const aiQueueActive = useAIQueueStore((s) => s.isActive);
+  const aiQueueLoading = useAIQueueStore((s) => s.isLoading);
+  const aiQueueError = useAIQueueStore((s) => s.error);
+  const aiQueueTracks = useAIQueueStore((s) => s.queue);
+  const aiQueueCurrentIndex = useAIQueueStore((s) => s.currentIndex);
+
+  const handleToggleQueue = async () => {
+    if (aiQueueActive) {
+      stopAIQueue();
+    } else {
+      await startAIQueue();
+    }
+  };
 
   useEffect(() => {
     setLayout("AIDJ");
@@ -111,6 +184,8 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
     try {
       const model = createAIModel(provider.provider, provider.apiKey);
 
+      const userContext = await buildUserContext();
+
       const conversationMessages: CoreMessage[] = messages
         .filter((m) => m.id !== "welcome")
         .map((m) => ({
@@ -118,9 +193,13 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           content: m.content,
         }));
 
+      const messageWithContext = userContext
+        ? `${userContext}\n\nUser message: ${userMessage.content}`
+        : userMessage.content;
+
       conversationMessages.push({
         role: "user",
-        content: userMessage.content,
+        content: messageWithContext,
       });
 
       const result = await generateText({
@@ -234,13 +313,35 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           <Waveform size={24} weight="fill" style={{ color: "var(--settings-accent)" }} />
           <h1 className="text-base font-semibold">AI DJ</h1>
         </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
-        >
-          <ArrowLeft size={20} weight="bold" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleToggleQueue}
+            disabled={aiQueueLoading}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              aiQueueActive
+                ? "bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
+                : "bg-white/10 hover:bg-white/20 border border-white/20"
+            }`}
+            title={aiQueueActive ? "Stop AI Queue" : "Start AI Queue (auto-generates playlist)"}
+          >
+            {aiQueueLoading ? (
+              <SpinnerGap size={14} className="animate-spin" />
+            ) : aiQueueActive ? (
+              <Stop size={14} weight="fill" />
+            ) : (
+              <Queue size={14} weight="fill" />
+            )}
+            {aiQueueActive ? "Stop Queue" : "AI Queue"}
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
+          >
+            <ArrowLeft size={20} weight="bold" />
+          </button>
+        </div>
       </div>
 
       <div
@@ -309,6 +410,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                           {tr.toolName === "searchTracks" && "Searched tracks"}
                           {tr.toolName === "getRecentlyPlayed" && "Checked history"}
                           {tr.toolName === "getCurrentTrack" && "Checked current track"}
+                          {tr.toolName === "startAIQueueWithMood" && "Started AI Queue"}
+                          {tr.toolName === "stopAIQueuePlayback" && "Stopped AI Queue"}
+                          {tr.toolName === "getAIQueueStatus" && "Checked queue status"}
                         </span>
                       </div>
                     ))}
@@ -370,6 +474,43 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
             }}
           >
             {error}
+          </div>
+        )}
+
+        {aiQueueError && (
+          <div
+            className="mx-4 mb-2 px-3 py-2 rounded-lg text-sm"
+            style={{
+              background: "rgba(239, 68, 68, 0.2)",
+              color: "#ef4444",
+            }}
+          >
+            Queue Error: {aiQueueError}
+          </div>
+        )}
+
+        {aiQueueActive && aiQueueTracks.length > 0 && (
+          <div
+            className="mx-4 mb-2 px-3 py-2 rounded-lg text-xs"
+            style={{
+              background: "rgba(127, 29, 29, 0.15)",
+              borderLeft: "3px solid #7f1d1d",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Queue size={12} weight="fill" style={{ color: "#dc2626" }} />
+              <span className="font-medium" style={{ color: "#dc2626" }}>AI Queue Active</span>
+              <span className="text-[--settings-text-muted]">• {aiQueueTracks.length - aiQueueCurrentIndex} remaining</span>
+            </div>
+            {aiQueueTracks[aiQueueCurrentIndex + 1] ? (
+              <div className="text-[--settings-text-muted] truncate">
+                Next: {aiQueueTracks[aiQueueCurrentIndex + 1]?.name} - {aiQueueTracks[aiQueueCurrentIndex + 1]?.artists}
+              </div>
+            ) : (
+              <div className="text-[--settings-text-muted] truncate">
+                Loading more tracks...
+              </div>
+            )}
           </div>
         )}
 

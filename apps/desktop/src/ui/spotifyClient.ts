@@ -29,30 +29,47 @@ export interface CurrentlyPlaying {
   item: SimplifiedTrack | null;
 }
 
+// Token cache to avoid repeated Tauri invocations
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
+const TOKEN_BUFFER_MS = 60_000; // Refresh 1 min before expiry
+
 async function getAccessToken(): Promise<string> {
-  const tokens = await invoke<{ access_token: string }>("get_tokens");
-  return tokens.access_token;
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiresAt - TOKEN_BUFFER_MS) {
+    return cachedToken;
+  }
+
+  const tokens = await invoke<{ access_token: string; expires_in?: number }>("get_tokens");
+  cachedToken = tokens.access_token;
+  tokenExpiresAt = now + (tokens.expires_in ?? 3600) * 1000;
+  return cachedToken;
 }
 
 async function refreshToken(): Promise<string> {
-  const tokens = await invoke<{ access_token: string }>("refresh_access_token");
-  return tokens.access_token;
+  const tokens = await invoke<{ access_token: string; expires_in?: number }>("refresh_access_token");
+  cachedToken = tokens.access_token;
+  tokenExpiresAt = Date.now() + (tokens.expires_in ?? 3600) * 1000;
+  return cachedToken;
 }
 
-async function request<T>(url: string, init?: FetchOptions): Promise<T> {
-  let token = await getAccessToken();
-  let res = await fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
+// Request deduplication for concurrent identical requests
+const pendingRequests = new Map<string, Promise<unknown>>();
 
-  if (res.status === 401) {
-    token = await refreshToken();
-    res = await fetch(url, {
+async function request<T>(url: string, init?: FetchOptions): Promise<T> {
+  const cacheKey = `${init?.method ?? "GET"}:${url}:${init?.body ?? ""}`;
+
+  // Only dedupe GET requests
+  if (!init?.method || init.method === "GET") {
+    const pending = pendingRequests.get(cacheKey);
+    if (pending) {
+      return pending as Promise<T>;
+    }
+  }
+
+  const doRequest = async (): Promise<T> => {
+    let token = await getAccessToken();
+    let res = await fetch(url, {
       ...init,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -60,18 +77,47 @@ async function request<T>(url: string, init?: FetchOptions): Promise<T> {
         ...(init?.headers ?? {}),
       },
     });
+
+    if (res.status === 401) {
+      cachedToken = null;
+      token = await refreshToken();
+      res = await fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+      });
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`${res.status} ${res.statusText}: ${text}`);
+    }
+
+    if (res.status === 204) {
+      return undefined as unknown as T;
+    }
+
+    return (await res.json()) as T;
+  };
+
+  const promise = doRequest();
+
+  if (!init?.method || init.method === "GET") {
+    pendingRequests.set(cacheKey, promise);
+    promise.finally(() => pendingRequests.delete(cacheKey));
   }
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
+  return promise;
+}
 
-  if (res.status === 204) {
-    return undefined as unknown as T;
-  }
-
-  return (await res.json()) as T;
+// Fire-and-forget for player commands (non-blocking)
+function fireAndForget(url: string, init?: FetchOptions): void {
+  request<void>(url, init).catch((err) => {
+    console.warn("Player command failed:", err);
+  });
 }
 
 export async function fetchCurrentlyPlaying(): Promise<CurrentlyPlaying> {
@@ -81,25 +127,82 @@ export async function fetchCurrentlyPlaying(): Promise<CurrentlyPlaying> {
   return data;
 }
 
-export async function play(): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/play", { method: "PUT" });
+export function play(): void {
+  fireAndForget("https://api.spotify.com/v1/me/player/play", { method: "PUT" });
 }
 
-export async function pause(): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/pause", { method: "PUT" });
+export function pause(): void {
+  fireAndForget("https://api.spotify.com/v1/me/player/pause", { method: "PUT" });
 }
 
-export async function nextTrack(): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/next", { method: "POST" });
+export function nextTrack(): void {
+  fireAndForget("https://api.spotify.com/v1/me/player/next", { method: "POST" });
 }
 
-export async function previousTrack(): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/previous", { method: "POST" });
+export function previousTrack(): void {
+  fireAndForget("https://api.spotify.com/v1/me/player/previous", { method: "POST" });
 }
 
-export async function seek(positionMs: number): Promise<void> {
-  const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${Math.max(0, Math.floor(positionMs))}`;
-  await request<void>(url, { method: "PUT" });
+// Debounced seek to avoid flooding API during scrubbing
+let seekTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastSeekPosition = 0;
+
+// Debounced volume to avoid flooding API during slider adjustment
+let volumeTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastVolumeValue = 0;
+
+export interface PlayerDevice {
+  id: string;
+  name: string;
+  type: string;
+  volume_percent: number;
+  is_active: boolean;
+}
+
+export interface PlayerState {
+  device: PlayerDevice;
+  is_playing: boolean;
+  progress_ms: number | null;
+  item: SimplifiedTrack | null;
+}
+
+export async function getPlayerState(): Promise<PlayerState | null> {
+  try {
+    const data = await request<PlayerState>("https://api.spotify.com/v1/me/player");
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export function setVolume(volumePercent: number): void {
+  lastVolumeValue = Math.max(0, Math.min(100, Math.round(volumePercent)));
+
+  if (volumeTimeout) {
+    clearTimeout(volumeTimeout);
+  }
+
+  volumeTimeout = setTimeout(() => {
+    fireAndForget(
+      `https://api.spotify.com/v1/me/player/volume?volume_percent=${lastVolumeValue}`,
+      { method: "PUT" }
+    );
+    volumeTimeout = null;
+  }, 50);
+}
+
+export function seek(positionMs: number): void {
+  lastSeekPosition = Math.max(0, Math.floor(positionMs));
+
+  if (seekTimeout) {
+    clearTimeout(seekTimeout);
+  }
+
+  seekTimeout = setTimeout(() => {
+    const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${lastSeekPosition}`;
+    fireAndForget(url, { method: "PUT" });
+    seekTimeout = null;
+  }, 100);
 }
 
 export async function saveTrackToLibrary(trackId: string): Promise<void> {
@@ -297,4 +400,75 @@ export async function fetchSavedTracksCount(): Promise<number> {
   const url = "https://api.spotify.com/v1/me/tracks?limit=1";
   const data = await request<SavedTracksResponse>(url);
   return data.total;
+}
+
+export async function addToQueue(trackUri: string): Promise<void> {
+  const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(trackUri)}`;
+  await request<void>(url, { method: "POST" });
+}
+
+export async function playTracks(trackUris: string[]): Promise<void> {
+  await request<void>("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    body: JSON.stringify({ uris: trackUris }),
+  });
+}
+
+export interface SimplifiedPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  images: Array<{ url: string; height: number | null; width: number | null }>;
+  owner: {
+    id: string;
+    display_name: string;
+  };
+  tracks: {
+    total: number;
+  };
+}
+
+interface UserPlaylistsResponse {
+  items: SimplifiedPlaylist[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchUserPlaylists(
+  limit: number,
+  offset: number
+): Promise<{ playlists: SimplifiedPlaylist[]; total: number }> {
+  const url = `https://api.spotify.com/v1/me/playlists?limit=${limit}&offset=${offset}`;
+  const data = await request<UserPlaylistsResponse>(url);
+  return { playlists: data.items, total: data.total };
+}
+
+interface PlaylistTracksResponse {
+  items: Array<{
+    track: SimplifiedTrack | null;
+    added_at: string;
+  }>;
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchPlaylistTracks(
+  playlistId: string,
+  limit: number,
+  offset: number
+): Promise<{ tracks: SimplifiedTrack[]; total: number }> {
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`;
+  const data = await request<PlaylistTracksResponse>(url);
+  const tracks = data.items.filter((item) => item.track !== null).map((item) => item.track as SimplifiedTrack);
+  return { tracks, total: data.total };
+}
+
+export async function addTrackToPlaylist(playlistId: string, trackUri: string): Promise<void> {
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
+  await request<{ snapshot_id: string }>(url, {
+    method: "POST",
+    body: JSON.stringify({ uris: [trackUri] }),
+  });
 }

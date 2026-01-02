@@ -1,8 +1,29 @@
-import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useRef, useState } from "react";
+import { useAIQueueStore } from "../lib/aiQueueStore";
 import { type CurrentlyPlaying, fetchCurrentlyPlaying } from "../ui/spotifyClient";
+
+function updateDiscordPresence(
+  trackName: string | null,
+  artistName: string | null,
+  isPlaying: boolean,
+  aiQueueActive: boolean
+): void {
+  invoke("update_discord_presence", {
+    trackName,
+    artistName,
+    isPlaying,
+    aiQueueActive,
+  }).catch(() => {
+    // Silently ignore Discord RPC errors
+  });
+}
 
 export function useCurrentlyPlaying(pollMs = 3000) {
   const [state, setState] = useState<CurrentlyPlaying | null>(null);
+  const lastTrackRef = useRef<string | null>(null);
+  const lastPlayingRef = useRef<boolean>(false);
+  const lastAIQueueRef = useRef<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -11,6 +32,25 @@ export function useCurrentlyPlaying(pollMs = 3000) {
       try {
         const cp = await fetchCurrentlyPlaying();
         if (!mounted) return;
+
+        const trackId = cp?.item?.id ?? null;
+        const isPlaying = cp?.is_playing ?? false;
+        const aiQueueActive = useAIQueueStore.getState().isActive;
+
+        // Update Discord presence when track, playing state, or AI Queue state changes
+        if (
+          trackId !== lastTrackRef.current ||
+          isPlaying !== lastPlayingRef.current ||
+          aiQueueActive !== lastAIQueueRef.current
+        ) {
+          lastTrackRef.current = trackId;
+          lastPlayingRef.current = isPlaying;
+          lastAIQueueRef.current = aiQueueActive;
+
+          const trackName = cp?.item?.name ?? null;
+          const artistName = cp?.item?.artists?.map((a) => a.name).join(", ") ?? null;
+          updateDiscordPresence(trackName, artistName, isPlaying, aiQueueActive);
+        }
 
         setState((prev) => {
           if (

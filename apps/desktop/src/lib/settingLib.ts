@@ -55,6 +55,8 @@ export type Settings = {
   ai_providers: AIProviderConfig[];
   active_ai_provider: AIProviderType | null;
   active_music_provider: MusicProviderType | null;
+  show_ai_queue_border: boolean;
+  discord_rpc_enabled: boolean;
 };
 
 export type CustomTheme = {
@@ -109,6 +111,7 @@ export async function readSettings(): Promise<Settings> {
       ai_providers: settings.ai_providers ?? [],
       active_ai_provider: settings.active_ai_provider ?? null,
       active_music_provider: settings.active_music_provider ?? "spotify",
+      show_ai_queue_border: settings.show_ai_queue_border ?? true,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
@@ -120,6 +123,7 @@ export async function readSettings(): Promise<Settings> {
       ai_providers: [],
       active_ai_provider: null,
       active_music_provider: "spotify",
+      show_ai_queue_border: true,
     };
   }
 }
