@@ -1,0 +1,207 @@
+# Dependabot configuration for MiniFy monorepo
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+
+updates:
+  # ============================================================================
+  # NPM (pnpm monorepo) - Root directory
+  # Covers: root, apps/desktop, apps/docs, apps/www via single lockfile
+  # ============================================================================
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 20
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+    groups:
+      npm-tauri:
+        patterns:
+          - "@tauri-apps/*"
+          - "tauri-*"
+      npm-react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      npm-ai-sdk:
+        patterns:
+          - "ai"
+          - "@ai-sdk/*"
+      npm-radix:
+        patterns:
+          - "@radix-ui/*"
+      npm-astro-starlight:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+      npm-next:
+        patterns:
+          - "next"
+          - "next-*"
+      npm-tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "tailwind-*"
+          - "tailwindcss-*"
+          - "tw-*"
+      npm-vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      npm-typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      npm-tooling:
+        patterns:
+          - "@biomejs/*"
+          - "turbo"
+          - "@turbo/*"
+          - "lefthook"
+          - "@changesets/*"
+      npm-runtime-misc:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@tauri-apps/*"
+          - "tauri-*"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "ai"
+          - "@ai-sdk/*"
+          - "@radix-ui/*"
+          - "astro"
+          - "@astrojs/*"
+          - "next"
+          - "next-*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "tailwind-*"
+          - "tailwindcss-*"
+          - "tw-*"
+          - "vite"
+          - "@vitejs/*"
+          - "typescript"
+          - "@types/*"
+          - "@biomejs/*"
+          - "turbo"
+          - "@turbo/*"
+          - "lefthook"
+          - "@changesets/*"
+
+  # ============================================================================
+  # Cargo (Rust/Tauri) - Desktop app backend
+  # ============================================================================
+  - package-ecosystem: "cargo"
+    directory: "/apps/desktop/src-tauri"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 20
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "deps(rust)"
+    groups:
+      cargo-tauri:
+        patterns:
+          - "tauri"
+          - "tauri-*"
+      cargo-serde:
+        patterns:
+          - "serde"
+          - "serde_*"
+      cargo-async:
+        patterns:
+          - "tokio"
+          - "axum"
+          - "reqwest"
+      cargo-misc:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "tauri"
+          - "tauri-*"
+          - "serde"
+          - "serde_*"
+          - "tokio"
+          - "axum"
+          - "reqwest"
+
+  # ============================================================================
+  # GitHub Actions - Workflow automation
+  # ============================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "deps(actions)"
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+
+  # ============================================================================
+  # Docker - Docs container
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/apps/docs"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker)"
+    groups:
+      docker-docs:
+        patterns:
+          - "*"
+
+  # ============================================================================
+  # Docker - WWW container
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/apps/www"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker)"
+    groups:
+      docker-www:
+        patterns:
+          - "*"

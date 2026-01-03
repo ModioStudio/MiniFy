@@ -242,5 +242,25 @@ This includes Spotify tokens and AI API keys. No credentials are stored in plain
 | 📋 Roadmap | [Project Board](https://github.com/orgs/ModioStudio/projects/2) |
 | 💬 Discord | [discord.gg/haNyuz2zQ5](https://discord.gg/haNyuz2zQ5) |
 
+## Dependency Management
+
+This project uses [Dependabot](https://docs.github.com/en/code-security/dependabot) to keep dependencies up-to-date automatically.
+
+### Enable Dependabot (Repository Admins)
+
+1. **Dependency Graph** — Go to **Settings → Security → Code security** and enable "Dependency graph"
+2. **Dependabot Alerts** — Enable "Dependabot alerts" for security vulnerability notifications
+3. **Dependabot Security Updates** — Enable "Dependabot security updates" for automatic security PRs
+4. **Dependabot Version Updates** — Already configured via `.github/dependabot.yml`, runs daily at 04:00 CET
+
+### Covered Ecosystems
+
+| Ecosystem | Directory | Description |
+|-----------|-----------|-------------|
+| npm | `/` | pnpm monorepo (all JS/TS packages) |
+| cargo | `/apps/desktop/src-tauri` | Rust/Tauri dependencies |
+| github-actions | `/` | GitHub Actions workflows |
+| docker | `/apps/docs`, `/apps/www` | Docker base images |
+
 ## License
 Licensed under the MIT License. See `LICENSE` for details.
