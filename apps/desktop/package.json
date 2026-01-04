@@ -12,30 +12,30 @@
     "clear-auth": "node scripts/clear-auth.js"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.2",
-    "@ai-sdk/google": "^3.0.2",
-    "@ai-sdk/openai": "^3.0.2",
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/google": "^1.2.7",
+    "@ai-sdk/openai": "^1.3.22",
     "@phosphor-icons/react": "^2.1.10",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-opener": "^2",
     "@toon-format/toon": "^2.1.0",
-    "ai": "^6.0.6",
+    "ai": "^4.3.16",
     "dotenv": "^17.2.3",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "spotify-web-api-node": "^5.0.2",
-    "zod": "4.3.4",
-    "zustand": "^5.0.9"
+    "zod": "3.25.76",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
+    "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "bun-types": "^1.3.5",
-    "tailwindcss": "^4.1.14",
+    "bun-types": "^1.3.0",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   }
