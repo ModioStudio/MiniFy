@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
 import { readSettings, writeSettings, type LastPlayedTrack } from "../lib/settingLib";
-import { type CurrentlyPlaying, type SimplifiedTrack, fetchCurrentlyPlaying } from "../ui/spotifyClient";
+import { getActiveProvider, getActiveProviderType, type UnifiedTrack, type PlaybackState } from "../providers";
 
 function updateDiscordPresence(
   trackName: string | null,
@@ -20,12 +20,12 @@ function updateDiscordPresence(
   });
 }
 
-function trackToCache(track: SimplifiedTrack, progressMs: number): LastPlayedTrack {
+function unifiedTrackToCache(track: UnifiedTrack, progressMs: number): LastPlayedTrack {
   return {
     track: {
       id: track.id,
       name: track.name,
-      duration_ms: track.duration_ms,
+      duration_ms: track.durationMs,
       artists: track.artists.map((a) => ({ id: a.id, name: a.name })),
       album: {
         id: track.album.id,
@@ -42,36 +42,47 @@ function trackToCache(track: SimplifiedTrack, progressMs: number): LastPlayedTra
   };
 }
 
-function cacheToCurrentlyPlaying(cache: LastPlayedTrack): CurrentlyPlaying {
+function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
   return {
-    is_playing: false,
-    progress_ms: cache.progress_ms,
-    item: {
+    isPlaying: false,
+    progressMs: cache.progress_ms,
+    track: {
       id: cache.track.id,
       name: cache.track.name,
-      duration_ms: cache.track.duration_ms,
+      durationMs: cache.track.duration_ms,
       artists: cache.track.artists,
       album: cache.track.album,
+      uri: `spotify:track:${cache.track.id}`,
+      provider: "spotify",
     },
   };
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-function debouncedSaveTrack(track: SimplifiedTrack, progressMs: number): void {
+function debouncedSaveTrack(track: UnifiedTrack, progressMs: number): void {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
   
   saveTimeout = setTimeout(() => {
-    const cached = trackToCache(track, progressMs);
+    const cached = unifiedTrackToCache(track, progressMs);
     writeSettings({ last_played_track: cached }).catch(console.error);
     saveTimeout = null;
   }, 2000);
 }
 
+export interface CurrentPlayingState {
+  track: UnifiedTrack | null;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  provider: "spotify" | "youtube" | null;
+}
+
 export function useCurrentlyPlaying(pollMs = 3000) {
-  const [state, setState] = useState<CurrentlyPlaying | null>(null);
+  const [state, setState] = useState<PlaybackState | null>(null);
+  const [activeProvider, setActiveProvider] = useState<"spotify" | "youtube" | null>(null);
   const lastTrackRef = useRef<string | null>(null);
   const lastPlayingRef = useRef<boolean>(false);
   const lastAIQueueRef = useRef<boolean>(false);
@@ -84,7 +95,10 @@ export function useCurrentlyPlaying(pollMs = 3000) {
 
     readSettings().then((settings) => {
       if (settings.last_played_track) {
-        setState(cacheToCurrentlyPlaying(settings.last_played_track));
+        setState(cacheToPlaybackState(settings.last_played_track));
+      }
+      if (settings.active_music_provider) {
+        setActiveProvider(settings.active_music_provider);
       }
     }).catch(console.error);
   }, []);
@@ -94,17 +108,24 @@ export function useCurrentlyPlaying(pollMs = 3000) {
 
     const load = async () => {
       try {
-        const cp = await fetchCurrentlyPlaying();
+        const providerType = await getActiveProviderType();
+        const provider = await getActiveProvider();
+        
+        if (!mounted) return;
+        
+        setActiveProvider(providerType);
+
+        const playbackState = await provider.getPlaybackState();
         if (!mounted) return;
 
-        const hasActiveTrack = cp?.item !== null && cp?.item !== undefined;
+        const hasActiveTrack = playbackState?.track !== null && playbackState?.track !== undefined;
         
-        if (hasActiveTrack && cp.item) {
-          debouncedSaveTrack(cp.item, cp.progress_ms ?? 0);
+        if (hasActiveTrack && playbackState?.track) {
+          debouncedSaveTrack(playbackState.track, playbackState.progressMs ?? 0);
         }
 
-        const trackId = cp?.item?.id ?? null;
-        const isPlaying = cp?.is_playing ?? false;
+        const trackId = playbackState?.track?.id ?? null;
+        const isPlaying = playbackState?.isPlaying ?? false;
         const aiQueueActive = useAIQueueStore.getState().isActive;
 
         if (
@@ -116,8 +137,8 @@ export function useCurrentlyPlaying(pollMs = 3000) {
           lastPlayingRef.current = isPlaying;
           lastAIQueueRef.current = aiQueueActive;
 
-          const trackName = cp?.item?.name ?? null;
-          const artistName = cp?.item?.artists?.map((a) => a.name).join(", ") ?? null;
+          const trackName = playbackState?.track?.name ?? null;
+          const artistName = playbackState?.track?.artists?.map((a) => a.name).join(", ") ?? null;
           updateDiscordPresence(trackName, artistName, isPlaying, aiQueueActive);
         }
 
@@ -129,29 +150,29 @@ export function useCurrentlyPlaying(pollMs = 3000) {
           
           initialLoadDone.current = true;
 
-          if (hasActiveTrack) {
+          if (hasActiveTrack && playbackState) {
             if (
-              prev?.item?.id === cp?.item?.id &&
-              prev?.is_playing === cp?.is_playing &&
-              prev?.progress_ms === cp?.progress_ms
+              prev?.track?.id === playbackState?.track?.id &&
+              prev?.isPlaying === playbackState?.isPlaying &&
+              prev?.progressMs === playbackState?.progressMs
             ) {
               return prev;
             }
-            return cp;
+            return playbackState;
           }
           
-          if (prev?.item && !prev?.is_playing) {
+          if (prev?.track && !prev?.isPlaying) {
             return prev;
           }
           
-          if (prev?.is_playing) {
-            return { ...prev, is_playing: false };
+          if (prev?.isPlaying) {
+            return { ...prev, isPlaying: false };
           }
           
           return prev;
         });
       } catch (e) {
-        console.error(e);
+        console.error("Error fetching playback state:", e);
       }
     };
 
@@ -165,10 +186,11 @@ export function useCurrentlyPlaying(pollMs = 3000) {
   }, [pollMs]);
 
   return {
-    track: state?.item ?? null,
-    isPlaying: state?.is_playing ?? false,
-    progress: state?.progress_ms ?? 0,
-    duration: state?.item?.duration_ms ?? 0,
+    track: state?.track ?? null,
+    isPlaying: state?.isPlaying ?? false,
+    progress: state?.progressMs ?? 0,
+    duration: state?.track?.durationMs ?? 0,
+    provider: activeProvider,
     setState,
   };
 }

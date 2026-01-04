@@ -18,6 +18,8 @@ import { useAIQueueStore } from "../../lib/aiQueueStore";
 import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
 import { readSettings } from "../../lib/settingLib";
 import { spotifyTools } from "../../lib/spotifyTools";
+import { getActiveProviderType } from "../../providers";
+import type { MusicProviderType } from "../../providers/types";
 import {
   fetchCurrentlyPlaying,
   fetchRecentlyPlayed,
@@ -90,6 +92,7 @@ async function buildUserContext(): Promise<string> {
 
 export default function AIDJView({ onBack }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -133,6 +136,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   useEffect(() => {
     (async () => {
+      const type = await getActiveProviderType();
+      setProviderType(type);
+      
       const settings = await readSettings();
       const provider = await getActiveProviderWithKey(
         settings.ai_providers,
@@ -141,12 +147,15 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
       setIsConfigured(provider !== null);
 
       if (provider) {
+        const welcomeMsg = type === "youtube"
+          ? "Hey! I'm your AI DJ. Note: AI Chat features are limited with YouTube Music. The AI Queue feature is still available!"
+          : "Hey! I'm your AI DJ. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!";
+        
         setMessages([
           {
             id: "welcome",
             role: "assistant",
-            content:
-              "Hey! I'm your AI DJ. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!",
+            content: welcomeMsg,
             timestamp: new Date(),
           },
         ]);
@@ -515,25 +524,37 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
         )}
 
         <div className="p-3 border-t" style={{ borderColor: "var(--settings-panel-border)" }}>
+          {providerType === "youtube" && (
+            <div
+              className="mb-2 px-3 py-2 rounded-lg text-xs"
+              style={{
+                background: "rgba(234, 179, 8, 0.15)",
+                borderLeft: "3px solid #eab308",
+                color: "var(--settings-text-muted)",
+              }}
+            >
+              AI Chat is limited with YouTube Music. Use the AI Queue button above for music recommendations.
+            </div>
+          )}
           <div className="flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask for music recommendations..."
+              placeholder={providerType === "youtube" ? "Chat limited with YouTube..." : "Ask for music recommendations..."}
               className="flex-1 px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors"
               style={{
                 background: "rgba(0, 0, 0, 0.2)",
                 borderColor: "rgba(255, 255, 255, 0.1)",
                 color: "var(--settings-text)",
               }}
-              disabled={isLoading}
+              disabled={isLoading || providerType === "youtube"}
             />
             <button
               type="button"
               onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || providerType === "youtube"}
               className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
               style={{
                 background: "var(--settings-accent)",
@@ -548,27 +569,29 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
             </button>
           </div>
 
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {[
-              "Play something based on my recent history",
-              "Find me something upbeat",
-              "What's playing now?",
-            ].map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => setInput(suggestion)}
-                className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:bg-white/10"
-                style={{
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                  color: "var(--settings-text-muted)",
-                }}
-                disabled={isLoading}
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
+          {providerType === "spotify" && (
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {[
+                "Play something based on my recent history",
+                "Find me something upbeat",
+                "What's playing now?",
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => setInput(suggestion)}
+                  className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:bg-white/10"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    color: "var(--settings-text-muted)",
+                  }}
+                  disabled={isLoading}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

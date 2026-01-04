@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { seek } from "../../spotifyClient";
+import { getActiveProvider } from "../../../providers";
 
 type PlaybackBarProps = {
   durationMs: number;
@@ -14,6 +14,11 @@ function msToTime(ms: number): string {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+async function seekToPosition(ms: number): Promise<void> {
+  const provider = await getActiveProvider();
+  provider.seek(ms);
 }
 
 export function PlaybackBar({
@@ -66,7 +71,7 @@ export function PlaybackBar({
       const ratio = rect.width > 0 ? x / rect.width : 0;
       const newMs = Math.floor(ratio * durationMs);
       setLocalProgress(newMs);
-      seek(newMs);
+      seekToPosition(newMs);
       onSeek?.(newMs);
     },
     [durationMs, onSeek]
@@ -99,6 +104,23 @@ export function PlaybackBar({
     [handlePointer]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        const newMs = Math.max(0, localProgress - 5000);
+        setLocalProgress(newMs);
+        seekToPosition(newMs);
+        onSeek?.(newMs);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        const newMs = Math.min(durationMs, localProgress + 5000);
+        setLocalProgress(newMs);
+        seekToPosition(newMs);
+        onSeek?.(newMs);
+      }
+    },
+    [localProgress, durationMs, onSeek]
+  );
+
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <div className="flex items-center justify-between">
@@ -121,19 +143,7 @@ export function PlaybackBar({
         onPointerMove={onDrag}
         onPointerUp={endDrag}
         onClick={handlePointer}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-            const newMs = Math.max(0, localProgress - 5000);
-            setLocalProgress(newMs);
-            seek(newMs);
-            onSeek?.(newMs);
-          } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-            const newMs = Math.min(durationMs, localProgress + 5000);
-            setLocalProgress(newMs);
-            seek(newMs);
-            onSeek?.(newMs);
-          }
-        }}
+        onKeyDown={handleKeyDown}
       >
         <div
           className="absolute left-0 top-0 h-full rounded-full    "

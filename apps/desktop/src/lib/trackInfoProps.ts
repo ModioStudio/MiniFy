@@ -1,7 +1,7 @@
-import type { SimplifiedTrack } from "../ui/spotifyClient";
+import type { UnifiedTrack } from "../providers/types";
 
 type TrackInfoProps = {
-  track: SimplifiedTrack | null;
+  track: UnifiedTrack | null;
   disableSave?: boolean;
   onOpenSettings?: () => void;
 };

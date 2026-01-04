@@ -2,8 +2,15 @@ import type { TrackInfoProps } from "../../../lib/trackInfoProps";
 import { TrackActions } from "../TrackDataComponent/TrackAction";
 import { TrackCover } from "../TrackDataComponent/TrackCover";
 import { TrackMeta } from "../TrackDataComponent/TrackMeta";
+import type { UnifiedAlbumImage } from "../../../providers/types";
 
-import { getLargestImageUrl, saveTrackToLibrary } from "../../spotifyClient";
+import { saveTrackToLibrary } from "../../spotifyClient";
+
+function getLargestImageUrl(images: UnifiedAlbumImage[] | undefined): string | null {
+  if (!images || images.length === 0) return null;
+  const sorted = [...images].sort((a, b) => b.width - a.width);
+  return sorted[0]?.url ?? null;
+}
 
 type Variant = "cover" | "title" | "artist" | "description" | "actions";
 type Size = number;

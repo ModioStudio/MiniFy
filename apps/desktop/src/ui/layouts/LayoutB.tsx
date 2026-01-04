@@ -64,7 +64,7 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
       <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
-          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
+          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, isPlaying: playing } : s))}
         />
       </div>
 

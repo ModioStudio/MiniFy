@@ -7,13 +7,8 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import {
-  type SimplifiedTrack,
-  fetchRecentlyPlayed,
-  getLargestImageUrl,
-  playTrack,
-  searchTracks,
-} from "../spotifyClient";
+import { getActiveProvider } from "../../providers";
+import type { UnifiedTrack } from "../../providers/types";
 
 type SearchBarProps = {
   onBack: () => void;
@@ -29,8 +24,8 @@ function formatDuration(ms: number): string {
 export default function SearchBar({ onBack }: SearchBarProps) {
   const { setLayout } = useWindowLayout();
   const [query, setQuery] = useState<string>("");
-  const [results, setResults] = useState<SimplifiedTrack[]>([]);
-  const [recentTracks, setRecentTracks] = useState<SimplifiedTrack[]>([]);
+  const [results, setResults] = useState<UnifiedTrack[]>([]);
+  const [recentTracks, setRecentTracks] = useState<UnifiedTrack[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingRecent, setLoadingRecent] = useState<boolean>(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -53,7 +48,8 @@ export default function SearchBar({ onBack }: SearchBarProps) {
     const loadRecentTracks = async () => {
       setLoadingRecent(true);
       try {
-        const tracks = await fetchRecentlyPlayed(20);
+        const provider = await getActiveProvider();
+        const tracks = await provider.getRecentlyPlayed(20);
         setRecentTracks(tracks);
       } catch (err) {
         console.error("Failed to load recent tracks:", err);
@@ -73,7 +69,8 @@ export default function SearchBar({ onBack }: SearchBarProps) {
 
     setLoading(true);
     try {
-      const tracks = await searchTracks(searchQuery, 20);
+      const provider = await getActiveProvider();
+      const tracks = await provider.searchTracks(searchQuery, 20);
       setResults(tracks);
     } catch (err) {
       console.error("Search failed:", err);
@@ -95,10 +92,11 @@ export default function SearchBar({ onBack }: SearchBarProps) {
     }, 300);
   };
 
-  const handlePlayTrack = async (track: SimplifiedTrack) => {
+  const handlePlayTrack = async (track: UnifiedTrack) => {
     setPlayingId(track.id);
     try {
-      await playTrack(`spotify:track:${track.id}`);
+      const provider = await getActiveProvider();
+      await provider.playTrack(track.uri);
     } catch (err) {
       console.error("Play failed:", err);
     } finally {
@@ -213,7 +211,7 @@ export default function SearchBar({ onBack }: SearchBarProps) {
           {!isLoading && displayTracks.length > 0 && (
             <ul className="py-2">
               {displayTracks.map((track) => {
-                const albumArt = getLargestImageUrl(track.album.images);
+                const albumArt = track.album.images[0]?.url;
                 const artistNames = track.artists.map((a) => a.name).join(", ");
                 const isPlaying = playingId === track.id;
 
@@ -277,7 +275,7 @@ export default function SearchBar({ onBack }: SearchBarProps) {
                         className="text-xs flex-shrink-0"
                         style={{ color: "var(--settings-text-muted)" }}
                       >
-                        {formatDuration(track.duration_ms)}
+                        {formatDuration(track.durationMs)}
                       </span>
                     </button>
                   </li>

@@ -7,6 +7,7 @@ pub mod discord_rpc;
 pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
+pub mod youtube_auth;
 
 mod clear_all {
     use super::*;
@@ -14,7 +15,8 @@ mod clear_all {
     pub async fn execute() -> Result<(), String> {
         let settings_cleared = settings::clear_settings();
         let themes_cleared = custom_themes::clear_custom_themes();
-        let credentials_result = spotify_auth::clear_credentials().await;
+        let spotify_result = spotify_auth::clear_credentials().await;
+        let youtube_result = youtube_auth::clear_youtube_credentials().await;
         let ai_keys_result = ai_keyring::clear_all_ai_keys().await;
 
         if !settings_cleared {
@@ -23,7 +25,8 @@ mod clear_all {
         if !themes_cleared {
             return Err("Failed to clear custom themes".to_string());
         }
-        credentials_result?;
+        spotify_result?;
+        youtube_result?;
         ai_keys_result?;
 
         Ok(())
@@ -75,10 +78,20 @@ pub fn run() {
             discord_rpc::enable_discord_rpc,
             discord_rpc::disable_discord_rpc,
             discord_rpc::update_discord_presence,
-            discord_rpc::is_discord_rpc_enabled
+            discord_rpc::is_discord_rpc_enabled,
+            youtube_auth::has_youtube_credentials,
+            youtube_auth::save_youtube_credentials,
+            youtube_auth::needs_youtube_setup,
+            youtube_auth::get_youtube_tokens,
+            youtube_auth::has_valid_youtube_tokens,
+            youtube_auth::start_youtube_oauth_flow,
+            youtube_auth::cancel_youtube_oauth_flow,
+            youtube_auth::refresh_youtube_access_token,
+            youtube_auth::clear_youtube_credentials
         ])
         .setup(|app| {
             spotify_auth::spawn_token_refresh_task(app.handle().clone());
+            youtube_auth::spawn_youtube_token_refresh_task(app.handle().clone());
 
             let state = app.state::<discord_rpc::DiscordState>();
             discord_rpc::init_discord_rpc(&state);

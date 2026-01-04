@@ -42,6 +42,7 @@ import {
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
+import { clearProviderCache } from "../../providers";
 import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
 
 const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: string }[] = [
@@ -52,14 +53,14 @@ const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: st
 ];
 
 const MUSIC_PROVIDERS: {
-  id: MusicProviderType;
+  id: MusicProviderType | "apple";
   name: string;
   color: string;
   available: boolean;
 }[] = [
   { id: "spotify", name: "Spotify", color: "#1DB954", available: true },
   { id: "apple", name: "Apple Music", color: "#FC3C44", available: false },
-  { id: "youtube", name: "YouTube Music", color: "#FF0000", available: false },
+  { id: "youtube", name: "YouTube Music", color: "#FF0000", available: true },
 ];
 
 async function validateAIApiKey(provider: AIProviderType, apiKey: string): Promise<boolean> {
@@ -198,6 +199,11 @@ export default function Settings({
 
   const [spotifyConnected, setSpotifyConnected] = useState<boolean>(false);
   const [spotifyLoading, setSpotifyLoading] = useState<boolean>(false);
+  const [youtubeConnected, setYoutubeConnected] = useState<boolean>(false);
+  const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
+  const [showYouTubeSetup, setShowYouTubeSetup] = useState<boolean>(false);
+  const [youtubeClientId, setYoutubeClientId] = useState<string>("");
+  const [youtubeClientSecret, setYoutubeClientSecret] = useState<string>("");
 
   const [aiProviders, setAiProviders] = useState<AIProviderConfig[]>([]);
   const [activeAIProvider, setActiveAIProvider] = useState<AIProviderType | null>(null);
@@ -230,6 +236,11 @@ export default function Settings({
   const checkSpotifyConnection = useCallback(async () => {
     const hasTokens = await invoke<boolean>("has_valid_tokens");
     setSpotifyConnected(hasTokens);
+  }, []);
+
+  const checkYouTubeConnection = useCallback(async () => {
+    const hasTokens = await invoke<boolean>("has_valid_youtube_tokens");
+    setYoutubeConnected(hasTokens);
   }, []);
 
   useEffect(() => {
@@ -265,8 +276,9 @@ export default function Settings({
       setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
       await refreshCustomThemes();
       await checkSpotifyConnection();
+      await checkYouTubeConnection();
     })();
-  }, [setLayout, refreshCustomThemes, checkSpotifyConnection]);
+  }, [setLayout, refreshCustomThemes, checkSpotifyConnection, checkYouTubeConnection]);
 
   useEffect(() => {
     const setupOAuthListener = async () => {
@@ -277,10 +289,20 @@ export default function Settings({
       const unlistenFailed = await listen("oauth-failed", () => {
         setSpotifyLoading(false);
       });
+      const unlistenYTSuccess = await listen("youtube-oauth-success", async () => {
+        setYoutubeLoading(false);
+        setShowYouTubeSetup(false);
+        await checkYouTubeConnection();
+      });
+      const unlistenYTFailed = await listen("youtube-oauth-failed", () => {
+        setYoutubeLoading(false);
+      });
 
       return () => {
         unlistenSuccess();
         unlistenFailed();
+        unlistenYTSuccess();
+        unlistenYTFailed();
       };
     };
 
@@ -288,7 +310,7 @@ export default function Settings({
     return () => {
       cleanup.then((c) => c());
     };
-  }, [checkSpotifyConnection]);
+  }, [checkSpotifyConnection, checkYouTubeConnection]);
 
   const handleSpotifyLogout = async () => {
     setSpotifyLoading(true);
@@ -300,6 +322,34 @@ export default function Settings({
 
   const handleSpotifyConnect = async () => {
     onResetAuth?.();
+  };
+
+  const handleYouTubeConnect = () => {
+    setShowYouTubeSetup(true);
+  };
+
+  const handleYouTubeSetupSubmit = async () => {
+    if (!youtubeClientId.trim() || !youtubeClientSecret.trim()) {
+      return;
+    }
+    setYoutubeLoading(true);
+    try {
+      await invoke("save_youtube_credentials", {
+        clientId: youtubeClientId.trim(),
+        clientSecret: youtubeClientSecret.trim(),
+      });
+      await invoke("start_youtube_oauth_flow");
+    } catch (e) {
+      console.error("YouTube setup failed:", e);
+      setYoutubeLoading(false);
+    }
+  };
+
+  const handleYouTubeLogout = async () => {
+    setYoutubeLoading(true);
+    await invoke("clear_youtube_credentials");
+    setYoutubeConnected(false);
+    setYoutubeLoading(false);
   };
 
   const handleClearEverything = async () => {
@@ -374,7 +424,9 @@ export default function Settings({
 
   const handleSetActiveMusicProvider = async (provider: MusicProviderType) => {
     setActiveMusicProvider(provider);
+    clearProviderCache();
     await writeSettings({ active_music_provider: provider });
+    window.location.reload();
   };
 
   const handleToggleAIQueueBorder = async () => {
@@ -565,8 +617,13 @@ export default function Settings({
               </p>
 
               {MUSIC_PROVIDERS.map(({ id, name, color, available }) => {
-                const isSpotifyConnected = id === "spotify" && spotifyConnected;
+                const isConnected =
+                  (id === "spotify" && spotifyConnected) ||
+                  (id === "youtube" && youtubeConnected);
                 const isActive = activeMusicProvider === id;
+                const isLoading =
+                  (id === "spotify" && spotifyLoading) ||
+                  (id === "youtube" && youtubeLoading);
                 const IconComponent =
                   id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
 
@@ -577,9 +634,9 @@ export default function Settings({
                     style={{
                       background: "rgba(0, 0, 0, 0.2)",
                       borderColor:
-                        isSpotifyConnected && isActive
+                        isConnected && isActive
                           ? `${color}50`
-                          : isSpotifyConnected
+                          : isConnected
                             ? `${color}30`
                             : "rgba(255, 255, 255, 0.1)",
                     }}
@@ -600,12 +657,12 @@ export default function Settings({
                         <span
                           className="text-xs flex items-center gap-1"
                           style={{
-                            color: isSpotifyConnected ? color : "var(--settings-text-muted)",
+                            color: isConnected ? color : "var(--settings-text-muted)",
                           }}
                         >
                           {!available ? (
                             "Coming soon"
-                          ) : isSpotifyConnected ? (
+                          ) : isConnected ? (
                             <>
                               <span
                                 className="w-2 h-2 rounded-full"
@@ -621,7 +678,7 @@ export default function Settings({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isSpotifyConnected && !isActive && (
+                      {isConnected && !isActive && (
                         <button
                           type="button"
                           onClick={() => handleSetActiveMusicProvider(id)}
@@ -654,6 +711,33 @@ export default function Settings({
                           ) : (
                             <>
                               <SpotifyLogo size={16} weight="fill" />
+                              <span className="text-sm">Connect</span>
+                            </>
+                          )}
+                        </button>
+                      ) : id === "youtube" && youtubeConnected ? (
+                        <button
+                          type="button"
+                          onClick={handleYouTubeLogout}
+                          disabled={youtubeLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <SignOut size={16} />
+                          <span className="text-sm">Disconnect</span>
+                        </button>
+                      ) : id === "youtube" && available ? (
+                        <button
+                          type="button"
+                          onClick={handleYouTubeConnect}
+                          disabled={isLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: color }}
+                        >
+                          {isLoading ? (
+                            <span className="text-sm">Connecting...</span>
+                          ) : (
+                            <>
+                              <YoutubeLogo size={16} weight="fill" />
                               <span className="text-sm">Connect</span>
                             </>
                           )}
@@ -1242,6 +1326,113 @@ export default function Settings({
           )}
         </div>
       </div>
+
+      {showYouTubeSetup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !youtubeLoading && setShowYouTubeSetup(false)}
+            onKeyDown={() => {}}
+          />
+          <div
+            className="relative p-6 rounded-2xl max-w-md w-full mx-4 animate-fadeIn"
+            style={{
+              background: "rgba(30, 30, 30, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full" style={{ background: "rgba(255, 0, 0, 0.2)" }}>
+                <YoutubeLogo size={24} weight="fill" className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Connect YouTube Music</h3>
+            </div>
+
+            <p className="text-sm text-[--settings-text-muted] mb-4">
+              To use YouTube Music, you need to create a Google Cloud project with YouTube Data API
+              v3 enabled.
+            </p>
+
+            <div className="flex flex-col gap-3 mb-4">
+              <div>
+                <label className="text-xs text-[--settings-text-muted] mb-1 block">Client ID</label>
+                <input
+                  type="text"
+                  placeholder="Enter Google OAuth Client ID"
+                  value={youtubeClientId}
+                  onChange={(e) => setYoutubeClientId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-sm focus:outline-none focus:border-red-500"
+                  style={{ color: "var(--settings-text)" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-[--settings-text-muted] mb-1 block">
+                  Client Secret
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter Google OAuth Client Secret"
+                  value={youtubeClientSecret}
+                  onChange={(e) => setYoutubeClientSecret(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-sm focus:outline-none focus:border-red-500"
+                  style={{ color: "var(--settings-text)" }}
+                />
+              </div>
+            </div>
+
+            <div
+              className="p-3 rounded-lg text-xs mb-4"
+              style={{
+                background: "rgba(255, 0, 0, 0.1)",
+                borderLeft: "3px solid #FF0000",
+              }}
+            >
+              <span className="font-medium text-red-400">Setup:</span>{" "}
+              <span className="text-[--settings-text-muted]">
+                1. Go to Google Cloud Console → APIs & Services
+                <br />
+                2. Enable YouTube Data API v3
+                <br />
+                3. Create OAuth 2.0 credentials (Desktop app)
+                <br />
+                4. Add http://127.0.0.1:3001/callback as redirect URI
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowYouTubeSetup(false)}
+                disabled={youtubeLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleYouTubeSetupSubmit}
+                disabled={
+                  youtubeLoading || !youtubeClientId.trim() || !youtubeClientSecret.trim()
+                }
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {youtubeLoading ? (
+                  <>
+                    <CircleNotch size={16} className="animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <YoutubeLogo size={16} weight="fill" />
+                    Connect
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showClearDialog && (
         <div className="fixed inset-0 flex items-center justify-center z-50">

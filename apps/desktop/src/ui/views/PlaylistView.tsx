@@ -1,13 +1,13 @@
-import { ArrowLeft, MusicNotes, Play, SpinnerGap } from "@phosphor-icons/react";
+import { ArrowLeft, MusicNotes, Play, SpinnerGap, Warning } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
+import { getActiveProvider, getActiveProviderType } from "../../providers";
+import { convertToUnifiedTrack } from "../../providers/spotify";
+import type { MusicProviderType, UnifiedTrack } from "../../providers/types";
 import {
   type SimplifiedPlaylist,
-  type SimplifiedTrack,
   fetchPlaylistTracks,
   fetchUserPlaylists,
-  getLargestImageUrl,
-  playTrack,
 } from "../spotifyClient";
 
 type PlaylistViewProps = {
@@ -27,9 +27,10 @@ function formatDuration(ms: number): string {
 
 export default function PlaylistView({ onBack }: PlaylistViewProps) {
   const { setLayout } = useWindowLayout();
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [playlists, setPlaylists] = useState<SimplifiedPlaylist[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<SimplifiedPlaylist | null>(null);
-  const [tracks, setTracks] = useState<SimplifiedTrack[]>([]);
+  const [tracks, setTracks] = useState<UnifiedTrack[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState<boolean>(true);
   const [loadingTracks, setLoadingTracks] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -44,7 +45,15 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   }, [setLayout]);
 
   useEffect(() => {
-    const loadPlaylists = async () => {
+    const init = async () => {
+      const type = await getActiveProviderType();
+      setProviderType(type);
+      
+      if (type !== "spotify") {
+        setLoadingPlaylists(false);
+        return;
+      }
+      
       setLoadingPlaylists(true);
       try {
         const response = await fetchUserPlaylists(50, 0);
@@ -55,7 +64,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
         setLoadingPlaylists(false);
       }
     };
-    loadPlaylists();
+    init();
   }, []);
 
   const handleSelectPlaylist = useCallback(async (playlist: SimplifiedPlaylist) => {
@@ -66,7 +75,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
     loadedCountRef.current = 0;
     try {
       const response = await fetchPlaylistTracks(playlist.id, TRACKS_PER_PAGE, 0);
-      setTracks(response.tracks);
+      setTracks(response.tracks.map(convertToUnifiedTrack));
       setTotalTracks(response.total);
       loadedCountRef.current = response.tracks.length;
     } catch (err) {
@@ -97,7 +106,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
       // Only add tracks if we got new ones
       if (response.tracks.length > 0) {
         loadedCountRef.current = currentOffset + response.tracks.length;
-        setTracks((prev) => [...prev, ...response.tracks]);
+        setTracks((prev) => [...prev, ...response.tracks.map(convertToUnifiedTrack)]);
         setTotalTracks(response.total);
       }
     } catch (err) {
@@ -128,10 +137,11 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
     loadedCountRef.current = 0;
   }, []);
 
-  const handlePlayTrack = async (track: SimplifiedTrack) => {
+  const handlePlayTrack = async (track: UnifiedTrack) => {
     setPlayingId(track.id);
     try {
-      await playTrack(`spotify:track:${track.id}`);
+      const provider = await getActiveProvider();
+      await provider.playTrack(track.uri);
     } catch (err) {
       console.error("Play failed:", err);
     } finally {
@@ -185,7 +195,21 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                 </div>
               )}
 
-              {!loadingPlaylists && playlists.length === 0 && (
+              {!loadingPlaylists && providerType === "youtube" && (
+                <div
+                  className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
+                  style={{ color: "var(--settings-text-muted)" }}
+                >
+                  <Warning size={32} weight="fill" className="text-yellow-500" />
+                  <p className="font-medium">Playlists not available</p>
+                  <p className="text-xs">
+                    YouTube Music does not support playlists through the API.
+                    Use Search to find and play tracks instead.
+                  </p>
+                </div>
+              )}
+
+              {!loadingPlaylists && providerType === "spotify" && playlists.length === 0 && (
                 <div
                   className="flex items-center justify-center h-full"
                   style={{ color: "var(--settings-text-muted)" }}
@@ -194,7 +218,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                 </div>
               )}
 
-              {!loadingPlaylists && playlists.length > 0 && (
+              {!loadingPlaylists && providerType === "spotify" && playlists.length > 0 && (
                 <ul className="py-2">
                   {playlists.map((playlist) => {
                     const playlistImage =
@@ -275,7 +299,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                 >
                   <ul className="py-2">
                     {tracks.map((track) => {
-                      const albumArt = getLargestImageUrl(track.album.images);
+                      const albumArt = track.album.images[0]?.url;
                       const artistNames = track.artists.map((a) => a.name).join(", ");
                       const isPlaying = playingId === track.id;
 
@@ -340,7 +364,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                               className="text-xs flex-shrink-0"
                               style={{ color: "var(--settings-text-muted)" }}
                             >
-                              {formatDuration(track.duration_ms)}
+                              {formatDuration(track.durationMs)}
                             </span>
                           </button>
                         </li>

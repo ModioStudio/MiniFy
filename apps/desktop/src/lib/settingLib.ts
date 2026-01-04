@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 export type AIProviderType = "openai" | "anthropic" | "google" | "groq";
-export type MusicProviderType = "spotify" | "apple" | "youtube";
+export type MusicProviderType = "spotify" | "youtube";
 
 export type AIProviderConfig = {
   provider: AIProviderType;

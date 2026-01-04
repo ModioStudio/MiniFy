@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./global.css";
 
 import { LogicalPosition } from "@tauri-apps/api/dpi";
@@ -9,6 +9,9 @@ import { getActiveProvider } from "../lib/aiClient";
 import { useAIQueueStore } from "../lib/aiQueueStore";
 import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
+import { getActiveProviderType } from "../providers";
+import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
+import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
 
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
@@ -37,6 +40,8 @@ export default function App() {
   const [view, setView] = useState<AppView>("app");
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState<AddToPlaylistTrack>(null);
+  const [isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
+  const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
 
   const aiQueueActive = useAIQueueStore((s) => s.isActive);
   const showBorder = aiQueueActive && showAIQueueBorder;
@@ -49,6 +54,9 @@ export default function App() {
       setLayout(settings.layout ?? "LayoutA");
       setTheme(settings.theme ?? "dark");
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
+      
+      const providerType = await getActiveProviderType();
+      setIsYouTubeActive(providerType === "youtube");
     })();
   }, []);
 
@@ -211,7 +219,6 @@ export default function App() {
               first_boot_done: true,
               layout,
               theme,
-              spotify: { access_token: null, refresh_token: null },
             });
             setFirstBootDone(true);
             setIsReconnect(false);
@@ -277,6 +284,21 @@ export default function App() {
     return renderLayout();
   };
 
+  const handleYouTubeReady = () => {
+    if (youtubePlayerRef.current) {
+      setYouTubePlayerRef(youtubePlayerRef.current);
+    }
+  };
+
+  const handleYouTubeVideoChange = (data: {
+    videoId: string;
+    title: string;
+    author: string;
+    duration: number;
+  }) => {
+    updateCurrentYouTubeTrack(data);
+  };
+
   return (
     <div className="h-full w-full no-drag relative theme-scope transition-all duration-300">
       <div className="drag-area" onMouseDown={handleDragStart} />
@@ -289,6 +311,13 @@ export default function App() {
             borderRadius: "12px",
             boxShadow: "inset 0 0 30px rgba(127, 29, 29, 0.4), inset 0 0 60px rgba(127, 29, 29, 0.15)",
           }}
+        />
+      )}
+      {isYouTubeActive && (
+        <YouTubePlayer
+          playerRef={youtubePlayerRef}
+          onReady={handleYouTubeReady}
+          onVideoChange={handleYouTubeVideoChange}
         />
       )}
     </div>

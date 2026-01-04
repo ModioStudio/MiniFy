@@ -37,7 +37,7 @@ function LayoutA() {
               durationMs={duration}
               progressMs={progress}
               isPlaying={isPlaying}
-              onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
+              onSeek={(ms) => setState((s) => (s ? { ...s, progressMs: ms } : s))}
             />
           </div>
         </div>

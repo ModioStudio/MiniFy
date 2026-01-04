@@ -1,6 +1,6 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
-import { nextTrack, pause, play, previousTrack } from "../../spotifyClient";
+import { getActiveProvider } from "../../../providers";
 
 type TrackControlsProps = {
   isPlaying: boolean;
@@ -9,21 +9,25 @@ type TrackControlsProps = {
 };
 
 export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: TrackControlsProps) {
-  const handlePrev = useCallback(() => {
-    previousTrack();
+  const handlePrev = useCallback(async () => {
+    const provider = await getActiveProvider();
+    provider.previousTrack();
   }, []);
 
-  const handleNext = useCallback(() => {
-    nextTrack();
+  const handleNext = useCallback(async () => {
+    const provider = await getActiveProvider();
+    provider.nextTrack();
   }, []);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = useCallback(async () => {
     const next = !isPlaying;
     onTogglePlaying?.(next);
+    
+    const provider = await getActiveProvider();
     if (next) {
-      play();
+      provider.play();
     } else {
-      pause();
+      provider.pause();
     }
   }, [isPlaying, onTogglePlaying]);
 

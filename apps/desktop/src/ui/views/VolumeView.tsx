@@ -1,7 +1,9 @@
-import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX } from "@phosphor-icons/react";
+import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX, Warning } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import { getPlayerState, setVolume } from "../spotifyClient";
+import { getActiveProvider, getActiveProviderType } from "../../providers";
+import type { MusicProviderType } from "../../providers/types";
+import { getPlayerState } from "../spotifyClient";
 
 type VolumeViewProps = {
   onBack: () => void;
@@ -9,6 +11,7 @@ type VolumeViewProps = {
 
 export default function VolumeView({ onBack }: VolumeViewProps) {
   const { setLayout } = useWindowLayout();
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [volume, setLocalVolume] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(true);
   const [deviceName, setDeviceName] = useState<string>("");
@@ -20,6 +23,14 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
   useEffect(() => {
     const loadVolume = async () => {
       setLoading(true);
+      const type = await getActiveProviderType();
+      setProviderType(type);
+      
+      if (type !== "spotify") {
+        setLoading(false);
+        return;
+      }
+      
       const state = await getPlayerState();
       if (state?.device) {
         setLocalVolume(state.device.volume_percent);
@@ -30,15 +41,17 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
     loadVolume();
   }, []);
 
-  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVolumeChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number(e.target.value);
     setLocalVolume(newVolume);
-    setVolume(newVolume);
+    const provider = await getActiveProvider();
+    provider.setVolume(newVolume);
   }, []);
 
-  const handlePreset = useCallback((preset: number) => {
+  const handlePreset = useCallback(async (preset: number) => {
     setLocalVolume(preset);
-    setVolume(preset);
+    const provider = await getActiveProvider();
+    provider.setVolume(preset);
   }, []);
 
   const getVolumeIcon = () => {
@@ -78,6 +91,18 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
             style={{ color: "var(--settings-text-muted)" }}
           >
             Loading...
+          </div>
+        ) : providerType === "youtube" ? (
+          <div
+            className="flex flex-col items-center justify-center py-8 gap-3 text-center"
+            style={{ color: "var(--settings-text-muted)" }}
+          >
+            <Warning size={32} weight="fill" className="text-yellow-500" />
+            <p className="font-medium">Volume control not available</p>
+            <p className="text-xs">
+              YouTube Music does not support remote volume control.
+              Use your system volume instead.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
