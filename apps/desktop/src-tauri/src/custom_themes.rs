@@ -1,7 +1,22 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use dirs::config_dir;
+
+fn get_custom_themes_dir() -> PathBuf {
+    let app_data = std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string());
+    let mut path = PathBuf::from(app_data);
+    path.push("MiniFy");
+    path.push("themes");
+    fs::create_dir_all(&path).ok();
+    path
+}
+
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .collect::<String>()
+        .to_lowercase()
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CustomTheme {
@@ -95,59 +110,43 @@ pub struct CoverConfig {
     pub border_radius: Option<u32>,
 }
 
-fn get_custom_themes_dir() -> PathBuf {
-    let mut path = config_dir().unwrap_or_else(|| PathBuf::from("."));
-    path.push("MiniFy");
-    path.push("custom_themes");
-    fs::create_dir_all(&path).ok();
-    path
-}
-
-fn sanitize_filename(name: &str) -> String {
-    name.chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
-        .collect::<String>()
-        .to_lowercase()
-}
-
 #[tauri::command]
 pub fn save_custom_theme(theme_json: String) -> Result<String, String> {
     let theme: CustomTheme = serde_json::from_str(&theme_json)
         .map_err(|e| format!("Invalid JSON: {}", e))?;
     
-    if theme.name.trim().is_empty() {
-        return Err("Theme name is required".to_string());
-    }
-    
     let filename = format!("{}.json", sanitize_filename(&theme.name));
     let mut path = get_custom_themes_dir();
     path.push(&filename);
     
-    fs::write(&path, serde_json::to_string_pretty(&theme).unwrap())
+    fs::write(&path, &theme_json)
         .map_err(|e| format!("Failed to save theme: {}", e))?;
     
-    Ok(filename)
+    Ok(theme.name)
 }
 
 #[tauri::command]
 pub fn load_custom_themes() -> Vec<CustomTheme> {
     let dir = get_custom_themes_dir();
-    let mut themes = Vec::new();
     
-    if let Ok(entries) = fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "json") {
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if let Ok(theme) = serde_json::from_str::<CustomTheme>(&content) {
-                        themes.push(theme);
-                    }
-                }
-            }
-        }
-    }
+    let entries = match fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(_) => return Vec::new(),
+    };
     
-    themes
+    entries
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry.path().extension()
+                .map(|ext| ext == "json")
+                .unwrap_or(false)
+        })
+        .filter_map(|entry| {
+            fs::read_to_string(entry.path())
+                .ok()
+                .and_then(|content| serde_json::from_str(&content).ok())
+        })
+        .collect()
 }
 
 #[tauri::command]
@@ -186,3 +185,15 @@ pub fn validate_theme_json(theme_json: String) -> Result<bool, String> {
     Ok(true)
 }
 
+pub fn clear_custom_themes() -> bool {
+    let dir = get_custom_themes_dir();
+    
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if entry.path().extension().map(|e| e == "json").unwrap_or(false) {
+                let _ = fs::remove_file(entry.path());
+            }
+        }
+    }
+    true
+}

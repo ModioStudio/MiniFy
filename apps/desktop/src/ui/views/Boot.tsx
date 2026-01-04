@@ -81,8 +81,13 @@ export default function Boot({ onComplete, initialStep = "provider" }: BootProps
     }
 
     setError(null);
-    await invoke("save_spotify_client_id", { clientId: clientId.trim() });
-    await startSpotifyAuth();
+    try {
+      await invoke("save_spotify_client_id", { clientId: clientId.trim() });
+      await startSpotifyAuth();
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      setError(`Failed to save Client ID: ${errorMsg}`);
+    }
   };
 
   const startSpotifyAuth = async () => {

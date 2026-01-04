@@ -219,6 +219,8 @@ export default function Settings({
   });
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
+  const [showClearDialog, setShowClearDialog] = useState<boolean>(false);
+  const [clearingData, setClearingData] = useState<boolean>(false);
 
   const refreshCustomThemes = useCallback(async () => {
     const themes = await loadCustomThemes();
@@ -298,6 +300,19 @@ export default function Settings({
 
   const handleSpotifyConnect = async () => {
     onResetAuth?.();
+  };
+
+  const handleClearEverything = async () => {
+    setClearingData(true);
+    try {
+      await invoke("clear_everything");
+      setShowClearDialog(false);
+      onResetAuth?.();
+    } catch (e) {
+      console.error("Failed to clear data:", e);
+    } finally {
+      setClearingData(false);
+    }
   };
 
   const handleValidateAIKey = async (provider: AIProviderType) => {
@@ -1203,10 +1218,89 @@ export default function Settings({
                 This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google,
                 or Groq). We do not store or process this data ourselves.
               </p>
+
+              <div className="border-t border-white/10 my-4" />
+
+              <div className="font-medium flex items-center gap-2 text-red-400">
+                <Trash size={18} weight="fill" />
+                Clear All Data
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Permanently delete all stored data including Spotify tokens, AI API keys, settings,
+                and custom themes. This action cannot be undone.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setShowClearDialog(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer w-fit"
+              >
+                <Trash size={16} />
+                <span className="text-sm font-medium">Clear Everything</span>
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {showClearDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !clearingData && setShowClearDialog(false)}
+            onKeyDown={() => {}}
+          />
+          <div
+            className="relative p-6 rounded-2xl max-w-sm w-full mx-4 animate-fadeIn"
+            style={{
+              background: "rgba(30, 30, 30, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-red-500/20">
+                <Warning size={24} weight="fill" className="text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Clear All Data?</h3>
+            </div>
+
+            <p className="text-sm text-[--settings-text-muted] mb-6">
+              This will permanently delete all your data including Spotify authentication, AI API
+              keys, settings, and custom themes. You will need to set up the app again.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearDialog(false)}
+                disabled={clearingData}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClearEverything}
+                disabled={clearingData}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {clearingData ? (
+                  <>
+                    <CircleNotch size={16} className="animate-spin" />
+                    Clearing...
+                  </>
+                ) : (
+                  <>
+                    <Trash size={16} />
+                    Clear All
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn {

@@ -8,6 +8,33 @@ pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
 
+mod clear_all {
+    use super::*;
+
+    pub async fn execute() -> Result<(), String> {
+        let settings_cleared = settings::clear_settings();
+        let themes_cleared = custom_themes::clear_custom_themes();
+        let credentials_result = spotify_auth::clear_credentials().await;
+        let ai_keys_result = ai_keyring::clear_all_ai_keys().await;
+
+        if !settings_cleared {
+            return Err("Failed to clear settings".to_string());
+        }
+        if !themes_cleared {
+            return Err("Failed to clear custom themes".to_string());
+        }
+        credentials_result?;
+        ai_keys_result?;
+
+        Ok(())
+    }
+}
+
+#[tauri::command]
+async fn clear_everything() -> Result<(), String> {
+    clear_all::execute().await
+}
+
 pub fn run() {
     let discord_state = discord_rpc::DiscordState::new();
 
@@ -16,6 +43,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(discord_state)
         .invoke_handler(tauri::generate_handler![
+            clear_everything,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,

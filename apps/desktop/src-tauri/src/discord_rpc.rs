@@ -27,8 +27,7 @@ impl Default for DiscordState {
 }
 
 fn connect_discord() -> Result<DiscordIpcClient, String> {
-    let mut client = DiscordIpcClient::new(DISCORD_APPLICATION_ID)
-        .map_err(|e| format!("Failed to create Discord client: {}", e))?;
+    let mut client = DiscordIpcClient::new(DISCORD_APPLICATION_ID);
 
     client
         .connect()

@@ -19,20 +19,30 @@ const AI_QUEUE_SYSTEM_PROMPT = `You are a DJ creating a seamless playlist. Based
 ## Data Format (TOON)
 Input uses compact format: n=name, a=artists, u=uri (for tracks), n=name, g=genres (for artists)
 
-## Output Format
-Return ONLY a JSON array of 5 track suggestions. Each object must have:
+## Output Format (TOON)
+Return ONLY a JSON array of 5 track suggestions using TOON format. Each object must have:
 - n: track name (string, exact Spotify track name)
 - a: artist name (string, main artist only)
 
 Example response:
-[{"n":"Blinding Lights","a":"The Weeknd"},{"n":"Save Your Tears","a":"The Weeknd"},{"n":"Starboy","a":"The Weeknd"},{"n":"Die For You","a":"The Weeknd"},{"n":"After Hours","a":"The Weeknd"}]
+[{"n":"Blinding Lights","a":"The Weeknd"},{"n":"Electric Feel","a":"MGMT"},{"n":"Midnight City","a":"M83"},{"n":"Take On Me","a":"a-ha"},{"n":"Dreams","a":"Fleetwood Mac"}]
 
 IMPORTANT RULES:
 - Use exact track names as they appear on Spotify
 - Do NOT suggest tracks from the recent tracks list - suggest NEW discoveries
-- Keep variety - suggest tracks from DIFFERENT artists
+- Keep variety - suggest tracks from DIFFERENT artists (at least 3-4 different)
+- Mix popular hits with lesser-known gems for variety
 - Maintain mood/energy flow
 - No explanations, just the JSON array`;
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 function formatTracksForToon(
   tracks: SimplifiedTrack[]
@@ -124,30 +134,30 @@ export async function fetchNextBatch(): Promise<QueuedTrack[]> {
     const recentTracks = await fetchRecentlyPlayed(30);
     const topArtists = await fetchTopArtists("short_term", 10);
 
-    let userProfile = store.cachedUserProfile;
-    const cacheAge = Date.now() - store.lastFetchTime;
-    const CACHE_TTL = 10 * 60 * 1000;
-
-    if (!userProfile || cacheAge > CACHE_TTL) {
-      const artistData = formatArtistsForToon(topArtists);
-      userProfile = encode(artistData);
-      store.setCachedUserProfile(userProfile);
-    }
-
-    const recentData = formatTracksForToon(recentTracks.slice(0, 15));
+    // Shuffle and sample recent tracks for variety
+    const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
+    const recentData = formatTracksForToon(shuffledRecent);
     const recentToon = encode(recentData);
+
+    // Shuffle artists too
+    const shuffledArtists = shuffleArray(topArtists);
+    const artistData = formatArtistsForToon(shuffledArtists);
+    const artistToon = encode(artistData);
 
     const model = createAIModel(provider.provider, provider.apiKey);
 
+    // Add randomness seed to prompt for variety
+    const randomSeed = Math.random().toString(36).substring(2, 8);
+
     const moodInstruction = currentMoodContext
-      ? `\n\nIMPORTANT USER REQUEST: The user specifically wants "${currentMoodContext}". Prioritize this mood/genre over recent tracks!`
+      ? `\n\nIMPORTANT USER REQUEST: The user specifically wants "${currentMoodContext}". Prioritize this mood/genre!`
       : "";
 
-    const prompt = `Recent tracks (TOON):
+    const prompt = `[${randomSeed}] Recent tracks (TOON):
 ${recentToon}
 
 Top artists (TOON):
-${userProfile}${moodInstruction}
+${artistToon}${moodInstruction}
 
 Suggest 5 tracks that would flow well. Consider energy, mood, and genre continuity.`;
 
@@ -155,7 +165,6 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
       model,
       system: AI_QUEUE_SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
-      maxTokens: 500,
     });
 
     const jsonMatch = result.text.match(/\[[\s\S]*\]/);
@@ -173,11 +182,17 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
       );
     }
 
+    // Build set of recently played URIs to avoid duplicates
+    const recentUris = new Set(recentTracks.map((t) => `spotify:track:${t.id}`));
+
     const queuedTracks: QueuedTrack[] = [];
 
-    for (const suggestion of suggestions) {
+    // Shuffle suggestions for additional randomness
+    const shuffledSuggestions = shuffleArray(suggestions);
+
+    for (const suggestion of shuffledSuggestions) {
       const uri = await searchAndGetUri(suggestion.n, suggestion.a);
-      if (uri && !store.hasPlayed(uri)) {
+      if (uri && !store.hasPlayed(uri) && !recentUris.has(uri)) {
         queuedTracks.push({
           name: suggestion.n,
           artists: suggestion.a,
@@ -187,33 +202,42 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
     }
 
     if (queuedTracks.length === 0) {
-      // Fallback: use recent tracks as base for recommendations
-      const fallbackQueries = ["popular tracks", "top hits", "trending music"];
+      // Fallback: search for varied genres
+      const fallbackQueries = shuffleArray([
+        "indie hits 2020s",
+        "alternative rock classics",
+        "electronic dance",
+        "pop hits",
+        "r&b soul",
+        "hip hop essentials",
+        "rock anthems",
+      ]).slice(0, 3);
 
       for (const query of fallbackQueries) {
-        const results = await searchTracks(query, 10);
-        if (results.length > 0) {
-          for (const track of results) {
-            const uri = `spotify:track:${track.id}`;
-            if (!store.hasPlayed(uri)) {
-              queuedTracks.push({
-                name: track.name,
-                artists: track.artists.map(a => a.name).join(", "),
-                uri,
-              });
-            }
-            if (queuedTracks.length >= 5) break;
+        const results = await searchTracks(query, 20);
+        const shuffledResults = shuffleArray(results);
+        
+        for (const track of shuffledResults) {
+          const uri = `spotify:track:${track.id}`;
+          if (!store.hasPlayed(uri) && !recentUris.has(uri)) {
+            queuedTracks.push({
+              name: track.name,
+              artists: track.artists.map((a) => a.name).join(", "),
+              uri,
+            });
           }
-          if (queuedTracks.length > 0) break;
+          if (queuedTracks.length >= 5) break;
         }
+        if (queuedTracks.length > 0) break;
       }
     }
 
     if (queuedTracks.length === 0) {
-      throw new Error("Could not find any suggested tracks on Spotify");
+      throw new Error("Could not find any new tracks to play");
     }
 
-    return queuedTracks;
+    // Final shuffle of the batch
+    return shuffleArray(queuedTracks);
   } finally {
     store.setLoading(false);
   }
