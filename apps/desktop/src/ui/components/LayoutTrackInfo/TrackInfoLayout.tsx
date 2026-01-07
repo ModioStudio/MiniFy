@@ -1,9 +1,8 @@
 import type { TrackInfoProps } from "../../../lib/trackInfoProps";
+import { getLargestImageUrl, saveTrackToLibrary } from "../../spotifyClient";
 import { TrackActions } from "../TrackDataComponent/TrackAction";
 import { TrackCover } from "../TrackDataComponent/TrackCover";
 import { TrackMeta } from "../TrackDataComponent/TrackMeta";
-
-import { getLargestImageUrl, saveTrackToLibrary } from "../../spotifyClient";
 
 type Variant = "cover" | "title" | "artist" | "description" | "actions";
 type Size = number;

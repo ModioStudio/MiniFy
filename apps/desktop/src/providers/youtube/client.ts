@@ -165,9 +165,7 @@ export async function searchYouTubeVideos(
     return [];
   }
 
-  const videoIds = searchResponse.items
-    .map((item) => getVideoIdFromItem(item))
-    .join(",");
+  const videoIds = searchResponse.items.map((item) => getVideoIdFromItem(item)).join(",");
 
   const videoParams = new URLSearchParams({
     part: "snippet,contentDetails",
@@ -181,9 +179,7 @@ export async function searchYouTubeVideos(
   return videoResponse.items;
 }
 
-export async function getVideoDetails(
-  videoId: string
-): Promise<YouTubeVideoItem | null> {
+export async function getVideoDetails(videoId: string): Promise<YouTubeVideoItem | null> {
   const params = new URLSearchParams({
     part: "snippet,contentDetails",
     id: videoId,
@@ -198,16 +194,11 @@ export async function getVideoDetails(
 
 export function videoItemToTrackData(item: YouTubeVideoItem) {
   const videoId = getVideoIdFromItem(item);
-  const durationMs = item.contentDetails
-    ? parseIsoDuration(item.contentDetails.duration)
-    : 0;
+  const durationMs = item.contentDetails ? parseIsoDuration(item.contentDetails.duration) : 0;
 
   const thumbnails = item.snippet.thumbnails;
   const bestThumbnail =
-    thumbnails.maxres ||
-    thumbnails.high ||
-    thumbnails.medium ||
-    thumbnails.default;
+    thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
 
   return {
     id: videoId,
@@ -241,9 +232,7 @@ export async function getRelatedVideos(
       return [];
     }
 
-    const videoIds = response.items
-      .map((item) => getVideoIdFromItem(item))
-      .join(",");
+    const videoIds = response.items.map((item) => getVideoIdFromItem(item)).join(",");
 
     const videoParams = new URLSearchParams({
       part: "snippet,contentDetails",
@@ -400,10 +389,7 @@ export function playlistItemToTrackData(item: YouTubePlaylistItemResource) {
   const videoId = item.snippet.resourceId.videoId;
   const thumbnails = item.snippet.thumbnails;
   const bestThumbnail =
-    thumbnails.maxres ||
-    thumbnails.high ||
-    thumbnails.medium ||
-    thumbnails.default;
+    thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
 
   return {
     id: videoId,

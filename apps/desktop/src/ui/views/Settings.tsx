@@ -31,21 +31,21 @@ import {
   type AIProviderConfig,
   type AIProviderType,
   type CustomTheme,
-  type MusicProviderType,
   deleteAIApiKey,
   deleteCustomTheme,
   exportCustomTheme,
   hasAIApiKey,
   loadCustomThemes,
+  type MusicProviderType,
   readSettings,
   saveAIApiKey,
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
+import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
 import { clearProviderCache } from "../../providers";
 import { clearYouTubeState } from "../../providers/youtube";
 import { clearSpotifyTokenCache } from "../spotifyClient";
-import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
 
 const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: string }[] = [
   { id: "openai", name: "OpenAI", model: "GPT-4o Mini", color: "#10A37F" },
@@ -250,7 +250,7 @@ export default function Settings({
   const autoActivateSingleProvider = useCallback(async () => {
     const spotifyOk = await invoke<boolean>("has_valid_tokens");
     const youtubeOk = await invoke<boolean>("has_valid_youtube_tokens");
-    
+
     if (spotifyOk && !youtubeOk && activeMusicProvider !== "spotify") {
       clearYouTubeState();
       clearSpotifyTokenCache();
@@ -304,7 +304,13 @@ export default function Settings({
       await checkYouTubeConnection();
       await autoActivateSingleProvider();
     })();
-  }, [setLayout, refreshCustomThemes, checkSpotifyConnection, checkYouTubeConnection, autoActivateSingleProvider]);
+  }, [
+    setLayout,
+    refreshCustomThemes,
+    checkSpotifyConnection,
+    checkYouTubeConnection,
+    autoActivateSingleProvider,
+  ]);
 
   useEffect(() => {
     const setupOAuthListener = async () => {
@@ -628,12 +634,10 @@ export default function Settings({
 
               {MUSIC_PROVIDERS.map(({ id, name, color, iconColor, available }) => {
                 const isConnected =
-                  (id === "spotify" && spotifyConnected) ||
-                  (id === "youtube" && youtubeConnected);
+                  (id === "spotify" && spotifyConnected) || (id === "youtube" && youtubeConnected);
                 const isActive = activeMusicProvider === id;
                 const isLoading =
-                  (id === "spotify" && spotifyLoading) ||
-                  (id === "youtube" && youtubeLoading);
+                  (id === "spotify" && spotifyLoading) || (id === "youtube" && youtubeLoading);
                 const IconComponent =
                   id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
 
@@ -909,11 +913,16 @@ export default function Settings({
                     <span className="font-medium">Discord Status</span>
                     <span
                       className="text-xs flex items-center gap-1"
-                      style={{ color: discordRpcEnabled ? "#5865F2" : "var(--settings-text-muted)" }}
+                      style={{
+                        color: discordRpcEnabled ? "#5865F2" : "var(--settings-text-muted)",
+                      }}
                     >
                       {discordRpcEnabled ? (
                         <>
-                          <span className="w-2 h-2 rounded-full" style={{ background: "#5865F2" }} />
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: "#5865F2" }}
+                          />
                           Showing activity
                         </>
                       ) : (
@@ -1305,8 +1314,8 @@ export default function Settings({
               </div>
 
               <p className="text-xs text-[--settings-text-muted]">
-                This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google,
-                or Groq). We do not store or process this data ourselves.
+                This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google, or
+                Groq). We do not store or process this data ourselves.
               </p>
 
               <div className="border-t border-white/10 my-4" />

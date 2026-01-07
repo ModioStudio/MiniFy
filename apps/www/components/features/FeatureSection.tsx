@@ -1,10 +1,10 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { useLanguage } from "@/hooks/use-language";
 import { Layout, Lock, Palette, Sliders, SpotifyLogoIcon } from "@phosphor-icons/react";
 import { Zap } from "lucide-react";
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { useLanguage } from "@/hooks/use-language";
 
 export function FeaturesSection() {
   const { t } = useLanguage();

@@ -1,9 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/hooks/use-language";
 import { motion } from "framer-motion";
 import { ArrowRight, Download, Github } from "lucide-react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/hooks/use-language";
 import { PlayerPreview } from "./player";
 
 const fadeUp = {
@@ -46,10 +47,12 @@ export function HeroSection() {
             <span className="inline-flex items-baseline whitespace-nowrap">
               <span>Sp</span>
 
-              <img
+              <Image
                 src="/logo.png"
                 alt=""
                 aria-hidden="true"
+                width={80}
+                height={80}
                 className="
                   -mx-4
                   h-[1.6em] w-[1.6em]

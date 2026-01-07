@@ -26,7 +26,7 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
       setLoading(true);
       const type = await getActiveProviderType();
       setProviderType(type);
-      
+
       if (type === "youtube") {
         setDeviceName("YouTube Music (In-App Player)");
         const settings = await readSettings();
@@ -38,7 +38,7 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
         setLoading(false);
         return;
       }
-      
+
       const state = await getPlayerState();
       if (state?.device) {
         setLocalVolume(state.device.volume_percent);
@@ -49,28 +49,34 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
     loadVolume();
   }, []);
 
-  const handleVolumeChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = Number(e.target.value);
-    setLocalVolume(newVolume);
-    const provider = await getActiveProvider();
-    provider.setVolume(newVolume);
-    
-    // Save YouTube volume to settings
-    if (providerType === "youtube") {
-      await writeSettings({ youtube_volume: newVolume });
-    }
-  }, [providerType]);
+  const handleVolumeChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newVolume = Number(e.target.value);
+      setLocalVolume(newVolume);
+      const provider = await getActiveProvider();
+      provider.setVolume(newVolume);
 
-  const handlePreset = useCallback(async (preset: number) => {
-    setLocalVolume(preset);
-    const provider = await getActiveProvider();
-    provider.setVolume(preset);
-    
-    // Save YouTube volume to settings
-    if (providerType === "youtube") {
-      await writeSettings({ youtube_volume: preset });
-    }
-  }, [providerType]);
+      // Save YouTube volume to settings
+      if (providerType === "youtube") {
+        await writeSettings({ youtube_volume: newVolume });
+      }
+    },
+    [providerType]
+  );
+
+  const handlePreset = useCallback(
+    async (preset: number) => {
+      setLocalVolume(preset);
+      const provider = await getActiveProvider();
+      provider.setVolume(preset);
+
+      // Save YouTube volume to settings
+      if (providerType === "youtube") {
+        await writeSettings({ youtube_volume: preset });
+      }
+    },
+    [providerType]
+  );
 
   const getVolumeIcon = () => {
     if (volume === 0) return <SpeakerX size={32} weight="fill" />;
@@ -188,4 +194,3 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
     </div>
   );
 }
-

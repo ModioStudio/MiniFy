@@ -1,8 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
-import { readSettings, writeSettings, type LastPlayedTrack, type ProviderPlaybackCache, type MusicProviderType } from "../lib/settingLib";
-import { getActiveProvider, getActiveProviderType, type UnifiedTrack, type PlaybackState } from "../providers";
+import {
+  type LastPlayedTrack,
+  type MusicProviderType,
+  type ProviderPlaybackCache,
+  readSettings,
+  writeSettings,
+} from "../lib/settingLib";
+import {
+  getActiveProvider,
+  getActiveProviderType,
+  type PlaybackState,
+  type UnifiedTrack,
+} from "../providers";
 
 function updateDiscordPresence(
   trackName: string | null,
@@ -47,7 +58,7 @@ function unifiedTrackToCache(track: UnifiedTrack, progressMs: number): LastPlaye
 function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
   const cachedProvider = cache.track.provider ?? "spotify";
   const cachedUri = cache.track.uri ?? `spotify:track:${cache.track.id}`;
-  
+
   return {
     isPlaying: false,
     progressMs: cache.progress_ms,
@@ -73,13 +84,13 @@ async function saveTrackToProviderCache(
 ): Promise<void> {
   const cached = unifiedTrackToCache(track, progressMs);
   currentProviderCache[provider] = cached;
-  
+
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
-  
+
   saveTimeout = setTimeout(async () => {
-    await writeSettings({ 
+    await writeSettings({
       provider_playback_cache: currentProviderCache,
       last_played_track: cached,
     });
@@ -87,19 +98,21 @@ async function saveTrackToProviderCache(
   }, 2000);
 }
 
-export async function getLastPlayedForProvider(provider: MusicProviderType): Promise<LastPlayedTrack | null> {
+export async function getLastPlayedForProvider(
+  provider: MusicProviderType
+): Promise<LastPlayedTrack | null> {
   const settings = await readSettings();
-  
+
   // First check the new per-provider cache
   if (settings.provider_playback_cache?.[provider]) {
     return settings.provider_playback_cache[provider];
   }
-  
+
   // Fallback to old single cache if it matches the provider
   if (settings.last_played_track?.track.provider === provider) {
     return settings.last_played_track;
   }
-  
+
   return null;
 }
 
@@ -130,12 +143,12 @@ export function useCurrentlyPlaying(pollMs = 3000) {
         const settings = await readSettings();
         const provider = settings.active_music_provider ?? null;
         setActiveProvider(provider);
-        
+
         // Load provider cache into memory
         if (settings.provider_playback_cache) {
           currentProviderCache = settings.provider_playback_cache;
         }
-        
+
         // Load cached track for current provider
         if (provider) {
           const cached = await getLastPlayedForProvider(provider);
@@ -157,13 +170,13 @@ export function useCurrentlyPlaying(pollMs = 3000) {
       try {
         const providerType = await getActiveProviderType();
         const provider = await getActiveProvider();
-        
+
         if (!mounted) return;
-        
+
         setActiveProvider(providerType);
 
         let playbackState: PlaybackState | null = null;
-        
+
         try {
           playbackState = await provider.getPlaybackState();
         } catch (apiError) {
@@ -174,14 +187,18 @@ export function useCurrentlyPlaying(pollMs = 3000) {
             playbackState = cacheToPlaybackState(cached);
           }
         }
-        
+
         if (!mounted) return;
 
         const hasActiveTrack = playbackState?.track !== null && playbackState?.track !== undefined;
-        
+
         // Save to provider-specific cache
         if (hasActiveTrack && playbackState?.track) {
-          saveTrackToProviderCache(providerType, playbackState.track, playbackState.progressMs ?? 0);
+          saveTrackToProviderCache(
+            providerType,
+            playbackState.track,
+            playbackState.progressMs ?? 0
+          );
         }
 
         const trackId = playbackState?.track?.id ?? null;
@@ -207,7 +224,7 @@ export function useCurrentlyPlaying(pollMs = 3000) {
             initialLoadDone.current = true;
             return prev;
           }
-          
+
           initialLoadDone.current = true;
 
           if (hasActiveTrack && playbackState) {
@@ -220,15 +237,15 @@ export function useCurrentlyPlaying(pollMs = 3000) {
             }
             return playbackState;
           }
-          
+
           if (prev?.track && !prev?.isPlaying) {
             return prev;
           }
-          
+
           if (prev?.isPlaying) {
             return { ...prev, isPlaying: false };
           }
-          
+
           return prev;
         });
       } catch (e) {

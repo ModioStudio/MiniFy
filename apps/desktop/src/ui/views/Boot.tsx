@@ -6,12 +6,7 @@ import { writeSettings } from "../../lib/settingLib";
 
 type MusicProvider = "spotify" | "apple" | "youtube" | null;
 
-type BootStep =
-  | "provider"
-  | "spotify-setup"
-  | "youtube-setup"
-  | "connecting"
-  | "complete";
+type BootStep = "provider" | "spotify-setup" | "youtube-setup" | "connecting" | "complete";
 
 type BootProps = {
   onComplete: () => void;
@@ -19,7 +14,11 @@ type BootProps = {
   skipAuthCheck?: boolean;
 };
 
-export default function Boot({ onComplete, initialStep = "provider", skipAuthCheck = false }: BootProps) {
+export default function Boot({
+  onComplete,
+  initialStep = "provider",
+  skipAuthCheck = false,
+}: BootProps) {
   const [step, setStep] = useState<BootStep>(initialStep);
   const [selectedProvider, setSelectedProvider] = useState<MusicProvider>(() => {
     if (initialStep === "youtube-setup") return "youtube";
@@ -32,7 +31,7 @@ export default function Boot({ onComplete, initialStep = "provider", skipAuthChe
 
   const checkExistingAuth = useCallback(async () => {
     if (skipAuthCheck) return;
-    
+
     const hasProvider = await invoke<boolean>("has_music_provider");
     if (!hasProvider) return;
 

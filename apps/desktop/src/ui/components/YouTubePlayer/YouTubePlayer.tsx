@@ -3,10 +3,7 @@ import { useEffect, useRef, useState } from "react";
 declare global {
   interface Window {
     YT: {
-      Player: new (
-        elementId: string,
-        options: YouTubePlayerOptions
-      ) => YouTubePlayerInstance;
+      Player: new (elementId: string, options: YouTubePlayerOptions) => YouTubePlayerInstance;
       PlayerState: {
         UNSTARTED: number;
         ENDED: number;
@@ -124,7 +121,7 @@ function loadYouTubeAPI(): Promise<void> {
   if (apiLoadPromise) return apiLoadPromise;
 
   apiLoadPromise = new Promise((resolve) => {
-    if (window.YT && window.YT.Player) {
+    if (window.YT?.Player) {
       resolve();
       return;
     }
@@ -264,7 +261,7 @@ export function YouTubePlayer({
       if (destroyed || !containerRef.current) return;
 
       const playerId = "youtube-player-main";
-      
+
       // Check if player element already exists
       let playerDiv = document.getElementById(playerId);
       if (!playerDiv) {

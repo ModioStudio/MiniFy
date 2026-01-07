@@ -2,7 +2,7 @@ import { ArrowLeft, MusicNotes, Play, SpinnerGap, Warning } from "@phosphor-icon
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType, UnifiedTrack, UnifiedPlaylist } from "../../providers/types";
+import type { MusicProviderType, UnifiedPlaylist, UnifiedTrack } from "../../providers/types";
 
 type PlaylistViewProps = {
   onBack: () => void;
@@ -177,7 +177,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
         style={{ color: "var(--settings-header-text)" }}
       >
         <h1 className="text-base font-semibold">
-          {viewMode === "playlists" ? "Playlists" : selectedPlaylist?.name ?? "Playlist"}
+          {viewMode === "playlists" ? "Playlists" : (selectedPlaylist?.name ?? "Playlist")}
         </h1>
         <button
           type="button"
@@ -190,30 +190,33 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
       </div>
 
       <div className="h-[calc(100%-40px)] w-full flex flex-col gap-3">
-        {viewMode === "playlists" && providerType === "spotify" && !loadingPlaylists && hasPlaylistSupport && (
-          <div
-            className="flex items-center justify-between px-3 py-2 rounded-lg border text-xs"
-            style={{
-              background: "var(--settings-panel-bg)",
-              borderColor: "var(--settings-panel-border)",
-            }}
-          >
-            <span style={{ color: "var(--settings-text-muted)" }}>Only my playlists</span>
-            <button
-              type="button"
-              onClick={() => setShowOnlyOwn(!showOnlyOwn)}
-              className={`relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer ${
-                showOnlyOwn ? "bg-[--settings-accent]" : "bg-white/20"
-              }`}
+        {viewMode === "playlists" &&
+          providerType === "spotify" &&
+          !loadingPlaylists &&
+          hasPlaylistSupport && (
+            <div
+              className="flex items-center justify-between px-3 py-2 rounded-lg border text-xs"
+              style={{
+                background: "var(--settings-panel-bg)",
+                borderColor: "var(--settings-panel-border)",
+              }}
             >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-200 ${
-                  showOnlyOwn ? "translate-x-4" : "translate-x-0"
+              <span style={{ color: "var(--settings-text-muted)" }}>Only my playlists</span>
+              <button
+                type="button"
+                onClick={() => setShowOnlyOwn(!showOnlyOwn)}
+                className={`relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer ${
+                  showOnlyOwn ? "bg-[--settings-accent]" : "bg-white/20"
                 }`}
-              />
-            </button>
-          </div>
-        )}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-200 ${
+                    showOnlyOwn ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         <div
           className="flex-1 rounded-xl border overflow-auto text-sm"
           style={{

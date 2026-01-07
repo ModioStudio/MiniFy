@@ -1,22 +1,22 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { YouTubePlayerRef } from "../../ui/components/YouTubePlayer";
 import type {
   MusicProvider,
-  UnifiedTrack,
   PlaybackState,
-  ProviderCapabilities,
   PlaylistsResult,
   PlaylistTracksResult,
+  ProviderCapabilities,
+  UnifiedTrack,
 } from "../types";
 import {
+  addVideoToYouTubePlaylist,
+  fetchYouTubePlaylistItems,
+  fetchYouTubeUserPlaylists,
+  getVideoDetails,
+  playlistItemToTrackData,
   searchYouTubeVideos,
   videoItemToTrackData,
-  getVideoDetails,
-  fetchYouTubeUserPlaylists,
-  fetchYouTubePlaylistItems,
-  addVideoToYouTubePlaylist,
-  playlistItemToTrackData,
 } from "./client";
-import type { YouTubePlayerRef } from "../../ui/components/YouTubePlayer";
 
 let playerRef: YouTubePlayerRef | null = null;
 let currentTrack: UnifiedTrack | null = null;
@@ -47,9 +47,7 @@ function convertToUnifiedTrack(data: ReturnType<typeof videoItemToTrackData>): U
     album: {
       id: "youtube-music",
       name: data.album,
-      images: data.albumArt
-        ? [{ url: data.albumArt, width: 640, height: 640 }]
-        : [],
+      images: data.albumArt ? [{ url: data.albumArt, width: 640, height: 640 }] : [],
     },
     uri: data.uri,
     provider: "youtube",
@@ -105,7 +103,7 @@ class YouTubeProviderImpl implements MusicProvider {
 
   play(): void {
     if (!playerRef) return;
-    
+
     // Just resume playback - don't reload the video
     // The video should already be loaded from playTrack()
     playerRef.play();
@@ -151,14 +149,14 @@ class YouTubeProviderImpl implements MusicProvider {
     }
 
     playerRef.loadVideo(videoId);
-    
+
     // Seek to position if provided
     if (startPositionMs !== undefined && startPositionMs > 0) {
       // Wait a bit for video to load before seeking
       await new Promise((resolve) => setTimeout(resolve, 500));
       playerRef.seek(startPositionMs / 1000);
     }
-    
+
     playerRef.play();
 
     const details = await getVideoDetails(videoId);
@@ -169,7 +167,9 @@ class YouTubeProviderImpl implements MusicProvider {
   }
 
   async addToQueue(uri: string): Promise<void> {
-    console.warn("YouTube Provider: addToQueue not natively supported - track will be played directly");
+    console.warn(
+      "YouTube Provider: addToQueue not natively supported - track will be played directly"
+    );
     await this.playTrack(uri);
   }
 
@@ -195,7 +195,7 @@ class YouTubeProviderImpl implements MusicProvider {
     for (let i = 0; i < pagesNeeded; i++) {
       const response = await fetchYouTubeUserPlaylists(50, nextPageToken);
       total = response.total;
-      
+
       allPlaylists = allPlaylists.concat(
         response.playlists.map((p) => {
           const thumbnails = p.snippet.thumbnails;
@@ -205,7 +205,9 @@ class YouTubeProviderImpl implements MusicProvider {
             id: p.id,
             name: p.snippet.title,
             description: p.snippet.description || null,
-            images: bestThumb ? [{ url: bestThumb.url, width: bestThumb.width, height: bestThumb.height }] : [],
+            images: bestThumb
+              ? [{ url: bestThumb.url, width: bestThumb.width, height: bestThumb.height }]
+              : [],
             trackCount: p.contentDetails.itemCount,
             owner: {
               id: "youtube-user",

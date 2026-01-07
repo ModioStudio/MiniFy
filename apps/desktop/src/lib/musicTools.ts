@@ -1,5 +1,5 @@
-import { tool } from "ai";
 import { encode } from "@toon-format/toon";
+import { tool } from "ai";
 import { z } from "zod";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import type { UnifiedTrack } from "../providers/types";
@@ -107,9 +107,7 @@ export const musicTools = {
   playTrack: tool({
     description: "Play a specific track using its URI",
     parameters: z.object({
-      trackUri: z
-        .string()
-        .describe("Track URI (spotify:track:ID or youtube:video:ID format)"),
+      trackUri: z.string().describe("Track URI (spotify:track:ID or youtube:video:ID format)"),
     }),
     execute: async ({ trackUri }) => {
       try {

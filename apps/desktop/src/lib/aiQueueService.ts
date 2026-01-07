@@ -1,28 +1,25 @@
-import { generateText } from "ai";
 import { encode } from "@toon-format/toon";
-import { createAIModel, getActiveProviderWithKey } from "./aiClient";
-import { type QueuedTrack, useAIQueueStore } from "./aiQueueStore";
-import { readSettings } from "./settingLib";
-import {
-  addToQueue as spotifyAddToQueue,
-  fetchCurrentlyPlaying as spotifyFetchCurrentlyPlaying,
-  fetchRecentlyPlayed as spotifyFetchRecentlyPlayed,
-  fetchTopArtists as spotifyFetchTopArtists,
-  playTracks as spotifyPlayTracks,
-  searchTracks as spotifySearchTracks,
-  type SimplifiedTrack,
-  type FullArtist,
-} from "../ui/spotifyClient";
+import { generateText } from "ai";
 import {
   getActiveProvider,
   getActiveProviderType,
   type MusicProviderType,
   type UnifiedTrack,
 } from "../providers";
+import { searchYouTubeVideos, videoItemToTrackData } from "../providers/youtube/client";
 import {
-  searchYouTubeVideos,
-  videoItemToTrackData,
-} from "../providers/youtube/client";
+  type FullArtist,
+  type SimplifiedTrack,
+  addToQueue as spotifyAddToQueue,
+  fetchCurrentlyPlaying as spotifyFetchCurrentlyPlaying,
+  fetchRecentlyPlayed as spotifyFetchRecentlyPlayed,
+  fetchTopArtists as spotifyFetchTopArtists,
+  playTracks as spotifyPlayTracks,
+  searchTracks as spotifySearchTracks,
+} from "../ui/spotifyClient";
+import { createAIModel, getActiveProviderWithKey } from "./aiClient";
+import { type QueuedTrack, useAIQueueStore } from "./aiQueueStore";
+import { readSettings } from "./settingLib";
 
 const AI_QUEUE_SYSTEM_PROMPT = `You are a DJ creating a seamless playlist. Based on the user's recent tracks and taste, suggest exactly 5 NEW tracks that flow well together.
 
@@ -74,71 +71,77 @@ function formatUnifiedTracksForToon(
   }));
 }
 
-function formatArtistsForToon(
-  artists: FullArtist[]
-): Array<{ n: string; g: string }> {
+function formatArtistsForToon(artists: FullArtist[]): Array<{ n: string; g: string }> {
   return artists.map((a) => ({
     n: a.name,
     g: a.genres.slice(0, 3).join(", "),
   }));
 }
 
-async function searchAndGetSpotifyUri(trackName: string, artistName: string): Promise<string | null> {
+async function searchAndGetSpotifyUri(
+  trackName: string,
+  artistName: string
+): Promise<string | null> {
   try {
     let results = await spotifySearchTracks(`${trackName} ${artistName}`, 5);
-    
+
     const artistLower = artistName.toLowerCase();
     const trackLower = trackName.toLowerCase();
-    
+
     for (const track of results) {
-      const trackArtists = track.artists.map(a => a.name.toLowerCase()).join(" ");
+      const trackArtists = track.artists.map((a) => a.name.toLowerCase()).join(" ");
       const trackTitle = track.name.toLowerCase();
-      
+
       if (trackArtists.includes(artistLower) || artistLower.includes(trackArtists.split(",")[0])) {
         if (trackTitle.includes(trackLower) || trackLower.includes(trackTitle)) {
           return `spotify:track:${track.id}`;
         }
       }
     }
-    
+
     if (results.length > 0) {
       return `spotify:track:${results[0].id}`;
     }
-    
+
     results = await spotifySearchTracks(trackName, 3);
     if (results.length > 0) {
       return `spotify:track:${results[0].id}`;
     }
-    
+
     return null;
   } catch {
     return null;
   }
 }
 
-async function searchAndGetYouTubeUri(trackName: string, artistName: string): Promise<string | null> {
+async function searchAndGetYouTubeUri(
+  trackName: string,
+  artistName: string
+): Promise<string | null> {
   try {
     const query = `${trackName} ${artistName} official`;
     const results = await searchYouTubeVideos(query, 5);
-    
+
     if (results.length === 0) {
       return null;
     }
-    
+
     const trackLower = trackName.toLowerCase();
     const artistLower = artistName.toLowerCase();
-    
+
     for (const video of results) {
       const data = videoItemToTrackData(video);
       const titleLower = data.name.toLowerCase();
       const channelLower = data.artists[0]?.toLowerCase() || "";
-      
-      if (titleLower.includes(trackLower) && 
-          (channelLower.includes(artistLower) || titleLower.includes(artistLower))) {
+
+      if (
+        titleLower.includes(trackLower) &&
+        (channelLower.includes(artistLower) || titleLower.includes(artistLower))
+      ) {
         return data.uri;
       }
     }
-    
+
     const firstResult = videoItemToTrackData(results[0]);
     return firstResult.uri;
   } catch {
@@ -147,8 +150,8 @@ async function searchAndGetYouTubeUri(trackName: string, artistName: string): Pr
 }
 
 async function searchAndGetUri(
-  trackName: string, 
-  artistName: string, 
+  trackName: string,
+  artistName: string,
   provider: MusicProviderType
 ): Promise<string | null> {
   if (provider === "spotify") {
@@ -286,7 +289,7 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
         if (musicProviderType === "spotify") {
           const results = await spotifySearchTracks(query, 20);
           const shuffledResults = shuffleArray(results);
-          
+
           for (const track of shuffledResults) {
             const uri = `spotify:track:${track.id}`;
             if (!store.hasPlayed(uri) && !recentUris.has(uri)) {
@@ -301,7 +304,7 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
         } else {
           const results = await searchYouTubeVideos(query, 20);
           const shuffledResults = shuffleArray(results);
-          
+
           for (const video of shuffledResults) {
             const data = videoItemToTrackData(video);
             if (!store.hasPlayed(data.uri) && !recentUris.has(data.uri)) {
@@ -416,18 +419,26 @@ function startMonitoring(): void {
           isPlaying = playbackState.isPlaying;
         }
 
-        // YouTube auto-advance: when track ends, play next from queue
-        if (!isPlaying && lastTrackUri && store.queue.length > 0) {
+        // YouTube auto-advance: when track ends (progress >= duration), play next from queue
+        if (lastTrackUri && store.queue.length > 0 && playbackState) {
           const lastIndex = store.queue.findIndex((t) => t.uri === lastTrackUri);
-          const nextIndex = lastIndex + 1;
-          
-          if (nextIndex < store.queue.length) {
-            const nextTrack = store.queue[nextIndex];
-            await musicProvider.playTrack(nextTrack.uri);
-            store.setCurrentIndex(nextIndex);
-            store.addPlayedUri(nextTrack.uri);
-            lastTrackUri = nextTrack.uri;
-            return;
+          if (lastIndex !== -1) {
+            const currentTrack = playbackState.track;
+            const progressMs = playbackState.progressMs ?? 0;
+            const durationMs = currentTrack?.durationMs ?? 0;
+            const endThreshold = 2000;
+
+            if (durationMs > 0 && progressMs >= durationMs - endThreshold && !isPlaying) {
+              const nextIndex = lastIndex + 1;
+              if (nextIndex < store.queue.length) {
+                const nextTrack = store.queue[nextIndex];
+                await musicProvider.playTrack(nextTrack.uri);
+                store.setCurrentIndex(nextIndex);
+                store.addPlayedUri(nextTrack.uri);
+                lastTrackUri = nextTrack.uri;
+                return;
+              }
+            }
           }
         }
       }

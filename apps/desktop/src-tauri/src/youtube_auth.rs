@@ -154,9 +154,6 @@ pub async fn save_youtube_credentials(client_id: String, client_secret: String) 
     let client_id_trimmed = client_id.trim().to_string();
     let client_secret_trimmed = client_secret.trim().to_string();
     
-    set_cached_yt_client_id(&client_id_trimmed);
-    set_cached_yt_client_secret(&client_secret_trimmed);
-    
     let id_clone = client_id_trimmed.clone();
     let secret_clone = client_secret_trimmed.clone();
     
@@ -171,7 +168,11 @@ pub async fn save_youtube_credentials(client_id: String, client_secret: String) 
             .map_err(|e| format!("Failed to save YouTube client secret: {}", e))
     })
     .await
-    .map_err(|e| format!("Task failed: {}", e))?
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_yt_client_id(&client_id_trimmed);
+    set_cached_yt_client_secret(&client_secret_trimmed);
+    Ok(())
 }
 
 #[tauri::command]
@@ -199,8 +200,6 @@ lazy_static::lazy_static! {
 }
 
 async fn save_youtube_tokens(tokens: &YouTubeTokens) -> Result<(), String> {
-    set_cached_yt_tokens(tokens);
-    
     let access_token = tokens.access_token.clone();
     let refresh_token = tokens.refresh_token.clone();
     let expires_at = tokens.expires_at.to_string();
@@ -218,10 +217,13 @@ async fn save_youtube_tokens(tokens: &YouTubeTokens) -> Result<(), String> {
             .map_err(|e| format!("Keyring error: {}", e))?
             .set_password(&expires_at)
             .map_err(|e| format!("Failed to save YouTube token expiry: {}", e))?;
-        Ok(())
+        Ok::<(), String>(())
     })
     .await
-    .map_err(|e| format!("Task failed: {}", e))?
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_yt_tokens(tokens);
+    Ok(())
 }
 
 #[tauri::command]

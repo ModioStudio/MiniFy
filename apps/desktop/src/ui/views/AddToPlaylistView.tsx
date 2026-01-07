@@ -3,11 +3,7 @@ import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
-import {
-  type SimplifiedPlaylist,
-  addTrackToPlaylist,
-  fetchUserPlaylists,
-} from "../spotifyClient";
+import { addTrackToPlaylist, fetchUserPlaylists, type SimplifiedPlaylist } from "../spotifyClient";
 
 type AddToPlaylistViewProps = {
   trackId: string | null;
@@ -15,11 +11,7 @@ type AddToPlaylistViewProps = {
   onBack: () => void;
 };
 
-export default function AddToPlaylistView({
-  trackId,
-  trackName,
-  onBack,
-}: AddToPlaylistViewProps) {
+export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToPlaylistViewProps) {
   const { setLayout } = useWindowLayout();
   const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [playlists, setPlaylists] = useState<SimplifiedPlaylist[]>([]);
@@ -35,12 +27,12 @@ export default function AddToPlaylistView({
       setLoading(true);
       const type = await getActiveProviderType();
       setProviderType(type);
-      
+
       if (type !== "spotify") {
         setLoading(false);
         return;
       }
-      
+
       try {
         const response = await fetchUserPlaylists(50, 0);
         setPlaylists(response.playlists);
@@ -75,10 +67,7 @@ export default function AddToPlaylistView({
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold">Add to Playlist</h1>
           {trackName && (
-            <p
-              className="text-xs truncate mt-0.5"
-              style={{ color: "var(--settings-text-muted)" }}
-            >
+            <p className="text-xs truncate mt-0.5" style={{ color: "var(--settings-text-muted)" }}>
               {trackName}
             </p>
           )}
@@ -188,11 +177,7 @@ export default function AddToPlaylistView({
                             style={{ color: "var(--settings-accent)" }}
                           />
                         ) : (
-                          <Plus
-                            size={18}
-                            weight="bold"
-                            className="opacity-50"
-                          />
+                          <Plus size={18} weight="bold" className="opacity-50" />
                         )}
                       </div>
                     </button>
@@ -206,4 +191,3 @@ export default function AddToPlaylistView({
     </div>
   );
 }
-

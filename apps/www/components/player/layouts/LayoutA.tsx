@@ -1,5 +1,6 @@
-import type { ThemeConfig } from "@/lib/types/theme";
 import { Pause, SkipBack, SkipForward } from "@phosphor-icons/react";
+import Image from "next/image";
+import type { ThemeConfig } from "@/lib/types/theme";
 
 type LayoutAProps = {
   theme: ThemeConfig;
@@ -16,9 +17,11 @@ export function LayoutA({ theme }: LayoutAProps) {
         boxShadow: theme.panelShadow,
       }}
     >
-      <img
+      <Image
         src="/playerpreview.png"
         alt="Track cover"
+        width={161}
+        height={161}
         className="block w-[161px] min-w-[161px] h-full object-cover -mr-px"
       />
 

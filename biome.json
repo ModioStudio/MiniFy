@@ -16,13 +16,14 @@
       "!**/.next",
       "!**/apps/**/*/.next",
       "!**/tmp",
-      "!**/components/ui/**",
-      "!**/styles/**",
+      "!**/components/ui",
+      "!**/styles",
       "!**/apps/**/*/dist",
       "!**/apps/**/*/build",
-      "!**/apps/www/components/ui/**",
-      "!**/apps/www/styles/**",
-      "!**/apps/**/*/src-tauri/target"
+      "!**/apps/www/components/ui",
+      "!**/apps/www/styles",
+      "!**/apps/**/*/src-tauri/target",
+      "!**/apps/www/app/globals.css"
     ]
   },
   "formatter": {
@@ -31,11 +32,17 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": { "actions": { "source": { "organizeImports": { "level": "on" } } } },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "complexity": {
+        "noImportantStyles": "off"
+      },
+      "a11y": {
+        "noStaticElementInteractions": "off"
+      }
     }
   },
   "javascript": {
@@ -44,6 +51,14 @@
       "quoteStyle": "double",
       "semicolons": "always",
       "trailingCommas": "es5"
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
+    },
+    "linter": {
+      "enabled": true
     }
   }
 }

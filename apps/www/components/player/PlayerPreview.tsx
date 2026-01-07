@@ -1,10 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { DEFAULT_THEME, fetchAllThemes, fetchThemeIndex } from "@/lib/theme-loader";
 import type { LayoutType, ThemeConfig, ThemeIndex } from "@/lib/types/theme";
-import { useEffect, useState } from "react";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { LayoutA, LayoutB, LayoutC } from "./layouts";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function PlayerPreview() {
   const [themeIndex, setThemeIndex] = useState<ThemeIndex | null>(null);

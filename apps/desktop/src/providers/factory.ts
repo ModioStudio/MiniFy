@@ -1,6 +1,6 @@
-import type { MusicProvider, MusicProviderType } from "./types";
 import { readSettings } from "../lib/settingLib";
 import { createSpotifyProvider } from "./spotify";
+import type { MusicProvider, MusicProviderType } from "./types";
 import { createYouTubeProvider } from "./youtube";
 
 type ProviderConstructor = () => MusicProvider;
@@ -12,9 +12,9 @@ let cachedProviderType: MusicProviderType | null = null;
 
 export function registerProvider(
   type: MusicProviderType,
-  constructor: ProviderConstructor
+  providerFactory: ProviderConstructor
 ): void {
-  providerRegistry.set(type, constructor);
+  providerRegistry.set(type, providerFactory);
 }
 
 export function getRegisteredProviders(): MusicProviderType[] {
@@ -37,22 +37,22 @@ export async function getActiveProvider(): Promise<MusicProvider> {
     return cachedProvider;
   }
 
-  const constructor = providerRegistry.get(activeType);
-  if (!constructor) {
+  const providerFactory = providerRegistry.get(activeType);
+  if (!providerFactory) {
     throw new Error(`No provider registered for type: ${activeType}`);
   }
 
-  cachedProvider = constructor();
+  cachedProvider = providerFactory();
   cachedProviderType = activeType;
   return cachedProvider;
 }
 
 export function getProvider(type: MusicProviderType): MusicProvider {
-  const constructor = providerRegistry.get(type);
-  if (!constructor) {
+  const providerFactory = providerRegistry.get(type);
+  if (!providerFactory) {
     throw new Error(`No provider registered for type: ${type}`);
   }
-  return constructor();
+  return providerFactory();
 }
 
 export function clearProviderCache(): void {
@@ -60,14 +60,12 @@ export function clearProviderCache(): void {
   cachedProviderType = null;
 }
 
-export async function isProviderAuthenticated(
-  type: MusicProviderType
-): Promise<boolean> {
-  const constructor = providerRegistry.get(type);
-  if (!constructor) {
+export async function isProviderAuthenticated(type: MusicProviderType): Promise<boolean> {
+  const providerFactory = providerRegistry.get(type);
+  if (!providerFactory) {
     return false;
   }
-  const provider = constructor();
+  const provider = providerFactory();
   return provider.isAuthenticated();
 }
 

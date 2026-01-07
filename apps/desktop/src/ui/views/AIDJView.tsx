@@ -9,15 +9,15 @@ import {
   User,
   Waveform,
 } from "@phosphor-icons/react";
-import { type CoreMessage, generateText } from "ai";
 import { encode } from "@toon-format/toon";
+import { type CoreMessage, generateText } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { AI_DJ_SYSTEM_PROMPT, createAIModel, getActiveProviderWithKey } from "../../lib/aiClient";
-import { useAIQueueStore } from "../../lib/aiQueueStore";
 import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
-import { readSettings } from "../../lib/settingLib";
+import { useAIQueueStore } from "../../lib/aiQueueStore";
 import { musicTools } from "../../lib/musicTools";
+import { readSettings } from "../../lib/settingLib";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
 
@@ -46,8 +46,11 @@ async function buildUserContext(): Promise<string> {
     contextParts.push(`Provider: ${providerType === "youtube" ? "YouTube Music" : "Spotify"}`);
 
     const now = new Date();
-    const timeOfDay = now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
-    contextParts.push(`Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`);
+    const timeOfDay =
+      now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
+    contextParts.push(
+      `Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`
+    );
 
     const [currentTrack, recentTracks] = await Promise.all([
       provider.getCurrentTrack().catch(() => null),
@@ -70,9 +73,7 @@ async function buildUserContext(): Promise<string> {
     // Continue with partial context
   }
 
-  return contextParts.length > 0
-    ? `[User Context]\n${contextParts.join("\n")}\n[End Context]`
-    : "";
+  return contextParts.length > 0 ? `[User Context]\n${contextParts.join("\n")}\n[End Context]` : "";
 }
 
 export default function AIDJView({ onBack }: AIDJViewProps) {
@@ -300,11 +301,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   const suggestions =
     providerType === "youtube"
-      ? [
-          "Find me something relaxing",
-          "Play upbeat music",
-          "Start the AI Queue",
-        ]
+      ? ["Find me something relaxing", "Play upbeat music", "Start the AI Queue"]
       : [
           "Play something based on my recent history",
           "Find me something upbeat",

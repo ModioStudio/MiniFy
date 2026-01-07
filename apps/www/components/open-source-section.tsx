@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/hooks/use-language";
 import { motion } from "framer-motion";
 import { GitFork, Heart, Star, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/hooks/use-language";
 import { ContributorsRow } from "./ContributorRow";
 
 const container = {

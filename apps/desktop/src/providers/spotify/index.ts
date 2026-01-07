@@ -1,29 +1,29 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   MusicProvider,
-  UnifiedTrack,
   PlaybackState,
-  ProviderCapabilities,
   PlaylistsResult,
   PlaylistTracksResult,
+  ProviderCapabilities,
+  UnifiedTrack,
 } from "../types";
 import {
+  addTrackToPlaylist,
   fetchCurrentlyPlaying,
-  play as spotifyPlay,
-  pause as spotifyPause,
-  nextTrack as spotifyNextTrack,
-  previousTrack as spotifyPreviousTrack,
-  seek as spotifySeek,
-  setVolume as spotifySetVolume,
-  searchTracks as spotifySearchTracks,
-  playTrack as spotifyPlayTrack,
-  addToQueue as spotifyAddToQueue,
+  fetchPlaylistTracks,
   fetchRecentlyPlayed,
   fetchUserPlaylists,
-  fetchPlaylistTracks,
-  addTrackToPlaylist,
   fetchUserProfile,
   type SimplifiedTrack,
+  addToQueue as spotifyAddToQueue,
+  nextTrack as spotifyNextTrack,
+  pause as spotifyPause,
+  play as spotifyPlay,
+  playTrack as spotifyPlayTrack,
+  previousTrack as spotifyPreviousTrack,
+  searchTracks as spotifySearchTracks,
+  seek as spotifySeek,
+  setVolume as spotifySetVolume,
 } from "./client";
 
 function convertToUnifiedTrack(track: SimplifiedTrack): UnifiedTrack {

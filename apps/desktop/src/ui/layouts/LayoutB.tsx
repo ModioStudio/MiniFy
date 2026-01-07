@@ -56,7 +56,9 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
           <PlusCircle
             size={24}
             weight="fill"
-            color={plusHovered ? "var(--player-controls-color-active)" : "var(--player-controls-color)"}
+            color={
+              plusHovered ? "var(--player-controls-color-active)" : "var(--player-controls-color)"
+            }
           />
         </button>
       </div>

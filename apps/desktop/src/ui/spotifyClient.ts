@@ -56,7 +56,9 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function refreshToken(): Promise<string> {
-  const tokens = await invoke<{ access_token: string; expires_in?: number }>("refresh_access_token");
+  const tokens = await invoke<{ access_token: string; expires_in?: number }>(
+    "refresh_access_token"
+  );
   cachedToken = tokens.access_token;
   tokenExpiresAt = Date.now() + (tokens.expires_in ?? 3600) * 1000;
   return cachedToken;
@@ -189,10 +191,9 @@ export function setVolume(volumePercent: number): void {
   }
 
   volumeTimeout = setTimeout(() => {
-    fireAndForget(
-      `https://api.spotify.com/v1/me/player/volume?volume_percent=${lastVolumeValue}`,
-      { method: "PUT" }
-    );
+    fireAndForget(`https://api.spotify.com/v1/me/player/volume?volume_percent=${lastVolumeValue}`, {
+      method: "PUT",
+    });
     volumeTimeout = null;
   }, 50);
 }
@@ -471,7 +472,9 @@ export async function fetchPlaylistTracks(
 ): Promise<{ tracks: SimplifiedTrack[]; total: number }> {
   const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`;
   const data = await request<PlaylistTracksResponse>(url);
-  const tracks = data.items.filter((item) => item.track !== null).map((item) => item.track as SimplifiedTrack);
+  const tracks = data.items
+    .filter((item) => item.track !== null)
+    .map((item) => item.track as SimplifiedTrack);
   return { tracks, total: data.total };
 }
 

@@ -93,8 +93,7 @@ export const useAIQueueStore = create<AIQueueState>((set, get) => ({
       currentIndex: state.currentIndex + 1,
     })),
   setError: (error) => set({ error }),
-  setCachedUserProfile: (profile) =>
-    set({ cachedUserProfile: profile, lastFetchTime: Date.now() }),
+  setCachedUserProfile: (profile) => set({ cachedUserProfile: profile, lastFetchTime: Date.now() }),
   addPlayedUri: (uri) =>
     set((state) => {
       const playedUris = new Set(state.playedUris);
@@ -117,4 +116,3 @@ export const useAIQueueStore = create<AIQueueState>((set, get) => ({
       // Keep playedUris - don't reset history on queue stop
     }),
 }));
-

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./global.css";
 
 import { LogicalPosition } from "@tauri-apps/api/dpi";
@@ -10,8 +10,8 @@ import { useAIQueueStore } from "../lib/aiQueueStore";
 import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 import { getActiveProvider, getActiveProviderType } from "../providers";
-import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
+import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
@@ -43,7 +43,7 @@ export default function App() {
   const [view, setView] = useState<AppView>("app");
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState<AddToPlaylistTrack>(null);
-  const [isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
+  const [_isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
   const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
 
   const aiQueueActive = useAIQueueStore((s) => s.isActive);
@@ -56,10 +56,10 @@ export default function App() {
       setLayout(settings.layout ?? "LayoutA");
       setTheme(settings.theme ?? "dark");
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
-      
+
       const providerType = await getActiveProviderType();
       setIsYouTubeActive(providerType === "youtube");
-      
+
       // Check if the provider is actually authenticated
       if (settings.first_boot_done) {
         try {
@@ -76,7 +76,7 @@ export default function App() {
           return;
         }
       }
-      
+
       setFirstBootDone(settings.first_boot_done ?? false);
     })();
   }, []);
@@ -107,10 +107,7 @@ export default function App() {
 
     const onKeyDown = async (e: KeyboardEvent) => {
       // Ignore if typing in an input field
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
 
@@ -140,7 +137,8 @@ export default function App() {
             e.preventDefault();
             setView("volume");
             break;
-          case "d": { // Ctrl+D: AI DJ (if available)
+          case "d": {
+            // Ctrl+D: AI DJ (if available)
             e.preventDefault();
             const settings = await readSettings();
             const hasAI =
@@ -199,11 +197,28 @@ export default function App() {
             action: () => setView("aidj"),
           });
           menu = await Menu.new({
-            items: [settingsItem, searchItem, playlistItem, volumeItem, aiDjItem, separator, minimizeItem, closeItem],
+            items: [
+              settingsItem,
+              searchItem,
+              playlistItem,
+              volumeItem,
+              aiDjItem,
+              separator,
+              minimizeItem,
+              closeItem,
+            ],
           });
         } else {
           menu = await Menu.new({
-            items: [settingsItem, searchItem, playlistItem, volumeItem, separator, minimizeItem, closeItem],
+            items: [
+              settingsItem,
+              searchItem,
+              playlistItem,
+              volumeItem,
+              separator,
+              minimizeItem,
+              closeItem,
+            ],
           });
         }
         await menu.popup(new LogicalPosition(e.clientX + 12, e.clientY), getCurrentWindow());
@@ -322,7 +337,7 @@ export default function App() {
   const handleYouTubeReady = async () => {
     if (youtubePlayerRef.current) {
       setYouTubePlayerRef(youtubePlayerRef.current);
-      
+
       // Apply saved volume
       const settings = await readSettings();
       const savedVolume = settings.youtube_volume ?? 50;
@@ -349,7 +364,8 @@ export default function App() {
           style={{
             border: "1.5px solid #7f1d1d",
             borderRadius: "12px",
-            boxShadow: "inset 0 0 30px rgba(127, 29, 29, 0.4), inset 0 0 60px rgba(127, 29, 29, 0.15)",
+            boxShadow:
+              "inset 0 0 30px rgba(127, 29, 29, 0.4), inset 0 0 60px rgba(127, 29, 29, 0.15)",
           }}
         />
       )}

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ThemeConfig } from "@/lib/types/theme";
 
 type LayoutCProps = {
@@ -16,7 +17,7 @@ export function LayoutC({ theme }: LayoutCProps) {
     >
       <div className="flex gap-4">
         <div
-          className="shrink-0 overflow-hidden"
+          className="shrink-0 overflow-hidden relative"
           style={{
             width: 80,
             height: 80,
@@ -24,7 +25,7 @@ export function LayoutC({ theme }: LayoutCProps) {
             border: `1px solid ${theme.coverBorderColor}`,
           }}
         >
-          <img src="/playerpreview.png" alt="Track cover" className="w-full h-full object-cover" />
+          <Image src="/playerpreview.png" alt="Track cover" fill className="object-cover" />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">

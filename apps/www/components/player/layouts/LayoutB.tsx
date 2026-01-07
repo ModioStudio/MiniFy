@@ -1,5 +1,6 @@
-import type { ThemeConfig } from "@/lib/types/theme";
 import { Pause, SkipBack, SkipForward } from "@phosphor-icons/react";
+import Image from "next/image";
+import type { ThemeConfig } from "@/lib/types/theme";
 
 type LayoutBProps = {
   theme: ThemeConfig;
@@ -17,7 +18,7 @@ export function LayoutB({ theme }: LayoutBProps) {
     >
       <div className="flex gap-4">
         <div
-          className="overflow-hidden shrink-0"
+          className="overflow-hidden shrink-0 relative"
           style={{
             width: 86,
             height: 86,
@@ -25,7 +26,7 @@ export function LayoutB({ theme }: LayoutBProps) {
             border: `1px solid ${theme.coverBorderColor}`,
           }}
         >
-          <img src="/playerpreview.png" alt="Track cover" className="w-full h-full object-cover" />
+          <Image src="/playerpreview.png" alt="Track cover" fill className="object-cover" />
         </div>
 
         <div className="flex flex-col">
