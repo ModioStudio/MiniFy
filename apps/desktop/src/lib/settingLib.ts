@@ -149,6 +149,8 @@ export async function readSettings(): Promise<Settings> {
       show_ai_queue_border: settings.show_ai_queue_border ?? true,
       discord_rpc_enabled: settings.discord_rpc_enabled ?? false,
       last_played_track: settings.last_played_track ?? null,
+      provider_playback_cache: settings.provider_playback_cache ?? null,
+      youtube_volume: settings.youtube_volume ?? null,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
@@ -162,6 +164,8 @@ export async function readSettings(): Promise<Settings> {
       show_ai_queue_border: true,
       discord_rpc_enabled: false,
       last_played_track: null,
+      provider_playback_cache: null,
+      youtube_volume: null,
     };
   }
 }
