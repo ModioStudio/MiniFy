@@ -1,10 +1,5 @@
 "use client";
 
-import { Header } from "@/components/header";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { GridBackground } from "@/components/ui/grid-background";
-import { useLanguage } from "@/hooks/use-language";
 import {
   CheckCircle2,
   Cpu,
@@ -14,6 +9,11 @@ import {
   MonitorSmartphone,
   Terminal,
 } from "lucide-react";
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { GridBackground } from "@/components/ui/grid-background";
+import { useLanguage } from "@/hooks/use-language";
 
 const RELEASE_DATE = new Date("2025-10-28");
 

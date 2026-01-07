@@ -54,6 +54,7 @@ export function setCookie(name: string, value: string, options: CookieOptions = 
     cookieString += "; secure";
   }
 
+  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API not widely supported
   document.cookie = cookieString;
 }
 
@@ -62,5 +63,6 @@ export function deleteCookie(name: string): void {
     return;
   }
 
+  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API not widely supported
   document.cookie = `${name}=; max-age=0; path=/`;
 }

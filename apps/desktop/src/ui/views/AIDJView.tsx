@@ -9,21 +9,17 @@ import {
   User,
   Waveform,
 } from "@phosphor-icons/react";
-import { type CoreMessage, generateText } from "ai";
 import { encode } from "@toon-format/toon";
+import { type CoreMessage, generateText } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { AI_DJ_SYSTEM_PROMPT, createAIModel, getActiveProviderWithKey } from "../../lib/aiClient";
-import { useAIQueueStore } from "../../lib/aiQueueStore";
 import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
+import { useAIQueueStore } from "../../lib/aiQueueStore";
+import { musicTools } from "../../lib/musicTools";
 import { readSettings } from "../../lib/settingLib";
-import { spotifyTools } from "../../lib/spotifyTools";
-import {
-  fetchCurrentlyPlaying,
-  fetchRecentlyPlayed,
-  fetchTopArtists,
-  fetchUserProfile,
-} from "../spotifyClient";
+import { getActiveProvider, getActiveProviderType } from "../../providers";
+import type { MusicProviderType } from "../../providers/types";
 
 type AIDJViewProps = {
   onBack: () => void;
@@ -44,24 +40,26 @@ async function buildUserContext(): Promise<string> {
   const contextParts: string[] = [];
 
   try {
-    const [profile, currentTrack, recentTracks, topArtists] = await Promise.all([
-      fetchUserProfile().catch(() => null),
-      fetchCurrentlyPlaying().catch(() => null),
-      fetchRecentlyPlayed(15).catch(() => []),
-      fetchTopArtists("short_term", 10).catch(() => []),
-    ]);
+    const providerType = await getActiveProviderType();
+    const provider = await getActiveProvider();
 
-    if (profile) {
-      contextParts.push(`User: ${profile.display_name}`);
-    }
+    contextParts.push(`Provider: ${providerType === "youtube" ? "YouTube Music" : "Spotify"}`);
 
     const now = new Date();
-    const timeOfDay = now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
-    contextParts.push(`Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`);
+    const timeOfDay =
+      now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
+    contextParts.push(
+      `Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`
+    );
 
-    if (currentTrack?.item) {
-      const artists = currentTrack.item.artists.map((a) => a.name).join(", ");
-      contextParts.push(`Now playing: "${currentTrack.item.name}" by ${artists}`);
+    const [currentTrack, recentTracks] = await Promise.all([
+      provider.getCurrentTrack().catch(() => null),
+      provider.getRecentlyPlayed(15).catch(() => []),
+    ]);
+
+    if (currentTrack) {
+      const artists = currentTrack.artists.map((a) => a.name).join(", ");
+      contextParts.push(`Now playing: "${currentTrack.name}" by ${artists}`);
     }
 
     if (recentTracks.length > 0) {
@@ -71,25 +69,16 @@ async function buildUserContext(): Promise<string> {
       }));
       contextParts.push(`Recent tracks (TOON): ${encode(recentData)}`);
     }
-
-    if (topArtists.length > 0) {
-      const artistData = topArtists.slice(0, 5).map((a) => ({
-        n: a.name,
-        g: a.genres.slice(0, 2).join(", ") || "unknown",
-      }));
-      contextParts.push(`Top artists (TOON): ${encode(artistData)}`);
-    }
   } catch {
     // Continue with partial context
   }
 
-  return contextParts.length > 0
-    ? `[User Context]\n${contextParts.join("\n")}\n[End Context]`
-    : "";
+  return contextParts.length > 0 ? `[User Context]\n${contextParts.join("\n")}\n[End Context]` : "";
 }
 
 export default function AIDJView({ onBack }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +114,6 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   };
 
   useEffect(() => {
-    // Scroll when auto-scroll is enabled and messages change
     if (shouldAutoScroll && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -133,6 +121,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   useEffect(() => {
     (async () => {
+      const type = await getActiveProviderType();
+      setProviderType(type);
+
       const settings = await readSettings();
       const provider = await getActiveProviderWithKey(
         settings.ai_providers,
@@ -141,12 +132,14 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
       setIsConfigured(provider !== null);
 
       if (provider) {
+        const providerName = type === "youtube" ? "YouTube Music" : "Spotify";
+        const welcomeMsg = `Hey! I'm your AI DJ for ${providerName}. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!`;
+
         setMessages([
           {
             id: "welcome",
             role: "assistant",
-            content:
-              "Hey! I'm your AI DJ. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!",
+            content: welcomeMsg,
             timestamp: new Date(),
           },
         ]);
@@ -206,7 +199,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
         model,
         system: AI_DJ_SYSTEM_PROMPT,
         messages: conversationMessages,
-        tools: spotifyTools,
+        tools: musicTools,
         maxSteps: 5,
       });
 
@@ -305,6 +298,15 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
       </div>
     );
   }
+
+  const suggestions =
+    providerType === "youtube"
+      ? ["Find me something relaxing", "Play upbeat music", "Start the AI Queue"]
+      : [
+          "Play something based on my recent history",
+          "Find me something upbeat",
+          "What's playing now?",
+        ];
 
   return (
     <div className="h-full w-full p-4 flex flex-col" style={{ color: "var(--settings-text)" }}>
@@ -499,17 +501,20 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           >
             <div className="flex items-center gap-2 mb-1">
               <Queue size={12} weight="fill" style={{ color: "#dc2626" }} />
-              <span className="font-medium" style={{ color: "#dc2626" }}>AI Queue Active</span>
-              <span className="text-[--settings-text-muted]">• {aiQueueTracks.length - aiQueueCurrentIndex} remaining</span>
+              <span className="font-medium" style={{ color: "#dc2626" }}>
+                AI Queue Active
+              </span>
+              <span className="text-[--settings-text-muted]">
+                • {aiQueueTracks.length - aiQueueCurrentIndex} remaining
+              </span>
             </div>
             {aiQueueTracks[aiQueueCurrentIndex + 1] ? (
               <div className="text-[--settings-text-muted] truncate">
-                Next: {aiQueueTracks[aiQueueCurrentIndex + 1]?.name} - {aiQueueTracks[aiQueueCurrentIndex + 1]?.artists}
+                Next: {aiQueueTracks[aiQueueCurrentIndex + 1]?.name} -{" "}
+                {aiQueueTracks[aiQueueCurrentIndex + 1]?.artists}
               </div>
             ) : (
-              <div className="text-[--settings-text-muted] truncate">
-                Loading more tracks...
-              </div>
+              <div className="text-[--settings-text-muted] truncate">Loading more tracks...</div>
             )}
           </div>
         )}
@@ -549,11 +554,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           </div>
 
           <div className="flex gap-2 mt-2 flex-wrap">
-            {[
-              "Play something based on my recent history",
-              "Find me something upbeat",
-              "What's playing now?",
-            ].map((suggestion) => (
+            {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"

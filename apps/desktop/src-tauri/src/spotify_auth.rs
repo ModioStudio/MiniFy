@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose, Engine as _};
+﻿use base64::{engine::general_purpose, Engine as _};
 use chrono::Utc;
 use rand::RngCore;
 use reqwest::header::CONTENT_TYPE;
@@ -20,16 +20,87 @@ const TOKEN_EXPIRY_KEY: &str = "token_expiry";
 const MUSIC_PROVIDER_KEY: &str = "music_provider";
 const SPOTIFY_CLIENT_ID_KEY: &str = "spotify_client_id";
 
+lazy_static::lazy_static! {
+    static ref CLIENT_ID_CACHE: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    static ref TOKENS_CACHE: Arc<Mutex<Option<SpotifyTokens>>> = Arc::new(Mutex::new(None));
+    static ref MUSIC_PROVIDER_CACHE: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+}
+
+fn get_cached_tokens() -> Option<SpotifyTokens> {
+    TOKENS_CACHE.lock().ok().and_then(|g| g.clone())
+}
+
+fn set_cached_tokens(tokens: &SpotifyTokens) {
+    if let Ok(mut cache) = TOKENS_CACHE.lock() {
+        *cache = Some(tokens.clone());
+    }
+}
+
+fn clear_cached_tokens() {
+    if let Ok(mut cache) = TOKENS_CACHE.lock() {
+        *cache = None;
+    }
+}
+
+fn get_cached_music_provider() -> Option<String> {
+    MUSIC_PROVIDER_CACHE.lock().ok().and_then(|g| g.clone())
+}
+
+fn set_cached_music_provider(provider: &str) {
+    if let Ok(mut cache) = MUSIC_PROVIDER_CACHE.lock() {
+        *cache = Some(provider.to_string());
+    }
+}
+
+fn clear_cached_music_provider() {
+    if let Ok(mut cache) = MUSIC_PROVIDER_CACHE.lock() {
+        *cache = None;
+    }
+}
+
 fn get_embedded_spotify_client_id() -> Option<String> {
     option_env!("SPOTIFY_CLIENT_ID")
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
 }
 
+fn get_cached_client_id() -> Option<String> {
+    CLIENT_ID_CACHE.lock().ok().and_then(|g| g.clone())
+}
+
+fn set_cached_client_id(id: &str) {
+    if let Ok(mut cache) = CLIENT_ID_CACHE.lock() {
+        *cache = Some(id.to_string());
+    }
+}
+
+fn clear_cached_client_id() {
+    if let Ok(mut cache) = CLIENT_ID_CACHE.lock() {
+        *cache = None;
+    }
+}
+
+fn entry(key: &str) -> Result<Entry, keyring::Error> {
+    Entry::new(KEYRING_SERVICE, key)
+}
+
 async fn get_stored_spotify_client_id() -> Option<String> {
-    Entry::new(KEYRING_SERVICE, SPOTIFY_CLIENT_ID_KEY)
-        .ok()
-        .and_then(|e| e.get_password().ok())
+    if let Some(cached) = get_cached_client_id() {
+        return Some(cached);
+    }
+    
+    let result = tokio::task::spawn_blocking(|| {
+        entry(SPOTIFY_CLIENT_ID_KEY).ok().and_then(|e| e.get_password().ok())
+    })
+    .await
+    .ok()
+    .flatten();
+    
+    if let Some(ref id) = result {
+        set_cached_client_id(id);
+    }
+    
+    result
 }
 
 #[tauri::command]
@@ -42,10 +113,19 @@ pub async fn save_spotify_client_id(client_id: String) -> Result<(), String> {
     if client_id.trim().is_empty() {
         return Err("Client ID is empty".to_string());
     }
-    Entry::new(KEYRING_SERVICE, SPOTIFY_CLIENT_ID_KEY)
-        .map_err(|e| format!("Keyring init failed: {}", e))?
-        .set_password(&client_id)
-        .map_err(|e| format!("Failed to save client ID: {}", e))
+    let client_id_trimmed = client_id.trim().to_string();
+    
+    set_cached_client_id(&client_id_trimmed);
+    
+    let client_id_clone = client_id_trimmed.clone();
+    tokio::task::spawn_blocking(move || {
+        entry(SPOTIFY_CLIENT_ID_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .set_password(&client_id_clone)
+            .map_err(|e| format!("Failed to save client ID: {}", e))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
 }
 
 #[tauri::command]
@@ -76,9 +156,8 @@ fn urlsafe_b64_no_pad(bytes: &[u8]) -> String {
 }
 
 fn generate_code_verifier() -> String {
-    // RFC 7636 recommends 43-128 chars. Use 64 for good entropy.
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut verifier = String::with_capacity(64);
     for _ in 0..64 {
         let idx = (rng.next_u32() as usize) % CHARSET.len();
@@ -94,20 +173,39 @@ fn generate_code_challenge(verifier: &str) -> String {
     urlsafe_b64_no_pad(&hash)
 }
 
-fn entry(key: &str) -> Result<Entry, String> {
-    Entry::new(KEYRING_SERVICE, key).map_err(|e| format!("Keyring init failed: {}", e))
-}
-
 #[tauri::command]
 pub async fn set_music_provider(provider: String) -> Result<(), String> {
-    entry(MUSIC_PROVIDER_KEY)
-        .and_then(|e| e.set_password(&provider).map_err(|e| format!("Failed to save music provider: {}", e)))
+    let provider_clone = provider.clone();
+    tokio::task::spawn_blocking(move || {
+        entry(MUSIC_PROVIDER_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .set_password(&provider_clone)
+            .map_err(|e| format!("Failed to save music provider: {}", e))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_music_provider(&provider);
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn get_music_provider() -> Result<String, String> {
-    entry(MUSIC_PROVIDER_KEY)
-        .and_then(|e| e.get_password().map_err(|e| format!("Failed to get music provider: {}", e)))
+    if let Some(cached) = get_cached_music_provider() {
+        return Ok(cached);
+    }
+    
+    let result = tokio::task::spawn_blocking(|| {
+        entry(MUSIC_PROVIDER_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .get_password()
+            .map_err(|e| format!("Failed to get music provider: {}", e))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_music_provider(&result);
+    Ok(result)
 }
 
 #[tauri::command]
@@ -116,12 +214,29 @@ pub async fn has_music_provider() -> bool {
 }
 
 async fn save_tokens(tokens: &SpotifyTokens) -> Result<(), String> {
-    entry(ACCESS_TOKEN_KEY)
-        .and_then(|e| e.set_password(&tokens.access_token).map_err(|e| format!("Failed to save access token: {}", e)))?;
-    entry(REFRESH_TOKEN_KEY)
-        .and_then(|e| e.set_password(&tokens.refresh_token).map_err(|e| format!("Failed to save refresh token: {}", e)))?;
-    entry(TOKEN_EXPIRY_KEY)
-        .and_then(|e| e.set_password(&tokens.expires_at.to_string()).map_err(|e| format!("Failed to save token expiry: {}", e)))?;
+    let access_token = tokens.access_token.clone();
+    let refresh_token = tokens.refresh_token.clone();
+    let expires_at = tokens.expires_at.to_string();
+    
+    tokio::task::spawn_blocking(move || {
+        entry(ACCESS_TOKEN_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .set_password(&access_token)
+            .map_err(|e| format!("Failed to save access token: {}", e))?;
+        entry(REFRESH_TOKEN_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .set_password(&refresh_token)
+            .map_err(|e| format!("Failed to save refresh token: {}", e))?;
+        entry(TOKEN_EXPIRY_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .set_password(&expires_at)
+            .map_err(|e| format!("Failed to save token expiry: {}", e))?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_tokens(tokens);
     Ok(())
 }
 
@@ -144,17 +259,34 @@ pub async fn verify_spotify_access(access_token: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn get_tokens() -> Result<SpotifyTokens, String> {
-    let access_token = entry(ACCESS_TOKEN_KEY)
-        .and_then(|e| e.get_password().map_err(|e| format!("Failed to get access token: {}", e)))?;
-    let refresh_token = entry(REFRESH_TOKEN_KEY)
-        .and_then(|e| e.get_password().map_err(|e| format!("Failed to get refresh token: {}", e)))?;
-    let expires_at_str = entry(TOKEN_EXPIRY_KEY)
-        .and_then(|e| e.get_password().map_err(|e| format!("Failed to get token expiry: {}", e)))?;
-    let expires_at = expires_at_str
-        .parse::<i64>()
-        .map_err(|e| format!("Failed to parse expiry: {}", e))?;
+    if let Some(cached) = get_cached_tokens() {
+        return Ok(cached);
+    }
+    
+    let result = tokio::task::spawn_blocking(|| -> Result<SpotifyTokens, String> {
+        let access_token = entry(ACCESS_TOKEN_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .get_password()
+            .map_err(|e| format!("Failed to get access token: {}", e))?;
+        let refresh_token = entry(REFRESH_TOKEN_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .get_password()
+            .map_err(|e| format!("Failed to get refresh token: {}", e))?;
+        let expires_at_str = entry(TOKEN_EXPIRY_KEY)
+            .map_err(|e| format!("Keyring error: {}", e))?
+            .get_password()
+            .map_err(|e| format!("Failed to get token expiry: {}", e))?;
+        let expires_at = expires_at_str
+            .parse::<i64>()
+            .map_err(|e| format!("Failed to parse expiry: {}", e))?;
 
-    Ok(SpotifyTokens { access_token, refresh_token, expires_at })
+        Ok(SpotifyTokens { access_token, refresh_token, expires_at })
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_tokens(&result);
+    Ok(result)
 }
 
 #[tauri::command]
@@ -167,24 +299,27 @@ pub async fn has_valid_tokens() -> bool {
 
 #[tauri::command]
 pub async fn clear_credentials() -> Result<(), String> {
-    // Clear any pending OAuth state
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    // Stop any running OAuth server
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
     }
-    // Clear keyring entries
-    let _ = entry(ACCESS_TOKEN_KEY).and_then(|e| e.delete_password().map_err(|e| e.to_string()));
-    let _ = entry(REFRESH_TOKEN_KEY).and_then(|e| e.delete_password().map_err(|e| e.to_string()));
-    let _ = entry(TOKEN_EXPIRY_KEY).and_then(|e| e.delete_password().map_err(|e| e.to_string()));
-    let _ = entry(MUSIC_PROVIDER_KEY).and_then(|e| e.delete_password().map_err(|e| e.to_string()));
-    let _ = entry(SPOTIFY_CLIENT_ID_KEY).and_then(|e| e.delete_password().map_err(|e| e.to_string()));
+    clear_cached_client_id();
+    clear_cached_tokens();
+    clear_cached_music_provider();
+    
+    tokio::task::spawn_blocking(|| {
+        if let Ok(e) = entry(ACCESS_TOKEN_KEY) { let _ = e.delete_password(); }
+        if let Ok(e) = entry(REFRESH_TOKEN_KEY) { let _ = e.delete_password(); }
+        if let Ok(e) = entry(TOKEN_EXPIRY_KEY) { let _ = e.delete_password(); }
+        if let Ok(e) = entry(MUSIC_PROVIDER_KEY) { let _ = e.delete_password(); }
+        if let Ok(e) = entry(SPOTIFY_CLIENT_ID_KEY) { let _ = e.delete_password(); }
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?;
     Ok(())
 }
 
@@ -225,7 +360,7 @@ async fn exchange_code_for_tokens(state: &AuthState, code: &str) -> Result<Spoti
         .await
         .map_err(|e| format!("Failed to parse token response: {}", e))?;
 
-    let expires_at = Utc::now().timestamp() + tr.expires_in - 30; // small skew
+    let expires_at = Utc::now().timestamp() + tr.expires_in - 30;
     let refresh_token = tr
         .refresh_token
         .ok_or_else(|| "Missing refresh_token in response".to_string())?;
@@ -239,50 +374,42 @@ lazy_static::lazy_static! {
 
 #[tauri::command]
 pub async fn cancel_oauth_flow() -> Result<(), String> {
-    // Clear auth state
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    // Shutdown server
-    let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
-    if let Some(tx) = shutdown.take() {
-        let _ = tx.send(());
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
+        if let Some(tx) = shutdown.take() {
+            let _ = tx.send(());
+        }
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
-    // Cancel any existing OAuth flow first
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
     }
     
-    // Small delay to let old server shutdown
     sleep(std::time::Duration::from_millis(100)).await;
 
     let client_id = get_embedded_spotify_client_id()
         .or(get_stored_spotify_client_id().await)
         .ok_or_else(|| "No Spotify Client ID configured. Please set up your Client ID first.".to_string())?;
 
-    // Clear any existing auth state
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
 
     let code_verifier = generate_code_verifier();
     let code_challenge = generate_code_challenge(&code_verifier);
     let mut state_bytes = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut state_bytes);
+    rand::rng().fill_bytes(&mut state_bytes);
     let state_nonce = hex::encode(state_bytes);
 
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = Some(AuthState { 
             code_verifier, 
             client_id: client_id.clone(),
@@ -294,8 +421,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         *shutdown = Some(shutdown_tx);
     }
 
@@ -335,11 +461,9 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
 
         let server = axum::serve(listener, router);
         
-        // Server runs until: callback received, shutdown signal, or 5 minute timeout
         tokio::select! {
             _ = server => {}
             _ = callback_done_rx.recv() => {
-                // Give browser time to receive response before shutting down
                 sleep(std::time::Duration::from_millis(500)).await;
             }
             _ = shutdown_rx => {}
@@ -348,15 +472,13 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
             }
         }
         
-        // Clear shutdown handle
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
-        *shutdown = None;
+        if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
+            *shutdown = None;
+        }
     });
 
-    // Wait until server is ready
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
 
-    // Build authorization URL and open browser
     let redirect_uri = urlencoding::encode("http://127.0.0.1:3000/callback");
     let scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-modify-public playlist-modify-private user-top-read user-read-recently-played user-library-read";
     let auth_url = format!(
@@ -392,28 +514,19 @@ async fn handle_oauth_callback(
         }
     };
 
-    // Get auth state first - this contains the expected state nonce
-    let auth_state = {
-        let s = AUTH_STATE.lock().unwrap();
-        s.clone()
-    };
+    let auth_state = AUTH_STATE.lock().ok().and_then(|s| s.clone());
 
     let Some(st) = auth_state else {
         let _ = app.emit("oauth-failed", json!({ "error": "no_auth_state" }));
         return Html(error_page("Session expired - please close old browser tabs and try again"));
     };
 
-    // Verify state parameter matches
     let state_param = query.get("state").cloned().unwrap_or_default();
     if state_param != st.state_nonce {
-        // Don't emit failure event - this is likely an old browser tab
-        // Just show error page but let user retry
         return Html(error_page("This login session has expired. Please close this tab and try again in the app."));
     }
 
-    // Clear auth state immediately to prevent replay attacks
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
 
@@ -443,7 +556,7 @@ async fn handle_oauth_callback(
 }
 
 fn success_page() -> String {
-    let html = r##"<!DOCTYPE html>
+    r##"<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>MiniFy - Success</title></head>
 <body style="font-family:system-ui,sans-serif;background:#0a0a0a;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">
 <div style="text-align:center;padding:2rem;background:rgba(255,255,255,0.05);border-radius:16px;border:1px solid rgba(255,255,255,0.1)">
@@ -453,11 +566,9 @@ fn success_page() -> String {
 <h1 style="color:#1db954;margin:0 0 0.5rem;font-size:1.5rem">Connected!</h1>
 <p style="color:rgba(255,255,255,0.6);margin:0">You can close this window</p>
 <script>setTimeout(()=>window.close(),1500)</script>
-</div></body></html>"##;
-    html.to_string()
+</div></body></html>"##.to_string()
 }
 
-/// Escape HTML special characters to prevent XSS attacks
 fn escape_html(input: &str) -> String {
     input
         .replace('&', "&amp;")
@@ -522,9 +633,7 @@ pub async fn refresh_access_token() -> Result<SpotifyTokens, String> {
         .map_err(|e| format!("Failed to parse refresh response: {}", e))?;
 
     let expires_at = Utc::now().timestamp() + rr.expires_in - 30;
-    let refresh_token = rr
-        .refresh_token
-        .unwrap_or(tokens.refresh_token);
+    let refresh_token = rr.refresh_token.unwrap_or(tokens.refresh_token);
 
     let updated = SpotifyTokens { access_token: rr.access_token, refresh_token, expires_at };
     save_tokens(&updated).await?;
@@ -532,7 +641,7 @@ pub async fn refresh_access_token() -> Result<SpotifyTokens, String> {
 }
 
 pub fn spawn_token_refresh_task(app: AppHandle) {
-    let _ = app; // suppress unused in some build paths
+    let _ = app;
     rt::spawn(async move {
         loop {
             sleep(std::time::Duration::from_secs(300)).await;
@@ -545,5 +654,3 @@ pub fn spawn_token_refresh_task(app: AppHandle) {
         }
     });
 }
-
-

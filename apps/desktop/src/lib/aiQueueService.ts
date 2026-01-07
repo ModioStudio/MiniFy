@@ -1,38 +1,55 @@
-import { generateText } from "ai";
 import { encode } from "@toon-format/toon";
+import { generateText } from "ai";
+import {
+  getActiveProvider,
+  getActiveProviderType,
+  type MusicProviderType,
+  type UnifiedTrack,
+} from "../providers";
+import { searchYouTubeVideos, videoItemToTrackData } from "../providers/youtube/client";
+import {
+  type FullArtist,
+  type SimplifiedTrack,
+  addToQueue as spotifyAddToQueue,
+  fetchCurrentlyPlaying as spotifyFetchCurrentlyPlaying,
+  fetchRecentlyPlayed as spotifyFetchRecentlyPlayed,
+  fetchTopArtists as spotifyFetchTopArtists,
+  playTracks as spotifyPlayTracks,
+  searchTracks as spotifySearchTracks,
+} from "../ui/spotifyClient";
 import { createAIModel, getActiveProviderWithKey } from "./aiClient";
 import { type QueuedTrack, useAIQueueStore } from "./aiQueueStore";
 import { readSettings } from "./settingLib";
-import {
-  addToQueue,
-  fetchCurrentlyPlaying,
-  fetchRecentlyPlayed,
-  fetchTopArtists,
-  playTracks,
-  searchTracks,
-  type SimplifiedTrack,
-  type FullArtist,
-} from "../ui/spotifyClient";
 
 const AI_QUEUE_SYSTEM_PROMPT = `You are a DJ creating a seamless playlist. Based on the user's recent tracks and taste, suggest exactly 5 NEW tracks that flow well together.
 
 ## Data Format (TOON)
 Input uses compact format: n=name, a=artists, u=uri (for tracks), n=name, g=genres (for artists)
 
-## Output Format
-Return ONLY a JSON array of 5 track suggestions. Each object must have:
-- n: track name (string, exact Spotify track name)
+## Output Format (TOON)
+Return ONLY a JSON array of 5 track suggestions using TOON format. Each object must have:
+- n: track name (string, exact track name)
 - a: artist name (string, main artist only)
 
 Example response:
-[{"n":"Blinding Lights","a":"The Weeknd"},{"n":"Save Your Tears","a":"The Weeknd"},{"n":"Starboy","a":"The Weeknd"},{"n":"Die For You","a":"The Weeknd"},{"n":"After Hours","a":"The Weeknd"}]
+[{"n":"Blinding Lights","a":"The Weeknd"},{"n":"Electric Feel","a":"MGMT"},{"n":"Midnight City","a":"M83"},{"n":"Take On Me","a":"a-ha"},{"n":"Dreams","a":"Fleetwood Mac"}]
 
 IMPORTANT RULES:
-- Use exact track names as they appear on Spotify
+- Use exact track names as they appear on music services
 - Do NOT suggest tracks from the recent tracks list - suggest NEW discoveries
-- Keep variety - suggest tracks from DIFFERENT artists
+- Keep variety - suggest tracks from DIFFERENT artists (at least 3-4 different)
+- Mix popular hits with lesser-known gems for variety
 - Maintain mood/energy flow
 - No explanations, just the JSON array`;
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 function formatTracksForToon(
   tracks: SimplifiedTrack[]
@@ -44,50 +61,103 @@ function formatTracksForToon(
   }));
 }
 
-function formatArtistsForToon(
-  artists: FullArtist[]
-): Array<{ n: string; g: string }> {
+function formatUnifiedTracksForToon(
+  tracks: UnifiedTrack[]
+): Array<{ n: string; a: string; u: string }> {
+  return tracks.map((t) => ({
+    n: t.name,
+    a: t.artists.map((a) => a.name).join(", "),
+    u: t.uri,
+  }));
+}
+
+function formatArtistsForToon(artists: FullArtist[]): Array<{ n: string; g: string }> {
   return artists.map((a) => ({
     n: a.name,
     g: a.genres.slice(0, 3).join(", "),
   }));
 }
 
-async function searchAndGetUri(trackName: string, artistName: string): Promise<string | null> {
+async function searchAndGetSpotifyUri(
+  trackName: string,
+  artistName: string
+): Promise<string | null> {
   try {
-    // Try exact search first
-    let results = await searchTracks(`${trackName} ${artistName}`, 5);
-    
-    // Find best match by checking if artist name is included
+    let results = await spotifySearchTracks(`${trackName} ${artistName}`, 5);
+
     const artistLower = artistName.toLowerCase();
     const trackLower = trackName.toLowerCase();
-    
+
     for (const track of results) {
-      const trackArtists = track.artists.map(a => a.name.toLowerCase()).join(" ");
+      const trackArtists = track.artists.map((a) => a.name.toLowerCase()).join(" ");
       const trackTitle = track.name.toLowerCase();
-      
+
       if (trackArtists.includes(artistLower) || artistLower.includes(trackArtists.split(",")[0])) {
         if (trackTitle.includes(trackLower) || trackLower.includes(trackTitle)) {
           return `spotify:track:${track.id}`;
         }
       }
     }
-    
-    // Fallback: just return first result if any
+
     if (results.length > 0) {
       return `spotify:track:${results[0].id}`;
     }
-    
-    // Try with just track name
-    results = await searchTracks(trackName, 3);
+
+    results = await spotifySearchTracks(trackName, 3);
     if (results.length > 0) {
       return `spotify:track:${results[0].id}`;
     }
-    
+
     return null;
   } catch {
     return null;
   }
+}
+
+async function searchAndGetYouTubeUri(
+  trackName: string,
+  artistName: string
+): Promise<string | null> {
+  try {
+    const query = `${trackName} ${artistName} official`;
+    const results = await searchYouTubeVideos(query, 5);
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    const trackLower = trackName.toLowerCase();
+    const artistLower = artistName.toLowerCase();
+
+    for (const video of results) {
+      const data = videoItemToTrackData(video);
+      const titleLower = data.name.toLowerCase();
+      const channelLower = data.artists[0]?.toLowerCase() || "";
+
+      if (
+        titleLower.includes(trackLower) &&
+        (channelLower.includes(artistLower) || titleLower.includes(artistLower))
+      ) {
+        return data.uri;
+      }
+    }
+
+    const firstResult = videoItemToTrackData(results[0]);
+    return firstResult.uri;
+  } catch {
+    return null;
+  }
+}
+
+async function searchAndGetUri(
+  trackName: string,
+  artistName: string,
+  provider: MusicProviderType
+): Promise<string | null> {
+  if (provider === "spotify") {
+    return searchAndGetSpotifyUri(trackName, artistName);
+  }
+  return searchAndGetYouTubeUri(trackName, artistName);
 }
 
 interface AISuggestion {
@@ -109,45 +179,62 @@ export async function fetchNextBatch(): Promise<QueuedTrack[]> {
   const store = useAIQueueStore.getState();
 
   const settings = await readSettings();
-  const provider = await getActiveProviderWithKey(
+  const aiProvider = await getActiveProviderWithKey(
     settings.ai_providers,
     settings.active_ai_provider
   );
 
-  if (!provider) {
+  if (!aiProvider) {
     throw new Error("No AI provider configured");
   }
+
+  const musicProviderType = await getActiveProviderType();
 
   store.setLoading(true);
 
   try {
-    const recentTracks = await fetchRecentlyPlayed(30);
-    const topArtists = await fetchTopArtists("short_term", 10);
+    let recentToon: string;
+    let artistToon: string;
+    let recentUris: Set<string>;
 
-    let userProfile = store.cachedUserProfile;
-    const cacheAge = Date.now() - store.lastFetchTime;
-    const CACHE_TTL = 10 * 60 * 1000;
+    if (musicProviderType === "spotify") {
+      const recentTracks = await spotifyFetchRecentlyPlayed(30);
+      const topArtists = await spotifyFetchTopArtists("short_term", 10);
 
-    if (!userProfile || cacheAge > CACHE_TTL) {
-      const artistData = formatArtistsForToon(topArtists);
-      userProfile = encode(artistData);
-      store.setCachedUserProfile(userProfile);
+      const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
+      const recentData = formatTracksForToon(shuffledRecent);
+      recentToon = encode(recentData);
+
+      const shuffledArtists = shuffleArray(topArtists);
+      const artistData = formatArtistsForToon(shuffledArtists);
+      artistToon = encode(artistData);
+
+      recentUris = new Set(recentTracks.map((t) => `spotify:track:${t.id}`));
+    } else {
+      const musicProvider = await getActiveProvider();
+      const recentTracks = await musicProvider.getRecentlyPlayed(30);
+
+      const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
+      const recentData = formatUnifiedTracksForToon(shuffledRecent);
+      recentToon = encode(recentData);
+
+      artistToon = encode([{ n: "Various Artists", g: "mixed" }]);
+      recentUris = new Set(recentTracks.map((t) => t.uri));
     }
 
-    const recentData = formatTracksForToon(recentTracks.slice(0, 15));
-    const recentToon = encode(recentData);
+    const model = createAIModel(aiProvider.provider, aiProvider.apiKey);
 
-    const model = createAIModel(provider.provider, provider.apiKey);
+    const randomSeed = Math.random().toString(36).substring(2, 8);
 
     const moodInstruction = currentMoodContext
-      ? `\n\nIMPORTANT USER REQUEST: The user specifically wants "${currentMoodContext}". Prioritize this mood/genre over recent tracks!`
+      ? `\n\nIMPORTANT USER REQUEST: The user specifically wants "${currentMoodContext}". Prioritize this mood/genre!`
       : "";
 
-    const prompt = `Recent tracks (TOON):
+    const prompt = `[${randomSeed}] Recent tracks (TOON):
 ${recentToon}
 
 Top artists (TOON):
-${userProfile}${moodInstruction}
+${artistToon}${moodInstruction}
 
 Suggest 5 tracks that would flow well. Consider energy, mood, and genre continuity.`;
 
@@ -155,7 +242,6 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
       model,
       system: AI_QUEUE_SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
-      maxTokens: 500,
     });
 
     const jsonMatch = result.text.match(/\[[\s\S]*\]/);
@@ -175,9 +261,11 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
 
     const queuedTracks: QueuedTrack[] = [];
 
-    for (const suggestion of suggestions) {
-      const uri = await searchAndGetUri(suggestion.n, suggestion.a);
-      if (uri && !store.hasPlayed(uri)) {
+    const shuffledSuggestions = shuffleArray(suggestions);
+
+    for (const suggestion of shuffledSuggestions) {
+      const uri = await searchAndGetUri(suggestion.n, suggestion.a, musicProviderType);
+      if (uri && !store.hasPlayed(uri) && !recentUris.has(uri)) {
         queuedTracks.push({
           name: suggestion.n,
           artists: suggestion.a,
@@ -187,33 +275,57 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
     }
 
     if (queuedTracks.length === 0) {
-      // Fallback: use recent tracks as base for recommendations
-      const fallbackQueries = ["popular tracks", "top hits", "trending music"];
+      const fallbackQueries = shuffleArray([
+        "indie hits 2020s",
+        "alternative rock classics",
+        "electronic dance",
+        "pop hits",
+        "r&b soul",
+        "hip hop essentials",
+        "rock anthems",
+      ]).slice(0, 3);
 
       for (const query of fallbackQueries) {
-        const results = await searchTracks(query, 10);
-        if (results.length > 0) {
-          for (const track of results) {
+        if (musicProviderType === "spotify") {
+          const results = await spotifySearchTracks(query, 20);
+          const shuffledResults = shuffleArray(results);
+
+          for (const track of shuffledResults) {
             const uri = `spotify:track:${track.id}`;
-            if (!store.hasPlayed(uri)) {
+            if (!store.hasPlayed(uri) && !recentUris.has(uri)) {
               queuedTracks.push({
                 name: track.name,
-                artists: track.artists.map(a => a.name).join(", "),
+                artists: track.artists.map((a) => a.name).join(", "),
                 uri,
               });
             }
             if (queuedTracks.length >= 5) break;
           }
-          if (queuedTracks.length > 0) break;
+        } else {
+          const results = await searchYouTubeVideos(query, 20);
+          const shuffledResults = shuffleArray(results);
+
+          for (const video of shuffledResults) {
+            const data = videoItemToTrackData(video);
+            if (!store.hasPlayed(data.uri) && !recentUris.has(data.uri)) {
+              queuedTracks.push({
+                name: data.name,
+                artists: data.artists.join(", "),
+                uri: data.uri,
+              });
+            }
+            if (queuedTracks.length >= 5) break;
+          }
         }
+        if (queuedTracks.length > 0) break;
       }
     }
 
     if (queuedTracks.length === 0) {
-      throw new Error("Could not find any suggested tracks on Spotify");
+      throw new Error("Could not find any new tracks to play");
     }
 
-    return queuedTracks;
+    return shuffleArray(queuedTracks);
   } finally {
     store.setLoading(false);
   }
@@ -238,8 +350,15 @@ export async function startAIQueue(mood?: string): Promise<void> {
     const batch = await fetchNextBatch();
     store.setQueue(batch);
 
+    const musicProviderType = await getActiveProviderType();
+
     if (batch.length > 0) {
-      await playTracks(batch.map((t) => t.uri));
+      if (musicProviderType === "spotify") {
+        await spotifyPlayTracks(batch.map((t) => t.uri));
+      } else {
+        const musicProvider = await getActiveProvider();
+        await musicProvider.playTrack(batch[0].uri);
+      }
       lastTrackUri = batch[0].uri;
     }
 
@@ -282,18 +401,55 @@ function startMonitoring(): void {
     }
 
     try {
-      const current = await fetchCurrentlyPlaying();
+      const musicProviderType = await getActiveProviderType();
+      let currentUri: string | null = null;
+      let isPlaying = false;
 
-      if (!current?.item) return;
+      if (musicProviderType === "spotify") {
+        const current = await spotifyFetchCurrentlyPlaying();
+        if (current?.item) {
+          currentUri = `spotify:track:${current.item.id}`;
+          isPlaying = current.is_playing ?? false;
+        }
+      } else {
+        const musicProvider = await getActiveProvider();
+        const playbackState = await musicProvider.getPlaybackState();
+        if (playbackState?.track) {
+          currentUri = playbackState.track.uri;
+          isPlaying = playbackState.isPlaying;
+        }
 
-      const currentUri = `spotify:track:${current.item.id}`;
+        // YouTube auto-advance: when track ends (progress >= duration), play next from queue
+        if (lastTrackUri && store.queue.length > 0 && playbackState) {
+          const lastIndex = store.queue.findIndex((t) => t.uri === lastTrackUri);
+          if (lastIndex !== -1) {
+            const currentTrack = playbackState.track;
+            const progressMs = playbackState.progressMs ?? 0;
+            const durationMs = currentTrack?.durationMs ?? 0;
+            const endThreshold = 2000;
+
+            if (durationMs > 0 && progressMs >= durationMs - endThreshold && !isPlaying) {
+              const nextIndex = lastIndex + 1;
+              if (nextIndex < store.queue.length) {
+                const nextTrack = store.queue[nextIndex];
+                await musicProvider.playTrack(nextTrack.uri);
+                store.setCurrentIndex(nextIndex);
+                store.addPlayedUri(nextTrack.uri);
+                lastTrackUri = nextTrack.uri;
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      if (!currentUri) return;
 
       if (currentUri !== lastTrackUri) {
         lastTrackUri = currentUri;
 
         const currentIndex = store.queue.findIndex((t) => t.uri === currentUri);
 
-        // User manually started a song not in the AI queue - auto-stop
         if (currentIndex === -1 && !store.playedUris.has(currentUri)) {
           stopAIQueue();
           return;
@@ -310,8 +466,10 @@ function startMonitoring(): void {
               const newBatch = await fetchNextBatch();
               store.addToQueue(newBatch);
 
-              for (const track of newBatch) {
-                await addToQueue(track.uri);
+              if (musicProviderType === "spotify") {
+                for (const track of newBatch) {
+                  await spotifyAddToQueue(track.uri);
+                }
               }
             } catch (err) {
               console.error("Failed to fetch next batch:", err);
@@ -324,4 +482,3 @@ function startMonitoring(): void {
     }
   }, 3000);
 }
-

@@ -1,7 +1,8 @@
 "use client";
 
-import { useLanguage } from "@/hooks/use-language";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import { useLanguage } from "@/hooks/use-language";
 
 const contributors = [
   {
@@ -42,9 +43,11 @@ export function ContributorsRow() {
             rel="noopener noreferrer"
             className="relative transition-transform hover:z-10 hover:scale-110"
           >
-            <img
+            <Image
               src={c.avatar}
               alt={c.name}
+              width={40}
+              height={40}
               className="h-10 w-10 rounded-full border border-border bg-background"
             />
           </a>

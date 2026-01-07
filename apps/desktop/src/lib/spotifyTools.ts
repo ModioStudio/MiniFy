@@ -1,11 +1,9 @@
-import { tool } from "ai";
 import { encode } from "@toon-format/toon";
+import { tool } from "ai";
 import { z } from "zod";
 import {
   type AudioFeatures,
   type FullArtist,
-  type SimplifiedTrack,
-  type TimeRange,
   fetchAudioFeatures,
   fetchCurrentlyPlaying,
   fetchRecentlyPlayed,
@@ -15,7 +13,9 @@ import {
   fetchTopTracks,
   fetchUserProfile,
   playTrack,
+  type SimplifiedTrack,
   searchTracks,
+  type TimeRange,
 } from "../ui/spotifyClient";
 import { startAIQueue, stopAIQueue } from "./aiQueueService";
 import { useAIQueueStore } from "./aiQueueStore";
@@ -137,7 +137,8 @@ export const spotifyTools = {
   }),
 
   getRecentlyPlayed: tool({
-    description: "Get the user's recently played tracks on Spotify. Returns TOON format: n=name, a=artists, u=uri",
+    description:
+      "Get the user's recently played tracks on Spotify. Returns TOON format: n=name, a=artists, u=uri",
     parameters: z.object({
       limit: z.number().min(1).max(50).default(10).describe("Number of tracks to retrieve (1-50)"),
     }),
@@ -232,7 +233,8 @@ export const spotifyTools = {
   }),
 
   getTopArtists: tool({
-    description: "Get the user's most listened artists. Returns TOON format: n=name, g=genres, p=popularity, id=artistId",
+    description:
+      "Get the user's most listened artists. Returns TOON format: n=name, g=genres, p=popularity, id=artistId",
     parameters: z.object({
       timeRange: timeRangeSchema.default("medium_term" as TimeRange),
       limit: z.number().min(1).max(50).default(15).describe("Number of artists (1-50)"),

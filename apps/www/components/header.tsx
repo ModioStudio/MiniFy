@@ -1,5 +1,8 @@
 "use client";
 
+import { BookOpen, Globe, Menu, Moon, Sun, X } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,10 +13,8 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import { LANGUAGES, type Language } from "@/lib/translations";
-import { BookOpen, Globe, Menu, Moon, Sun, X } from "lucide-react";
-import { useState } from "react";
 
-const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.minify.modio.studio";
+const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://minify-docs.modio.studio";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -38,7 +39,13 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="logo" className="w-32 h-32 dark:invert-0 invert" />
+          <Image
+            src="/logo.png"
+            alt="logo"
+            width={128}
+            height={128}
+            className="w-32 h-32 dark:invert-0 invert"
+          />
         </div>
 
         <nav className="hidden items-center gap-6 md:flex">

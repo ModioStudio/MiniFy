@@ -1,7 +1,7 @@
 "use client";
 
-import { COOKIE_NAMES, getCookie, setCookie } from "@/lib/cookies";
 import { useCallback, useEffect, useState } from "react";
+import { COOKIE_NAMES, getCookie, setCookie } from "@/lib/cookies";
 
 export type Theme = "light" | "dark";
 

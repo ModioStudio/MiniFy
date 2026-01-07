@@ -42,14 +42,14 @@ function LayoutC() {
             durationMs={duration}
             progressMs={progress}
             isPlaying={isPlaying}
-            onSeek={(ms) => setState((s) => (s ? { ...s, progress_ms: ms } : s))}
+            onSeek={(ms) => setState((s) => (s ? { ...s, progressMs: ms } : s))}
           />
         </div>
 
         <div className="flex justify-end">
           <PlayerControls
             isPlaying={isPlaying}
-            onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
+            onTogglePlaying={(playing) => setState((s) => (s ? { ...s, isPlaying: playing } : s))}
           />
         </div>
       </div>

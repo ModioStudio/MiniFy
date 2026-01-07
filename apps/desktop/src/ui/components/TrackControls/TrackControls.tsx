@@ -1,29 +1,59 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
-import { nextTrack, pause, play, previousTrack } from "../../spotifyClient";
+import { getLastPlayedForProvider } from "../../../hooks/useCurrentlyPlaying";
+import { getActiveProvider, getActiveProviderType } from "../../../providers";
 
 type TrackControlsProps = {
   isPlaying: boolean;
+  currentTrackUri?: string | null;
   onTogglePlaying?: (playing: boolean) => void;
   className?: string;
 };
 
-export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: TrackControlsProps) {
-  const handlePrev = useCallback(() => {
-    previousTrack();
+export function TrackControls({
+  isPlaying,
+  currentTrackUri: _currentTrackUri,
+  onTogglePlaying,
+  className = "",
+}: TrackControlsProps) {
+  const handlePrev = useCallback(async () => {
+    const provider = await getActiveProvider();
+    provider.previousTrack();
   }, []);
 
-  const handleNext = useCallback(() => {
-    nextTrack();
+  const handleNext = useCallback(async () => {
+    const provider = await getActiveProvider();
+    provider.nextTrack();
   }, []);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = useCallback(async () => {
+    const previous = isPlaying;
     const next = !isPlaying;
     onTogglePlaying?.(next);
-    if (next) {
-      play();
-    } else {
-      pause();
+
+    try {
+      const provider = await getActiveProvider();
+      const providerType = await getActiveProviderType();
+
+      if (next) {
+        const playbackState = await provider.getPlaybackState();
+        const hasActiveTrack = playbackState?.track !== null;
+
+        if (!hasActiveTrack) {
+          const cached = await getLastPlayedForProvider(providerType);
+          if (cached) {
+            await provider.playTrack(cached.track.uri, cached.progress_ms);
+            return;
+          }
+        }
+
+        await provider.play();
+      } else {
+        await provider.pause();
+      }
+    } catch (error) {
+      console.error("Playback toggle failed:", error);
+      onTogglePlaying?.(previous);
     }
   }, [isPlaying, onTogglePlaying]);
 

@@ -1,7 +1,7 @@
 "use client";
 
-import type { LayoutType, ThemeMeta } from "@/lib/types/theme";
 import { ChevronDown } from "lucide-react";
+import type { LayoutType, ThemeMeta } from "@/lib/types/theme";
 
 type ThemeSwitcherProps = {
   themes: ThemeMeta[];
@@ -20,8 +20,6 @@ export function ThemeSwitcher({
   onThemeChange,
   onLayoutChange,
 }: ThemeSwitcherProps) {
-  const currentThemeMeta = themes.find((t) => t.id === currentTheme);
-
   return (
     <div className="flex items-center gap-3 flex-wrap justify-center">
       <div className="relative">

@@ -56,7 +56,9 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
           <PlusCircle
             size={24}
             weight="fill"
-            color={plusHovered ? "var(--player-controls-color-active)" : "var(--player-controls-color)"}
+            color={
+              plusHovered ? "var(--player-controls-color-active)" : "var(--player-controls-color)"
+            }
           />
         </button>
       </div>
@@ -64,7 +66,7 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
       <div className="flex items-center justify-center">
         <PlayerControls
           isPlaying={isPlaying}
-          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, is_playing: playing } : s))}
+          onTogglePlaying={(playing) => setState((s) => (s ? { ...s, isPlaying: playing } : s))}
         />
       </div>
 

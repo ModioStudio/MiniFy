@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useLanguage } from "@/hooks/use-language";
 import { motion } from "framer-motion";
 import { CheckCircle2, Download, Github } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useLanguage } from "@/hooks/use-language";
 
 const container = {
   hidden: {},

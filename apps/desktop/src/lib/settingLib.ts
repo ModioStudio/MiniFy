@@ -1,12 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type SpotifyTokens = {
-  access_token: string | null;
-  refresh_token: string | null;
-};
-
 export type AIProviderType = "openai" | "anthropic" | "google" | "groq";
-export type MusicProviderType = "spotify" | "apple" | "youtube";
+export type MusicProviderType = "spotify" | "youtube";
 
 export type AIProviderConfig = {
   provider: AIProviderType;
@@ -47,9 +42,46 @@ export async function clearAllAIKeys(): Promise<void> {
   await invoke("clear_all_ai_keys");
 }
 
+export type CachedTrackArtist = {
+  id: string;
+  name: string;
+};
+
+export type CachedTrackAlbumImage = {
+  url: string;
+  height: number;
+  width: number;
+};
+
+export type CachedTrackAlbum = {
+  id: string;
+  name: string;
+  images: CachedTrackAlbumImage[];
+};
+
+export type CachedTrack = {
+  id: string;
+  name: string;
+  duration_ms: number;
+  artists: CachedTrackArtist[];
+  album: CachedTrackAlbum;
+  uri: string;
+  provider: MusicProviderType;
+};
+
+export type LastPlayedTrack = {
+  track: CachedTrack;
+  progress_ms: number;
+  cached_at: number;
+};
+
+export type ProviderPlaybackCache = {
+  spotify: LastPlayedTrack | null;
+  youtube: LastPlayedTrack | null;
+};
+
 export type Settings = {
   first_boot_done: boolean;
-  spotify: SpotifyTokens;
   layout: string;
   theme: string;
   ai_providers: AIProviderConfig[];
@@ -57,6 +89,9 @@ export type Settings = {
   active_music_provider: MusicProviderType | null;
   show_ai_queue_border: boolean;
   discord_rpc_enabled: boolean;
+  last_played_track: LastPlayedTrack | null;
+  provider_playback_cache: ProviderPlaybackCache | null;
+  youtube_volume: number | null;
 };
 
 export type CustomTheme = {
@@ -113,12 +148,12 @@ export async function readSettings(): Promise<Settings> {
       active_music_provider: settings.active_music_provider ?? "spotify",
       show_ai_queue_border: settings.show_ai_queue_border ?? true,
       discord_rpc_enabled: settings.discord_rpc_enabled ?? false,
+      last_played_track: settings.last_played_track ?? null,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
     return {
       first_boot_done: false,
-      spotify: { access_token: null, refresh_token: null },
       layout: "LayoutA",
       theme: "dark",
       ai_providers: [],
@@ -126,6 +161,7 @@ export async function readSettings(): Promise<Settings> {
       active_music_provider: "spotify",
       show_ai_queue_border: true,
       discord_rpc_enabled: false,
+      last_played_track: null,
     };
   }
 }

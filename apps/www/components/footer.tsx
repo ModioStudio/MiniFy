@@ -1,8 +1,9 @@
 "use client";
 
-import { useLanguage } from "@/hooks/use-language";
 import { DiscordLogoIcon } from "@phosphor-icons/react";
 import { Github, Heart, Twitter } from "lucide-react";
+import Image from "next/image";
+import { useLanguage } from "@/hooks/use-language";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -15,7 +16,13 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="mb-4 flex items-center gap-3">
-              <img src="/logo.png" alt="MiniFy Logo" className="h-9 w-9 dark:invert-0 invert" />
+              <Image
+                src="/logo.png"
+                alt="MiniFy Logo"
+                width={36}
+                height={36}
+                className="h-9 w-9 dark:invert-0 invert"
+              />
               <span className="text-xl font-bold tracking-tight">MiniFy</span>
             </div>
 

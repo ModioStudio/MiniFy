@@ -31,18 +31,21 @@ import {
   type AIProviderConfig,
   type AIProviderType,
   type CustomTheme,
-  type MusicProviderType,
   deleteAIApiKey,
   deleteCustomTheme,
   exportCustomTheme,
   hasAIApiKey,
   loadCustomThemes,
+  type MusicProviderType,
   readSettings,
   saveAIApiKey,
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
 import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
+import { clearProviderCache } from "../../providers";
+import { clearYouTubeState } from "../../providers/youtube";
+import { clearSpotifyTokenCache } from "../spotifyClient";
 
 const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: string }[] = [
   { id: "openai", name: "OpenAI", model: "GPT-4o Mini", color: "#10A37F" },
@@ -52,14 +55,15 @@ const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: st
 ];
 
 const MUSIC_PROVIDERS: {
-  id: MusicProviderType;
+  id: MusicProviderType | "apple";
   name: string;
   color: string;
+  iconColor: string;
   available: boolean;
 }[] = [
-  { id: "spotify", name: "Spotify", color: "#1DB954", available: true },
-  { id: "apple", name: "Apple Music", color: "#FC3C44", available: false },
-  { id: "youtube", name: "YouTube Music", color: "#FF0000", available: false },
+  { id: "spotify", name: "Spotify", color: "#1DB954", iconColor: "#000", available: true },
+  { id: "youtube", name: "YouTube Music", color: "#FF0000", iconColor: "#fff", available: true },
+  { id: "apple", name: "Apple Music", color: "#FC3C44", iconColor: "#fff", available: false },
 ];
 
 async function validateAIApiKey(provider: AIProviderType, apiKey: string): Promise<boolean> {
@@ -111,8 +115,9 @@ type SettingsProps = {
   onBack: () => void;
   onUpdateLayout?: (layout: string) => void;
   onUpdateTheme?: (theme: string) => void;
-  onResetAuth?: () => void;
+  onResetAuth?: (provider?: "spotify" | "youtube") => void;
   onUpdateAIQueueBorder?: (show: boolean) => void;
+  onMusicProviderChange?: (provider: MusicProviderType) => void;
 };
 
 const categories = [
@@ -182,6 +187,7 @@ export default function Settings({
   onUpdateTheme,
   onResetAuth,
   onUpdateAIQueueBorder,
+  onMusicProviderChange,
 }: SettingsProps) {
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
@@ -198,6 +204,8 @@ export default function Settings({
 
   const [spotifyConnected, setSpotifyConnected] = useState<boolean>(false);
   const [spotifyLoading, setSpotifyLoading] = useState<boolean>(false);
+  const [youtubeConnected, setYoutubeConnected] = useState<boolean>(false);
+  const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
 
   const [aiProviders, setAiProviders] = useState<AIProviderConfig[]>([]);
   const [activeAIProvider, setActiveAIProvider] = useState<AIProviderType | null>(null);
@@ -219,6 +227,8 @@ export default function Settings({
   });
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
+  const [showClearDialog, setShowClearDialog] = useState<boolean>(false);
+  const [clearingData, setClearingData] = useState<boolean>(false);
 
   const refreshCustomThemes = useCallback(async () => {
     const themes = await loadCustomThemes();
@@ -228,7 +238,35 @@ export default function Settings({
   const checkSpotifyConnection = useCallback(async () => {
     const hasTokens = await invoke<boolean>("has_valid_tokens");
     setSpotifyConnected(hasTokens);
+    return hasTokens;
   }, []);
+
+  const checkYouTubeConnection = useCallback(async () => {
+    const hasTokens = await invoke<boolean>("has_valid_youtube_tokens");
+    setYoutubeConnected(hasTokens);
+    return hasTokens;
+  }, []);
+
+  const autoActivateSingleProvider = useCallback(async () => {
+    const spotifyOk = await invoke<boolean>("has_valid_tokens");
+    const youtubeOk = await invoke<boolean>("has_valid_youtube_tokens");
+
+    if (spotifyOk && !youtubeOk && activeMusicProvider !== "spotify") {
+      clearYouTubeState();
+      clearSpotifyTokenCache();
+      clearProviderCache();
+      setActiveMusicProvider("spotify");
+      await writeSettings({ active_music_provider: "spotify" });
+      onMusicProviderChange?.("spotify");
+    } else if (!spotifyOk && youtubeOk && activeMusicProvider !== "youtube") {
+      clearYouTubeState();
+      clearSpotifyTokenCache();
+      clearProviderCache();
+      setActiveMusicProvider("youtube");
+      await writeSettings({ active_music_provider: "youtube" });
+      onMusicProviderChange?.("youtube");
+    }
+  }, [activeMusicProvider, onMusicProviderChange]);
 
   useEffect(() => {
     setLayout("Settings");
@@ -263,8 +301,16 @@ export default function Settings({
       setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
       await refreshCustomThemes();
       await checkSpotifyConnection();
+      await checkYouTubeConnection();
+      await autoActivateSingleProvider();
     })();
-  }, [setLayout, refreshCustomThemes, checkSpotifyConnection]);
+  }, [
+    setLayout,
+    refreshCustomThemes,
+    checkSpotifyConnection,
+    checkYouTubeConnection,
+    autoActivateSingleProvider,
+  ]);
 
   useEffect(() => {
     const setupOAuthListener = async () => {
@@ -275,10 +321,19 @@ export default function Settings({
       const unlistenFailed = await listen("oauth-failed", () => {
         setSpotifyLoading(false);
       });
+      const unlistenYTSuccess = await listen("youtube-oauth-success", async () => {
+        setYoutubeLoading(false);
+        await checkYouTubeConnection();
+      });
+      const unlistenYTFailed = await listen("youtube-oauth-failed", () => {
+        setYoutubeLoading(false);
+      });
 
       return () => {
         unlistenSuccess();
         unlistenFailed();
+        unlistenYTSuccess();
+        unlistenYTFailed();
       };
     };
 
@@ -286,7 +341,7 @@ export default function Settings({
     return () => {
       cleanup.then((c) => c());
     };
-  }, [checkSpotifyConnection]);
+  }, [checkSpotifyConnection, checkYouTubeConnection]);
 
   const handleSpotifyLogout = async () => {
     setSpotifyLoading(true);
@@ -297,7 +352,31 @@ export default function Settings({
   };
 
   const handleSpotifyConnect = async () => {
-    onResetAuth?.();
+    onResetAuth?.("spotify");
+  };
+
+  const handleYouTubeConnect = async () => {
+    onResetAuth?.("youtube");
+  };
+
+  const handleYouTubeLogout = async () => {
+    setYoutubeLoading(true);
+    await invoke("clear_youtube_credentials");
+    setYoutubeConnected(false);
+    setYoutubeLoading(false);
+  };
+
+  const handleClearEverything = async () => {
+    setClearingData(true);
+    try {
+      await invoke("clear_everything");
+      setShowClearDialog(false);
+      onResetAuth?.();
+    } catch (e) {
+      console.error("Failed to clear data:", e);
+    } finally {
+      setClearingData(false);
+    }
   };
 
   const handleValidateAIKey = async (provider: AIProviderType) => {
@@ -358,8 +437,12 @@ export default function Settings({
   };
 
   const handleSetActiveMusicProvider = async (provider: MusicProviderType) => {
+    clearYouTubeState();
+    clearSpotifyTokenCache();
+    clearProviderCache();
     setActiveMusicProvider(provider);
     await writeSettings({ active_music_provider: provider });
+    onMusicProviderChange?.(provider);
   };
 
   const handleToggleAIQueueBorder = async () => {
@@ -549,9 +632,12 @@ export default function Settings({
                 Connect your music streaming accounts to control playback
               </p>
 
-              {MUSIC_PROVIDERS.map(({ id, name, color, available }) => {
-                const isSpotifyConnected = id === "spotify" && spotifyConnected;
+              {MUSIC_PROVIDERS.map(({ id, name, color, iconColor, available }) => {
+                const isConnected =
+                  (id === "spotify" && spotifyConnected) || (id === "youtube" && youtubeConnected);
                 const isActive = activeMusicProvider === id;
+                const isLoading =
+                  (id === "spotify" && spotifyLoading) || (id === "youtube" && youtubeLoading);
                 const IconComponent =
                   id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
 
@@ -562,9 +648,9 @@ export default function Settings({
                     style={{
                       background: "rgba(0, 0, 0, 0.2)",
                       borderColor:
-                        isSpotifyConnected && isActive
+                        isConnected && isActive
                           ? `${color}50`
-                          : isSpotifyConnected
+                          : isConnected
                             ? `${color}30`
                             : "rgba(255, 255, 255, 0.1)",
                     }}
@@ -574,23 +660,19 @@ export default function Settings({
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
                         style={{ background: color }}
                       >
-                        <IconComponent
-                          size={24}
-                          weight="fill"
-                          color={id === "spotify" ? "#000" : "#fff"}
-                        />
+                        <IconComponent size={24} weight="fill" color={iconColor} />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-medium">{name}</span>
                         <span
                           className="text-xs flex items-center gap-1"
                           style={{
-                            color: isSpotifyConnected ? color : "var(--settings-text-muted)",
+                            color: isConnected ? color : "var(--settings-text-muted)",
                           }}
                         >
                           {!available ? (
                             "Coming soon"
-                          ) : isSpotifyConnected ? (
+                          ) : isConnected ? (
                             <>
                               <span
                                 className="w-2 h-2 rounded-full"
@@ -606,7 +688,7 @@ export default function Settings({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isSpotifyConnected && !isActive && (
+                      {isConnected && !isActive && (
                         <button
                           type="button"
                           onClick={() => handleSetActiveMusicProvider(id)}
@@ -639,6 +721,33 @@ export default function Settings({
                           ) : (
                             <>
                               <SpotifyLogo size={16} weight="fill" />
+                              <span className="text-sm">Connect</span>
+                            </>
+                          )}
+                        </button>
+                      ) : id === "youtube" && youtubeConnected ? (
+                        <button
+                          type="button"
+                          onClick={handleYouTubeLogout}
+                          disabled={youtubeLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <SignOut size={16} />
+                          <span className="text-sm">Disconnect</span>
+                        </button>
+                      ) : id === "youtube" && available ? (
+                        <button
+                          type="button"
+                          onClick={handleYouTubeConnect}
+                          disabled={isLoading}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: color }}
+                        >
+                          {isLoading ? (
+                            <span className="text-sm">Connecting...</span>
+                          ) : (
+                            <>
+                              <YoutubeLogo size={16} weight="fill" />
                               <span className="text-sm">Connect</span>
                             </>
                           )}
@@ -804,11 +913,16 @@ export default function Settings({
                     <span className="font-medium">Discord Status</span>
                     <span
                       className="text-xs flex items-center gap-1"
-                      style={{ color: discordRpcEnabled ? "#5865F2" : "var(--settings-text-muted)" }}
+                      style={{
+                        color: discordRpcEnabled ? "#5865F2" : "var(--settings-text-muted)",
+                      }}
                     >
                       {discordRpcEnabled ? (
                         <>
-                          <span className="w-2 h-2 rounded-full" style={{ background: "#5865F2" }} />
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: "#5865F2" }}
+                          />
                           Showing activity
                         </>
                       ) : (
@@ -1200,13 +1314,92 @@ export default function Settings({
               </div>
 
               <p className="text-xs text-[--settings-text-muted]">
-                This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google,
-                or Groq). We do not store or process this data ourselves.
+                This data is sent directly to your chosen AI provider (OpenAI, Anthropic, Google, or
+                Groq). We do not store or process this data ourselves.
               </p>
+
+              <div className="border-t border-white/10 my-4" />
+
+              <div className="font-medium flex items-center gap-2 text-red-400">
+                <Trash size={18} weight="fill" />
+                Clear All Data
+              </div>
+              <p className="text-xs text-[--settings-text-muted]">
+                Permanently delete all stored data including Spotify tokens, AI API keys, settings,
+                and custom themes. This action cannot be undone.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setShowClearDialog(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer w-fit"
+              >
+                <Trash size={16} />
+                <span className="text-sm font-medium">Clear Everything</span>
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {showClearDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !clearingData && setShowClearDialog(false)}
+            onKeyDown={() => {}}
+          />
+          <div
+            className="relative p-6 rounded-2xl max-w-sm w-full mx-4 animate-fadeIn"
+            style={{
+              background: "rgba(30, 30, 30, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-red-500/20">
+                <Warning size={24} weight="fill" className="text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Clear All Data?</h3>
+            </div>
+
+            <p className="text-sm text-[--settings-text-muted] mb-6">
+              This will permanently delete all your data including Spotify authentication, AI API
+              keys, settings, and custom themes. You will need to set up the app again.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearDialog(false)}
+                disabled={clearingData}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClearEverything}
+                disabled={clearingData}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {clearingData ? (
+                  <>
+                    <CircleNotch size={16} className="animate-spin" />
+                    Clearing...
+                  </>
+                ) : (
+                  <>
+                    <Trash size={16} />
+                    Clear All
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn {
