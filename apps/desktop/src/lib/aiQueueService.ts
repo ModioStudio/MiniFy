@@ -400,17 +400,35 @@ function startMonitoring(): void {
     try {
       const musicProviderType = await getActiveProviderType();
       let currentUri: string | null = null;
+      let isPlaying = false;
 
       if (musicProviderType === "spotify") {
         const current = await spotifyFetchCurrentlyPlaying();
         if (current?.item) {
           currentUri = `spotify:track:${current.item.id}`;
+          isPlaying = current.is_playing ?? false;
         }
       } else {
         const musicProvider = await getActiveProvider();
         const playbackState = await musicProvider.getPlaybackState();
         if (playbackState?.track) {
           currentUri = playbackState.track.uri;
+          isPlaying = playbackState.isPlaying;
+        }
+
+        // YouTube auto-advance: when track ends, play next from queue
+        if (!isPlaying && lastTrackUri && store.queue.length > 0) {
+          const lastIndex = store.queue.findIndex((t) => t.uri === lastTrackUri);
+          const nextIndex = lastIndex + 1;
+          
+          if (nextIndex < store.queue.length) {
+            const nextTrack = store.queue[nextIndex];
+            await musicProvider.playTrack(nextTrack.uri);
+            store.setCurrentIndex(nextIndex);
+            store.addPlayedUri(nextTrack.uri);
+            lastTrackUri = nextTrack.uri;
+            return;
+          }
         }
       }
 
@@ -441,9 +459,6 @@ function startMonitoring(): void {
                 for (const track of newBatch) {
                   await spotifyAddToQueue(track.uri);
                 }
-              } else {
-                // For YouTube, we can't add to queue - will play next track when current ends
-                console.log("YouTube: Added", newBatch.length, "tracks to AI queue");
               }
             } catch (err) {
               console.error("Failed to fetch next batch:", err);

@@ -266,12 +266,10 @@ pub async fn has_valid_youtube_tokens() -> bool {
 
 #[tauri::command]
 pub async fn clear_youtube_credentials() -> Result<(), String> {
-    {
-        let mut s = YT_AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = YT_AUTH_STATE.lock() {
         *s = None;
     }
-    {
-        let mut shutdown = YT_OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = YT_OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
@@ -279,7 +277,7 @@ pub async fn clear_youtube_credentials() -> Result<(), String> {
     clear_cached_yt_client_id();
     clear_cached_yt_client_secret();
     clear_cached_yt_tokens();
-    
+
     tokio::task::spawn_blocking(|| {
         if let Ok(e) = entry(YT_ACCESS_TOKEN_KEY) { let _ = e.delete_password(); }
         if let Ok(e) = entry(YT_REFRESH_TOKEN_KEY) { let _ = e.delete_password(); }
@@ -339,21 +337,20 @@ async fn exchange_youtube_code_for_tokens(state: &YouTubeAuthState, code: &str) 
 
 #[tauri::command]
 pub async fn cancel_youtube_oauth_flow() -> Result<(), String> {
-    {
-        let mut s = YT_AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = YT_AUTH_STATE.lock() {
         *s = None;
     }
-    let mut shutdown = YT_OAUTH_SHUTDOWN.lock().unwrap();
-    if let Some(tx) = shutdown.take() {
-        let _ = tx.send(());
+    if let Ok(mut shutdown) = YT_OAUTH_SHUTDOWN.lock() {
+        if let Some(tx) = shutdown.take() {
+            let _ = tx.send(());
+        }
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
-    {
-        let mut shutdown = YT_OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = YT_OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
@@ -369,8 +366,7 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
         .or(get_stored_youtube_client_secret().await)
         .ok_or_else(|| "No YouTube Client Secret configured. Please set up your credentials first.".to_string())?;
 
-    {
-        let mut s = YT_AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = YT_AUTH_STATE.lock() {
         *s = None;
     }
 
@@ -378,8 +374,7 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
     rand::rng().fill_bytes(&mut state_bytes);
     let state_nonce = hex::encode(state_bytes);
 
-    {
-        let mut s = YT_AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = YT_AUTH_STATE.lock() {
         *s = Some(YouTubeAuthState { 
             client_id: client_id.clone(),
             client_secret: client_secret.clone(),
@@ -391,8 +386,7 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     
-    {
-        let mut shutdown = YT_OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = YT_OAUTH_SHUTDOWN.lock() {
         *shutdown = Some(shutdown_tx);
     }
 
@@ -443,8 +437,9 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
             }
         }
         
-        let mut shutdown = YT_OAUTH_SHUTDOWN.lock().unwrap();
-        *shutdown = None;
+        if let Ok(mut shutdown) = YT_OAUTH_SHUTDOWN.lock() {
+            *shutdown = None;
+        }
     });
 
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
@@ -483,10 +478,7 @@ async fn handle_youtube_oauth_callback(
         }
     };
 
-    let auth_state = {
-        let s = YT_AUTH_STATE.lock().unwrap();
-        s.clone()
-    };
+    let auth_state = YT_AUTH_STATE.lock().ok().and_then(|s| s.clone());
 
     let Some(st) = auth_state else {
         let _ = app.emit("youtube-oauth-failed", json!({ "error": "no_auth_state" }));
@@ -498,8 +490,7 @@ async fn handle_youtube_oauth_callback(
         return Html(youtube_error_page("This login session has expired. Please close this tab and try again in the app."));
     }
 
-    {
-        let mut s = YT_AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = YT_AUTH_STATE.lock() {
         *s = None;
     }
 

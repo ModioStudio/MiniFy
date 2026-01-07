@@ -175,8 +175,6 @@ fn generate_code_challenge(verifier: &str) -> String {
 
 #[tauri::command]
 pub async fn set_music_provider(provider: String) -> Result<(), String> {
-    set_cached_music_provider(&provider);
-    
     let provider_clone = provider.clone();
     tokio::task::spawn_blocking(move || {
         entry(MUSIC_PROVIDER_KEY)
@@ -185,7 +183,10 @@ pub async fn set_music_provider(provider: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to save music provider: {}", e))
     })
     .await
-    .map_err(|e| format!("Task failed: {}", e))?
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_music_provider(&provider);
+    Ok(())
 }
 
 #[tauri::command]
@@ -213,8 +214,6 @@ pub async fn has_music_provider() -> bool {
 }
 
 async fn save_tokens(tokens: &SpotifyTokens) -> Result<(), String> {
-    set_cached_tokens(tokens);
-    
     let access_token = tokens.access_token.clone();
     let refresh_token = tokens.refresh_token.clone();
     let expires_at = tokens.expires_at.to_string();
@@ -232,10 +231,13 @@ async fn save_tokens(tokens: &SpotifyTokens) -> Result<(), String> {
             .map_err(|e| format!("Keyring error: {}", e))?
             .set_password(&expires_at)
             .map_err(|e| format!("Failed to save token expiry: {}", e))?;
-        Ok(())
+        Ok::<(), String>(())
     })
     .await
-    .map_err(|e| format!("Task failed: {}", e))?
+    .map_err(|e| format!("Task failed: {}", e))??;
+    
+    set_cached_tokens(tokens);
+    Ok(())
 }
 
 pub async fn verify_spotify_access(access_token: &str) -> Result<(), String> {
@@ -297,12 +299,10 @@ pub async fn has_valid_tokens() -> bool {
 
 #[tauri::command]
 pub async fn clear_credentials() -> Result<(), String> {
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
@@ -374,21 +374,20 @@ lazy_static::lazy_static! {
 
 #[tauri::command]
 pub async fn cancel_oauth_flow() -> Result<(), String> {
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
-    if let Some(tx) = shutdown.take() {
-        let _ = tx.send(());
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
+        if let Some(tx) = shutdown.take() {
+            let _ = tx.send(());
+        }
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         if let Some(tx) = shutdown.take() {
             let _ = tx.send(());
         }
@@ -400,8 +399,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
         .or(get_stored_spotify_client_id().await)
         .ok_or_else(|| "No Spotify Client ID configured. Please set up your Client ID first.".to_string())?;
 
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
 
@@ -411,8 +409,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
     rand::rng().fill_bytes(&mut state_bytes);
     let state_nonce = hex::encode(state_bytes);
 
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = Some(AuthState { 
             code_verifier, 
             client_id: client_id.clone(),
@@ -424,8 +421,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     
-    {
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
         *shutdown = Some(shutdown_tx);
     }
 
@@ -476,8 +472,9 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
             }
         }
         
-        let mut shutdown = OAUTH_SHUTDOWN.lock().unwrap();
-        *shutdown = None;
+        if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
+            *shutdown = None;
+        }
     });
 
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
@@ -517,10 +514,7 @@ async fn handle_oauth_callback(
         }
     };
 
-    let auth_state = {
-        let s = AUTH_STATE.lock().unwrap();
-        s.clone()
-    };
+    let auth_state = AUTH_STATE.lock().ok().and_then(|s| s.clone());
 
     let Some(st) = auth_state else {
         let _ = app.emit("oauth-failed", json!({ "error": "no_auth_state" }));
@@ -532,8 +526,7 @@ async fn handle_oauth_callback(
         return Html(error_page("This login session has expired. Please close this tab and try again in the app."));
     }
 
-    {
-        let mut s = AUTH_STATE.lock().unwrap();
+    if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
 

@@ -1,11 +1,10 @@
 ﻿use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
-fn get_settings_path() -> PathBuf {
-    let app_data = std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string());
-    let mut path = PathBuf::from(app_data);
-    path.push("MiniFy");
+fn get_settings_path(app: &AppHandle) -> PathBuf {
+    let mut path = app.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."));
     fs::create_dir_all(&path).ok();
     path.push("settings.json");
     path
@@ -38,6 +37,8 @@ pub struct CachedTrack {
     pub duration_ms: u64,
     pub artists: Vec<CachedTrackArtist>,
     pub album: CachedTrackAlbum,
+    pub uri: String,
+    pub provider: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -99,8 +100,8 @@ impl Default for Settings {
 }
 
 #[tauri::command]
-pub fn read_settings() -> Settings {
-    let path = get_settings_path();
+pub fn read_settings(app: AppHandle) -> Settings {
+    let path = get_settings_path(&app);
     
     if !path.exists() {
         return Settings::default();
@@ -113,8 +114,8 @@ pub fn read_settings() -> Settings {
 }
 
 #[tauri::command]
-pub fn write_settings(settings: Settings) -> bool {
-    let path = get_settings_path();
+pub fn write_settings(app: AppHandle, settings: Settings) -> bool {
+    let path = get_settings_path(&app);
     
     let json = match serde_json::to_string_pretty(&settings) {
         Ok(j) => j,
@@ -134,8 +135,8 @@ pub fn write_settings(settings: Settings) -> bool {
 }
 
 #[tauri::command]
-pub fn clear_settings() -> bool {
-    let path = get_settings_path();
+pub fn clear_settings(app: AppHandle) -> bool {
+    let path = get_settings_path(&app);
     
     if path.exists() {
         fs::remove_file(&path).is_ok()

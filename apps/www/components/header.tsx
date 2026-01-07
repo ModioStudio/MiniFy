@@ -13,7 +13,7 @@ import { LANGUAGES, type Language } from "@/lib/translations";
 import { BookOpen, Globe, Menu, Moon, Sun, X } from "lucide-react";
 import { useState } from "react";
 
-pnpm const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://minify-docs.modio.studio";
+const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://minify-docs.modio.studio";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();

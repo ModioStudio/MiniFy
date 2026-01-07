@@ -17,8 +17,12 @@ function msToTime(ms: number): string {
 }
 
 async function seekToPosition(ms: number): Promise<void> {
-  const provider = await getActiveProvider();
-  provider.seek(ms);
+  try {
+    const provider = await getActiveProvider();
+    await provider.seek(ms);
+  } catch (error) {
+    console.error("Failed to seek to position:", ms, error);
+  }
 }
 
 export function PlaybackBar({

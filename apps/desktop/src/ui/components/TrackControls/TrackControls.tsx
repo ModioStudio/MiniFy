@@ -22,29 +22,33 @@ export function TrackControls({ isPlaying, currentTrackUri, onTogglePlaying, cla
   }, []);
 
   const handleToggle = useCallback(async () => {
+    const previous = isPlaying;
     const next = !isPlaying;
     onTogglePlaying?.(next);
     
-    const provider = await getActiveProvider();
-    const providerType = await getActiveProviderType();
-    
-    if (next) {
-      // Check if we need to load a cached track
-      const playbackState = await provider.getPlaybackState();
-      const hasActiveTrack = playbackState?.track !== null;
+    try {
+      const provider = await getActiveProvider();
+      const providerType = await getActiveProviderType();
       
-      if (!hasActiveTrack) {
-        // No track playing, try to load from cache
-        const cached = await getLastPlayedForProvider(providerType);
-        if (cached) {
-          await provider.playTrack(cached.track.uri, cached.progress_ms);
-          return;
+      if (next) {
+        const playbackState = await provider.getPlaybackState();
+        const hasActiveTrack = playbackState?.track !== null;
+        
+        if (!hasActiveTrack) {
+          const cached = await getLastPlayedForProvider(providerType);
+          if (cached) {
+            await provider.playTrack(cached.track.uri, cached.progress_ms);
+            return;
+          }
         }
+        
+        await provider.play();
+      } else {
+        await provider.pause();
       }
-      
-      provider.play();
-    } else {
-      provider.pause();
+    } catch (error) {
+      console.error("Playback toggle failed:", error);
+      onTogglePlaying?.(previous);
     }
   }, [isPlaying, onTogglePlaying]);
 
