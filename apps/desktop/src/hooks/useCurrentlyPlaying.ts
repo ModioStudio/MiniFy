@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
-import { readSettings, writeSettings, type LastPlayedTrack } from "../lib/settingLib";
+import { readSettings, writeSettings, type LastPlayedTrack, type ProviderPlaybackCache, type MusicProviderType } from "../lib/settingLib";
 import { getActiveProvider, getActiveProviderType, type UnifiedTrack, type PlaybackState } from "../providers";
 
 function updateDiscordPresence(
@@ -36,6 +36,8 @@ function unifiedTrackToCache(track: UnifiedTrack, progressMs: number): LastPlaye
           width: img.width,
         })),
       },
+      uri: track.uri,
+      provider: track.provider,
     },
     progress_ms: progressMs,
     cached_at: Date.now(),
@@ -43,6 +45,9 @@ function unifiedTrackToCache(track: UnifiedTrack, progressMs: number): LastPlaye
 }
 
 function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
+  const cachedProvider = cache.track.provider ?? "spotify";
+  const cachedUri = cache.track.uri ?? `spotify:track:${cache.track.id}`;
+  
   return {
     isPlaying: false,
     progressMs: cache.progress_ms,
@@ -52,24 +57,50 @@ function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
       durationMs: cache.track.duration_ms,
       artists: cache.track.artists,
       album: cache.track.album,
-      uri: `spotify:track:${cache.track.id}`,
-      provider: "spotify",
+      uri: cachedUri,
+      provider: cachedProvider,
     },
   };
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let currentProviderCache: ProviderPlaybackCache = { spotify: null, youtube: null };
 
-function debouncedSaveTrack(track: UnifiedTrack, progressMs: number): void {
+async function saveTrackToProviderCache(
+  provider: MusicProviderType,
+  track: UnifiedTrack,
+  progressMs: number
+): Promise<void> {
+  const cached = unifiedTrackToCache(track, progressMs);
+  currentProviderCache[provider] = cached;
+  
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
   
-  saveTimeout = setTimeout(() => {
-    const cached = unifiedTrackToCache(track, progressMs);
-    writeSettings({ last_played_track: cached }).catch(console.error);
+  saveTimeout = setTimeout(async () => {
+    await writeSettings({ 
+      provider_playback_cache: currentProviderCache,
+      last_played_track: cached,
+    });
     saveTimeout = null;
   }, 2000);
+}
+
+export async function getLastPlayedForProvider(provider: MusicProviderType): Promise<LastPlayedTrack | null> {
+  const settings = await readSettings();
+  
+  // First check the new per-provider cache
+  if (settings.provider_playback_cache?.[provider]) {
+    return settings.provider_playback_cache[provider];
+  }
+  
+  // Fallback to old single cache if it matches the provider
+  if (settings.last_played_track?.track.provider === provider) {
+    return settings.last_played_track;
+  }
+  
+  return null;
 }
 
 export interface CurrentPlayingState {
@@ -77,32 +108,48 @@ export interface CurrentPlayingState {
   isPlaying: boolean;
   progress: number;
   duration: number;
-  provider: "spotify" | "youtube" | null;
+  provider: MusicProviderType | null;
 }
 
 export function useCurrentlyPlaying(pollMs = 3000) {
   const [state, setState] = useState<PlaybackState | null>(null);
-  const [activeProvider, setActiveProvider] = useState<"spotify" | "youtube" | null>(null);
+  const [activeProvider, setActiveProvider] = useState<MusicProviderType | null>(null);
   const lastTrackRef = useRef<string | null>(null);
   const lastPlayingRef = useRef<boolean>(false);
   const lastAIQueueRef = useRef<boolean>(false);
   const initialLoadDone = useRef<boolean>(false);
   const cachedTrackLoaded = useRef<boolean>(false);
 
+  // Load cached track on mount
   useEffect(() => {
     if (cachedTrackLoaded.current) return;
     cachedTrackLoaded.current = true;
 
-    readSettings().then((settings) => {
-      if (settings.last_played_track) {
-        setState(cacheToPlaybackState(settings.last_played_track));
+    (async () => {
+      try {
+        const settings = await readSettings();
+        const provider = settings.active_music_provider ?? null;
+        setActiveProvider(provider);
+        
+        // Load provider cache into memory
+        if (settings.provider_playback_cache) {
+          currentProviderCache = settings.provider_playback_cache;
+        }
+        
+        // Load cached track for current provider
+        if (provider) {
+          const cached = await getLastPlayedForProvider(provider);
+          if (cached) {
+            setState(cacheToPlaybackState(cached));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load cached track:", err);
       }
-      if (settings.active_music_provider) {
-        setActiveProvider(settings.active_music_provider);
-      }
-    }).catch(console.error);
+    })();
   }, []);
 
+  // Poll for current playback state
   useEffect(() => {
     let mounted = true;
 
@@ -115,13 +162,26 @@ export function useCurrentlyPlaying(pollMs = 3000) {
         
         setActiveProvider(providerType);
 
-        const playbackState = await provider.getPlaybackState();
+        let playbackState: PlaybackState | null = null;
+        
+        try {
+          playbackState = await provider.getPlaybackState();
+        } catch (apiError) {
+          console.warn("API call failed, using cache:", apiError);
+          // API failed, try to use cached state for this provider
+          const cached = await getLastPlayedForProvider(providerType);
+          if (cached) {
+            playbackState = cacheToPlaybackState(cached);
+          }
+        }
+        
         if (!mounted) return;
 
         const hasActiveTrack = playbackState?.track !== null && playbackState?.track !== undefined;
         
+        // Save to provider-specific cache
         if (hasActiveTrack && playbackState?.track) {
-          debouncedSaveTrack(playbackState.track, playbackState.progressMs ?? 0);
+          saveTrackToProviderCache(providerType, playbackState.track, playbackState.progressMs ?? 0);
         }
 
         const trackId = playbackState?.track?.id ?? null;

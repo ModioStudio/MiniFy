@@ -24,6 +24,22 @@ lazy_static::lazy_static! {
     static ref YT_TOKENS_CACHE: Arc<Mutex<Option<YouTubeTokens>>> = Arc::new(Mutex::new(None));
 }
 
+fn get_embedded_youtube_client_id() -> Option<String> {
+    option_env!("YOUTUBE_CLIENT_ID")
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+}
+
+fn get_embedded_youtube_client_secret() -> Option<String> {
+    option_env!("YOUTUBE_CLIENT_SECRET")
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+}
+
+fn has_embedded_youtube_credentials() -> bool {
+    get_embedded_youtube_client_id().is_some() && get_embedded_youtube_client_secret().is_some()
+}
+
 fn get_cached_yt_tokens() -> Option<YouTubeTokens> {
     YT_TOKENS_CACHE.lock().ok().and_then(|g| g.clone())
 }
@@ -115,8 +131,15 @@ async fn get_stored_youtube_client_secret() -> Option<String> {
 }
 
 #[tauri::command]
+pub async fn has_youtube_client_id() -> bool {
+    has_embedded_youtube_credentials() || 
+    (get_stored_youtube_client_id().await.is_some() && get_stored_youtube_client_secret().await.is_some())
+}
+
+#[tauri::command]
 pub async fn has_youtube_credentials() -> bool {
-    get_stored_youtube_client_id().await.is_some() && get_stored_youtube_client_secret().await.is_some()
+    has_embedded_youtube_credentials() || 
+    (get_stored_youtube_client_id().await.is_some() && get_stored_youtube_client_secret().await.is_some())
 }
 
 #[tauri::command]
@@ -153,7 +176,7 @@ pub async fn save_youtube_credentials(client_id: String, client_secret: String) 
 
 #[tauri::command]
 pub async fn needs_youtube_setup() -> bool {
-    !has_youtube_credentials().await
+    !has_embedded_youtube_credentials() && !has_youtube_credentials().await
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -338,10 +361,12 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
     
     sleep(std::time::Duration::from_millis(100)).await;
 
-    let client_id = get_stored_youtube_client_id().await
+    let client_id = get_embedded_youtube_client_id()
+        .or(get_stored_youtube_client_id().await)
         .ok_or_else(|| "No YouTube Client ID configured. Please set up your credentials first.".to_string())?;
     
-    let client_secret = get_stored_youtube_client_secret().await
+    let client_secret = get_embedded_youtube_client_secret()
+        .or(get_stored_youtube_client_secret().await)
         .ok_or_else(|| "No YouTube Client Secret configured. Please set up your credentials first.".to_string())?;
 
     {
@@ -425,7 +450,7 @@ pub async fn start_youtube_oauth_flow(app: AppHandle) -> Result<(), String> {
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
 
     let redirect_uri = urlencoding::encode("http://127.0.0.1:3001/callback");
-    let scopes = "https://www.googleapis.com/auth/youtube.readonly";
+    let scopes = "https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly";
     let auth_url = format!(
         "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&response_type=code&redirect_uri={}&scope={}&access_type=offline&prompt=consent&state={}",
         urlencoding::encode(&client_id),
@@ -536,9 +561,11 @@ fn youtube_error_page(message: &str) -> String {
 #[tauri::command]
 pub async fn refresh_youtube_access_token() -> Result<YouTubeTokens, String> {
     let tokens = get_youtube_tokens().await?;
-    let client_id = get_stored_youtube_client_id().await
+    let client_id = get_embedded_youtube_client_id()
+        .or(get_stored_youtube_client_id().await)
         .ok_or_else(|| "No YouTube Client ID configured".to_string())?;
-    let client_secret = get_stored_youtube_client_secret().await
+    let client_secret = get_embedded_youtube_client_secret()
+        .or(get_stored_youtube_client_secret().await)
         .ok_or_else(|| "No YouTube Client Secret configured".to_string())?;
     
     let form = [

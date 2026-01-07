@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -24,6 +24,7 @@ interface YouTubePlayerOptions {
   height: string | number;
   width: string | number;
   videoId?: string;
+  host?: string;
   playerVars?: {
     autoplay?: 0 | 1;
     controls?: 0 | 1;
@@ -86,6 +87,7 @@ export interface YouTubePlayerRef {
   stop: () => void;
   seek: (seconds: number) => void;
   setVolume: (volume: number) => void;
+  getVolume: () => number;
   loadVideo: (videoId: string) => void;
   getState: () => {
     isPlaying: boolean;
@@ -157,13 +159,75 @@ export function YouTubePlayer({
   const playerInstanceRef = useRef<YouTubePlayerInstance | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const lastVideoIdRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
 
-  const handleStateChange = useCallback(
-    (event: YouTubeStateChangeEvent) => {
+  // Store callbacks in refs to avoid re-initializing the player
+  const onReadyRef = useRef(onReady);
+  const onStateChangeRef = useRef(onStateChange);
+  const onErrorRef = useRef(onError);
+  const onVideoChangeRef = useRef(onVideoChange);
+  const playerRefRef = useRef(playerRef);
+
+  // Keep refs updated with latest callbacks
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onStateChangeRef.current = onStateChange;
+    onErrorRef.current = onError;
+    onVideoChangeRef.current = onVideoChange;
+    playerRefRef.current = playerRef;
+  }, [onReady, onStateChange, onError, onVideoChange, playerRef]);
+
+  // Initialize player only once
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    let player: YouTubePlayerInstance | null = null;
+    let destroyed = false;
+
+    const setupPlayerRef = (playerInstance: YouTubePlayerInstance) => {
+      const ref = playerRefRef.current;
+      if (ref) {
+        ref.current = {
+          play: () => playerInstance.playVideo(),
+          pause: () => playerInstance.pauseVideo(),
+          stop: () => playerInstance.stopVideo(),
+          seek: (seconds) => playerInstance.seekTo(seconds, true),
+          setVolume: (volume) => playerInstance.setVolume(volume),
+          getVolume: () => playerInstance.getVolume(),
+          loadVideo: (videoId) => playerInstance.loadVideoById(videoId),
+          getState: () => {
+            const videoData = playerInstance.getVideoData();
+            const YT = window.YT;
+            return {
+              isPlaying: playerInstance.getPlayerState() === YT.PlayerState.PLAYING,
+              currentTime: playerInstance.getCurrentTime(),
+              duration: playerInstance.getDuration(),
+              videoId: videoData.video_id || null,
+              title: videoData.title || null,
+              author: videoData.author || null,
+            };
+          },
+          isReady: () => true,
+        };
+      }
+    };
+
+    const handleReady = () => {
+      if (destroyed) return;
+      setIsPlayerReady(true);
+      if (player) {
+        setupPlayerRef(player);
+      }
+      onReadyRef.current?.();
+    };
+
+    const handleStateChange = (event: YouTubeStateChangeEvent) => {
+      if (destroyed) return;
       const state = event.data;
       const YT = window.YT;
 
-      onStateChange?.({
+      onStateChangeRef.current?.({
         isPlaying: state === YT.PlayerState.PLAYING,
         isPaused: state === YT.PlayerState.PAUSED,
         isEnded: state === YT.PlayerState.ENDED,
@@ -171,54 +235,48 @@ export function YouTubePlayer({
       });
 
       if (state === YT.PlayerState.PLAYING) {
-        const player = playerInstanceRef.current;
-        if (player) {
-          const videoData = player.getVideoData();
+        const playerInstance = playerInstanceRef.current;
+        if (playerInstance) {
+          const videoData = playerInstance.getVideoData();
           const currentVideoId = videoData.video_id;
 
           if (currentVideoId && currentVideoId !== lastVideoIdRef.current) {
             lastVideoIdRef.current = currentVideoId;
-            onVideoChange?.({
+            onVideoChangeRef.current?.({
               videoId: currentVideoId,
               title: videoData.title,
               author: videoData.author,
-              duration: player.getDuration(),
+              duration: playerInstance.getDuration(),
             });
           }
         }
       }
-    },
-    [onStateChange, onVideoChange]
-  );
+    };
 
-  const handleError = useCallback(
-    (event: YouTubeErrorEvent) => {
-      onError?.(event.data);
-    },
-    [onError]
-  );
-
-  const handleReady = useCallback(() => {
-    setIsPlayerReady(true);
-    onReady?.();
-  }, [onReady]);
-
-  useEffect(() => {
-    let player: YouTubePlayerInstance | null = null;
+    const handleError = (event: YouTubeErrorEvent) => {
+      if (destroyed) return;
+      onErrorRef.current?.(event.data);
+    };
 
     const initPlayer = async () => {
       await loadYouTubeAPI();
 
-      if (!containerRef.current) return;
+      if (destroyed || !containerRef.current) return;
 
-      const playerId = "youtube-player-" + Math.random().toString(36).slice(2);
-      const playerDiv = document.createElement("div");
-      playerDiv.id = playerId;
-      containerRef.current.appendChild(playerDiv);
+      const playerId = "youtube-player-main";
+      
+      // Check if player element already exists
+      let playerDiv = document.getElementById(playerId);
+      if (!playerDiv) {
+        playerDiv = document.createElement("div");
+        playerDiv.id = playerId;
+        containerRef.current.appendChild(playerDiv);
+      }
 
       player = new window.YT.Player(playerId, {
         height: "1",
         width: "1",
+        host: "https://www.youtube-nocookie.com",
         playerVars: {
           autoplay: 0,
           controls: 0,
@@ -244,49 +302,22 @@ export function YouTubePlayer({
     initPlayer();
 
     return () => {
+      destroyed = true;
       if (player) {
         player.destroy();
       }
       playerInstanceRef.current = null;
       setIsPlayerReady(false);
+      initializedRef.current = false;
     };
-  }, [handleReady, handleStateChange, handleError]);
+  }, []);
 
+  // Update playerRef.isReady when state changes
   useEffect(() => {
-    if (playerRef) {
+    if (playerRef?.current) {
+      const currentRef = playerRef.current;
       playerRef.current = {
-        play: () => playerInstanceRef.current?.playVideo(),
-        pause: () => playerInstanceRef.current?.pauseVideo(),
-        stop: () => playerInstanceRef.current?.stopVideo(),
-        seek: (seconds) =>
-          playerInstanceRef.current?.seekTo(seconds, true),
-        setVolume: (volume) =>
-          playerInstanceRef.current?.setVolume(volume),
-        loadVideo: (videoId) =>
-          playerInstanceRef.current?.loadVideoById(videoId),
-        getState: () => {
-          const player = playerInstanceRef.current;
-          if (!player) {
-            return {
-              isPlaying: false,
-              currentTime: 0,
-              duration: 0,
-              videoId: null,
-              title: null,
-              author: null,
-            };
-          }
-          const videoData = player.getVideoData();
-          const YT = window.YT;
-          return {
-            isPlaying: player.getPlayerState() === YT.PlayerState.PLAYING,
-            currentTime: player.getCurrentTime(),
-            duration: player.getDuration(),
-            videoId: videoData.video_id || null,
-            title: videoData.title || null,
-            author: videoData.author || null,
-          };
-        },
+        ...currentRef,
         isReady: () => isPlayerReady,
       };
     }

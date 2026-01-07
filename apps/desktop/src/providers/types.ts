@@ -38,6 +38,38 @@ export interface SearchResult {
   total: number;
 }
 
+export interface UnifiedPlaylistOwner {
+  id: string;
+  name: string;
+}
+
+export interface UnifiedPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  images: UnifiedAlbumImage[];
+  trackCount: number;
+  owner: UnifiedPlaylistOwner;
+}
+
+export interface PlaylistsResult {
+  playlists: UnifiedPlaylist[];
+  total: number;
+  currentUserId?: string;
+}
+
+export interface PlaylistTracksResult {
+  tracks: UnifiedTrack[];
+  total: number;
+}
+
+export interface ProviderCapabilities {
+  hasPlaylists: boolean;
+  hasQueue: boolean;
+  hasExternalPlayback: boolean;
+  hasLikedSongs: boolean;
+}
+
 export interface MusicProvider {
   readonly type: MusicProviderType;
 
@@ -56,10 +88,19 @@ export interface MusicProvider {
   setVolume(volumePercent: number): void;
 
   searchTracks(query: string, limit: number): Promise<UnifiedTrack[]>;
-  playTrack(uri: string): Promise<void>;
+  playTrack(uri: string, startPositionMs?: number): Promise<void>;
   addToQueue(uri: string): Promise<void>;
 
   getRecentlyPlayed(limit: number): Promise<UnifiedTrack[]>;
+
+  getCapabilities(): ProviderCapabilities;
+  getUserPlaylists(limit: number, offset: number): Promise<PlaylistsResult>;
+  getPlaylistTracks(
+    playlistId: string,
+    limit: number,
+    offset: number
+  ): Promise<PlaylistTracksResult>;
+  addToPlaylist(playlistId: string, trackUri: string): Promise<void>;
 }
 
 export interface ProviderAuthState {

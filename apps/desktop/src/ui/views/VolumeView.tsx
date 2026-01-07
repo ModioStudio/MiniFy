@@ -1,6 +1,7 @@
-import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX, Warning } from "@phosphor-icons/react";
+import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
+import { readSettings, writeSettings } from "../../lib/settingLib";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
 import { getPlayerState } from "../spotifyClient";
@@ -26,7 +27,14 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
       const type = await getActiveProviderType();
       setProviderType(type);
       
-      if (type !== "spotify") {
+      if (type === "youtube") {
+        setDeviceName("YouTube Music (In-App Player)");
+        const settings = await readSettings();
+        const savedVolume = settings.youtube_volume ?? 50;
+        setLocalVolume(savedVolume);
+        // Apply saved volume to player
+        const provider = await getActiveProvider();
+        provider.setVolume(savedVolume);
         setLoading(false);
         return;
       }
@@ -46,13 +54,23 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
     setLocalVolume(newVolume);
     const provider = await getActiveProvider();
     provider.setVolume(newVolume);
-  }, []);
+    
+    // Save YouTube volume to settings
+    if (providerType === "youtube") {
+      await writeSettings({ youtube_volume: newVolume });
+    }
+  }, [providerType]);
 
   const handlePreset = useCallback(async (preset: number) => {
     setLocalVolume(preset);
     const provider = await getActiveProvider();
     provider.setVolume(preset);
-  }, []);
+    
+    // Save YouTube volume to settings
+    if (providerType === "youtube") {
+      await writeSettings({ youtube_volume: preset });
+    }
+  }, [providerType]);
 
   const getVolumeIcon = () => {
     if (volume === 0) return <SpeakerX size={32} weight="fill" />;
@@ -91,18 +109,6 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
             style={{ color: "var(--settings-text-muted)" }}
           >
             Loading...
-          </div>
-        ) : providerType === "youtube" ? (
-          <div
-            className="flex flex-col items-center justify-center py-8 gap-3 text-center"
-            style={{ color: "var(--settings-text-muted)" }}
-          >
-            <Warning size={32} weight="fill" className="text-yellow-500" />
-            <p className="font-medium">Volume control not available</p>
-            <p className="text-xs">
-              YouTube Music does not support remote volume control.
-              Use your system volume instead.
-            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">

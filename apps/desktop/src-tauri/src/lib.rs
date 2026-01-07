@@ -80,6 +80,7 @@ pub fn run() {
             discord_rpc::update_discord_presence,
             discord_rpc::is_discord_rpc_enabled,
             youtube_auth::has_youtube_credentials,
+            youtube_auth::has_youtube_client_id,
             youtube_auth::save_youtube_credentials,
             youtube_auth::needs_youtube_setup,
             youtube_auth::get_youtube_tokens,

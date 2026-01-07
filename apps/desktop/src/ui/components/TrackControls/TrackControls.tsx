@@ -1,14 +1,16 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
-import { getActiveProvider } from "../../../providers";
+import { getActiveProvider, getActiveProviderType } from "../../../providers";
+import { getLastPlayedForProvider } from "../../../hooks/useCurrentlyPlaying";
 
 type TrackControlsProps = {
   isPlaying: boolean;
+  currentTrackUri?: string | null;
   onTogglePlaying?: (playing: boolean) => void;
   className?: string;
 };
 
-export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: TrackControlsProps) {
+export function TrackControls({ isPlaying, currentTrackUri, onTogglePlaying, className = "" }: TrackControlsProps) {
   const handlePrev = useCallback(async () => {
     const provider = await getActiveProvider();
     provider.previousTrack();
@@ -24,7 +26,22 @@ export function TrackControls({ isPlaying, onTogglePlaying, className = "" }: Tr
     onTogglePlaying?.(next);
     
     const provider = await getActiveProvider();
+    const providerType = await getActiveProviderType();
+    
     if (next) {
+      // Check if we need to load a cached track
+      const playbackState = await provider.getPlaybackState();
+      const hasActiveTrack = playbackState?.track !== null;
+      
+      if (!hasActiveTrack) {
+        // No track playing, try to load from cache
+        const cached = await getLastPlayedForProvider(providerType);
+        if (cached) {
+          await provider.playTrack(cached.track.uri, cached.progress_ms);
+          return;
+        }
+      }
+      
       provider.play();
     } else {
       provider.pause();

@@ -5,11 +5,11 @@ import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { getActiveProvider } from "../lib/aiClient";
+import { getActiveProvider as getActiveAIProvider } from "../lib/aiClient";
 import { useAIQueueStore } from "../lib/aiQueueStore";
 import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
-import { getActiveProviderType } from "../providers";
+import { getActiveProvider, getActiveProviderType } from "../providers";
 import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
 
@@ -32,9 +32,12 @@ type AddToPlaylistTrack = {
   name: string;
 } | null;
 
+type BootInitialStep = "provider" | "spotify-setup" | "youtube-setup";
+
 export default function App() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
   const [isReconnect, setIsReconnect] = useState<boolean>(false);
+  const [bootStep, setBootStep] = useState<BootInitialStep>("provider");
   const [layout, setLayout] = useState<string>("LayoutA");
   const [theme, setTheme] = useState<string>("dark");
   const [view, setView] = useState<AppView>("app");
@@ -50,13 +53,31 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const settings = await readSettings();
-      setFirstBootDone(settings.first_boot_done ?? false);
       setLayout(settings.layout ?? "LayoutA");
       setTheme(settings.theme ?? "dark");
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
       
       const providerType = await getActiveProviderType();
       setIsYouTubeActive(providerType === "youtube");
+      
+      // Check if the provider is actually authenticated
+      if (settings.first_boot_done) {
+        try {
+          const provider = await getActiveProvider();
+          const isAuth = await provider.isAuthenticated();
+          if (!isAuth) {
+            // Provider is not authenticated, need to re-authenticate
+            setFirstBootDone(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Error checking auth:", err);
+          setFirstBootDone(false);
+          return;
+        }
+      }
+      
+      setFirstBootDone(settings.first_boot_done ?? false);
     })();
   }, []);
 
@@ -123,7 +144,7 @@ export default function App() {
             e.preventDefault();
             const settings = await readSettings();
             const hasAI =
-              getActiveProvider(settings.ai_providers, settings.active_ai_provider) !== null;
+              getActiveAIProvider(settings.ai_providers, settings.active_ai_provider) !== null;
             if (hasAI) {
               setView("aidj");
             }
@@ -145,7 +166,7 @@ export default function App() {
       const showMenu = async () => {
         const settings = await readSettings();
         const hasAI =
-          getActiveProvider(settings.ai_providers, settings.active_ai_provider) !== null;
+          getActiveAIProvider(settings.ai_providers, settings.active_ai_provider) !== null;
 
         const settingsItem = await MenuItem.new({
           text: "Settings\t\t\t\tCtrl+E",
@@ -213,8 +234,11 @@ export default function App() {
       <div className="h-full w-full no-drag relative theme-scope">
         <div className="drag-area" onMouseDown={handleDragStart} />
         <Boot
-          initialStep={isReconnect ? "spotify-setup" : "provider"}
+          initialStep={bootStep}
+          skipAuthCheck={isReconnect}
           onComplete={async () => {
+            const providerType = await getActiveProviderType();
+            setIsYouTubeActive(providerType === "youtube");
             await writeSettings({
               first_boot_done: true,
               layout,
@@ -222,6 +246,7 @@ export default function App() {
             });
             setFirstBootDone(true);
             setIsReconnect(false);
+            setBootStep("provider");
           }}
         />
       </div>
@@ -248,12 +273,22 @@ export default function App() {
           onBack={() => setView("app")}
           onUpdateLayout={setLayout}
           onUpdateTheme={setTheme}
-          onResetAuth={() => {
+          onResetAuth={(provider?: "spotify" | "youtube") => {
             setIsReconnect(true);
+            if (provider === "youtube") {
+              setBootStep("youtube-setup");
+            } else if (provider === "spotify") {
+              setBootStep("spotify-setup");
+            } else {
+              setBootStep("provider");
+            }
             setFirstBootDone(false);
             setView("app");
           }}
           onUpdateAIQueueBorder={setShowAIQueueBorder}
+          onMusicProviderChange={(provider) => {
+            setIsYouTubeActive(provider === "youtube");
+          }}
         />
       );
     }
@@ -284,9 +319,14 @@ export default function App() {
     return renderLayout();
   };
 
-  const handleYouTubeReady = () => {
+  const handleYouTubeReady = async () => {
     if (youtubePlayerRef.current) {
       setYouTubePlayerRef(youtubePlayerRef.current);
+      
+      // Apply saved volume
+      const settings = await readSettings();
+      const savedVolume = settings.youtube_volume ?? 50;
+      youtubePlayerRef.current.setVolume(savedVolume);
     }
   };
 
@@ -313,13 +353,12 @@ export default function App() {
           }}
         />
       )}
-      {isYouTubeActive && (
-        <YouTubePlayer
-          playerRef={youtubePlayerRef}
-          onReady={handleYouTubeReady}
-          onVideoChange={handleYouTubeVideoChange}
-        />
-      )}
+      {/* Always mount YouTube player so it's ready when needed */}
+      <YouTubePlayer
+        playerRef={youtubePlayerRef}
+        onReady={handleYouTubeReady}
+        onVideoChange={handleYouTubeVideoChange}
+      />
     </div>
   );
 }

@@ -17,11 +17,20 @@ const execAsync = promisify(exec);
 
 const KEYRING_SERVICE = "minify";
 const KEYRING_KEYS = [
+  // Spotify
   "access_token",
   "refresh_token",
   "token_expiry",
-  "music_provider",
   "spotify_client_id",
+  // YouTube
+  "youtube_access_token",
+  "youtube_refresh_token",
+  "youtube_token_expiry",
+  "youtube_client_id",
+  "youtube_client_secret",
+  // General
+  "music_provider",
+  // AI Keys
   "ai_key_openai",
   "ai_key_anthropic",
   "ai_key_google",
@@ -188,6 +197,7 @@ async function main() {
   console.log(`\n${"=".repeat(40)}`);
   console.log("✅ All credentials and settings cleared.");
   console.log("   - Spotify tokens removed from keyring");
+  console.log("   - YouTube tokens removed from keyring");
   console.log("   - AI API keys removed from keyring");
   console.log("   - Settings file deleted");
   console.log("\nRestart the app to trigger first-boot flow.");

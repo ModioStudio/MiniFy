@@ -19,11 +19,11 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 20px;
+  height: 24px;
   cursor: move;
   pointer-events: auto;
   background: transparent;
-  z-index: 50;
+  z-index: 9999;
 }
 
 .drag-area:hover {

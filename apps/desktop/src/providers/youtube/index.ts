@@ -3,11 +3,18 @@ import type {
   MusicProvider,
   UnifiedTrack,
   PlaybackState,
+  ProviderCapabilities,
+  PlaylistsResult,
+  PlaylistTracksResult,
 } from "../types";
 import {
   searchYouTubeVideos,
   videoItemToTrackData,
   getVideoDetails,
+  fetchYouTubeUserPlaylists,
+  fetchYouTubePlaylistItems,
+  addVideoToYouTubePlaylist,
+  playlistItemToTrackData,
 } from "./client";
 import type { YouTubePlayerRef } from "../../ui/components/YouTubePlayer";
 
@@ -22,6 +29,13 @@ export function setYouTubePlayerRef(ref: YouTubePlayerRef | null): void {
 
 export function getYouTubePlayerRef(): YouTubePlayerRef | null {
   return playerRef;
+}
+
+export function clearYouTubeState(): void {
+  currentTrack = null;
+  if (playerRef) {
+    playerRef.stop();
+  }
 }
 
 function convertToUnifiedTrack(data: ReturnType<typeof videoItemToTrackData>): UnifiedTrack {
@@ -90,7 +104,11 @@ class YouTubeProviderImpl implements MusicProvider {
   }
 
   play(): void {
-    playerRef?.play();
+    if (!playerRef) return;
+    
+    // Just resume playback - don't reload the video
+    // The video should already be loaded from playTrack()
+    playerRef.play();
   }
 
   pause(): void {
@@ -118,14 +136,29 @@ class YouTubeProviderImpl implements MusicProvider {
     return videos.map((v) => convertToUnifiedTrack(videoItemToTrackData(v)));
   }
 
-  async playTrack(uri: string): Promise<void> {
+  async playTrack(uri: string, startPositionMs?: number): Promise<void> {
     const videoId = uri.replace("youtube:video:", "");
 
+    const maxAttempts = 50;
+    let attempts = 0;
+    while ((!playerRef || !playerRef.isReady()) && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      attempts++;
+    }
+
     if (!playerRef || !playerRef.isReady()) {
-      throw new Error("YouTube player not ready");
+      throw new Error("YouTube player not ready after waiting. Please try again.");
     }
 
     playerRef.loadVideo(videoId);
+    
+    // Seek to position if provided
+    if (startPositionMs !== undefined && startPositionMs > 0) {
+      // Wait a bit for video to load before seeking
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      playerRef.seek(startPositionMs / 1000);
+    }
+    
     playerRef.play();
 
     const details = await getVideoDetails(videoId);
@@ -142,6 +175,91 @@ class YouTubeProviderImpl implements MusicProvider {
 
   async getRecentlyPlayed(limit: number): Promise<UnifiedTrack[]> {
     return recentlyPlayedTracks.slice(0, limit);
+  }
+
+  getCapabilities(): ProviderCapabilities {
+    return {
+      hasPlaylists: true,
+      hasQueue: false,
+      hasExternalPlayback: false,
+      hasLikedSongs: false,
+    };
+  }
+
+  async getUserPlaylists(limit: number, offset: number): Promise<PlaylistsResult> {
+    const pagesNeeded = Math.ceil((offset + limit) / 50);
+    let allPlaylists: PlaylistsResult["playlists"] = [];
+    let total = 0;
+    let nextPageToken: string | undefined;
+
+    for (let i = 0; i < pagesNeeded; i++) {
+      const response = await fetchYouTubeUserPlaylists(50, nextPageToken);
+      total = response.total;
+      
+      allPlaylists = allPlaylists.concat(
+        response.playlists.map((p) => {
+          const thumbnails = p.snippet.thumbnails;
+          const bestThumb =
+            thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
+          return {
+            id: p.id,
+            name: p.snippet.title,
+            description: p.snippet.description || null,
+            images: bestThumb ? [{ url: bestThumb.url, width: bestThumb.width, height: bestThumb.height }] : [],
+            trackCount: p.contentDetails.itemCount,
+            owner: {
+              id: "youtube-user",
+              name: p.snippet.channelTitle,
+            },
+          };
+        })
+      );
+
+      nextPageToken = response.nextPageToken;
+      if (!nextPageToken) break;
+    }
+
+    return {
+      playlists: allPlaylists.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  async getPlaylistTracks(
+    playlistId: string,
+    limit: number,
+    offset: number
+  ): Promise<PlaylistTracksResult> {
+    const pagesNeeded = Math.ceil((offset + limit) / 50);
+    let allTracks: UnifiedTrack[] = [];
+    let total = 0;
+    let nextPageToken: string | undefined;
+
+    for (let i = 0; i < pagesNeeded; i++) {
+      const response = await fetchYouTubePlaylistItems(playlistId, 50, nextPageToken);
+      total = response.total;
+
+      const tracks = response.items
+        .filter((item) => item.snippet.resourceId.videoId)
+        .map((item) => {
+          const data = playlistItemToTrackData(item);
+          return convertToUnifiedTrack(data);
+        });
+
+      allTracks = allTracks.concat(tracks);
+      nextPageToken = response.nextPageToken;
+      if (!nextPageToken) break;
+    }
+
+    return {
+      tracks: allTracks.slice(offset, offset + limit),
+      total,
+    };
+  }
+
+  async addToPlaylist(playlistId: string, trackUri: string): Promise<void> {
+    const videoId = trackUri.replace("youtube:video:", "");
+    await addVideoToYouTubePlaylist(playlistId, videoId);
   }
 }
 

@@ -65,12 +65,19 @@ export type CachedTrack = {
   duration_ms: number;
   artists: CachedTrackArtist[];
   album: CachedTrackAlbum;
+  uri: string;
+  provider: MusicProviderType;
 };
 
 export type LastPlayedTrack = {
   track: CachedTrack;
   progress_ms: number;
   cached_at: number;
+};
+
+export type ProviderPlaybackCache = {
+  spotify: LastPlayedTrack | null;
+  youtube: LastPlayedTrack | null;
 };
 
 export type Settings = {
@@ -83,6 +90,8 @@ export type Settings = {
   show_ai_queue_border: boolean;
   discord_rpc_enabled: boolean;
   last_played_track: LastPlayedTrack | null;
+  provider_playback_cache: ProviderPlaybackCache | null;
+  youtube_volume: number | null;
 };
 
 export type CustomTheme = {

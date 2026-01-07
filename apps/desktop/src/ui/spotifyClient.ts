@@ -34,6 +34,15 @@ let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 const TOKEN_BUFFER_MS = 60_000; // Refresh 1 min before expiry
 
+// Request deduplication for concurrent identical requests
+const pendingRequests = new Map<string, Promise<unknown>>();
+
+export function clearSpotifyTokenCache(): void {
+  cachedToken = null;
+  tokenExpiresAt = 0;
+  pendingRequests.clear();
+}
+
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
   if (cachedToken && now < tokenExpiresAt - TOKEN_BUFFER_MS) {
@@ -52,9 +61,6 @@ async function refreshToken(): Promise<string> {
   tokenExpiresAt = Date.now() + (tokens.expires_in ?? 3600) * 1000;
   return cachedToken;
 }
-
-// Request deduplication for concurrent identical requests
-const pendingRequests = new Map<string, Promise<unknown>>();
 
 async function request<T>(url: string, init?: FetchOptions): Promise<T> {
   const cacheKey = `${init?.method ?? "GET"}:${url}:${init?.body ?? ""}`;
@@ -231,10 +237,14 @@ export async function searchTracks(query: string, limit: number): Promise<Simpli
   return data.tracks.items;
 }
 
-export async function playTrack(trackUri: string): Promise<void> {
+export async function playTrack(trackUri: string, positionMs?: number): Promise<void> {
+  const body: { uris: string[]; position_ms?: number } = { uris: [trackUri] };
+  if (positionMs !== undefined && positionMs > 0) {
+    body.position_ms = positionMs;
+  }
   await request<void>("https://api.spotify.com/v1/me/player/play", {
     method: "PUT",
-    body: JSON.stringify({ uris: [trackUri] }),
+    body: JSON.stringify(body),
   });
 }
 

@@ -259,3 +259,159 @@ export async function getRelatedVideos(
     return [];
   }
 }
+
+export interface YouTubePlaylistSnippet {
+  title: string;
+  description: string;
+  thumbnails: {
+    default?: { url: string; width: number; height: number };
+    medium?: { url: string; width: number; height: number };
+    high?: { url: string; width: number; height: number };
+    maxres?: { url: string; width: number; height: number };
+  };
+  channelTitle: string;
+}
+
+export interface YouTubePlaylistContentDetails {
+  itemCount: number;
+}
+
+export interface YouTubePlaylistItem {
+  id: string;
+  snippet: YouTubePlaylistSnippet;
+  contentDetails: YouTubePlaylistContentDetails;
+}
+
+export interface YouTubePlaylistsResponse {
+  items: YouTubePlaylistItem[];
+  pageInfo: {
+    totalResults: number;
+    resultsPerPage: number;
+  };
+  nextPageToken?: string;
+}
+
+export interface YouTubePlaylistItemSnippet {
+  title: string;
+  description: string;
+  thumbnails: {
+    default?: { url: string; width: number; height: number };
+    medium?: { url: string; width: number; height: number };
+    high?: { url: string; width: number; height: number };
+    maxres?: { url: string; width: number; height: number };
+  };
+  channelTitle: string;
+  resourceId: {
+    kind: string;
+    videoId: string;
+  };
+}
+
+export interface YouTubePlaylistItemResource {
+  id: string;
+  snippet: YouTubePlaylistItemSnippet;
+  contentDetails?: {
+    videoId: string;
+  };
+}
+
+export interface YouTubePlaylistItemsResponse {
+  items: YouTubePlaylistItemResource[];
+  pageInfo: {
+    totalResults: number;
+    resultsPerPage: number;
+  };
+  nextPageToken?: string;
+}
+
+export async function fetchYouTubeUserPlaylists(
+  maxResults: number,
+  pageToken?: string
+): Promise<{ playlists: YouTubePlaylistItem[]; total: number; nextPageToken?: string }> {
+  const params = new URLSearchParams({
+    part: "snippet,contentDetails",
+    mine: "true",
+    maxResults: maxResults.toString(),
+  });
+
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  const response = await youtubeRequest<YouTubePlaylistsResponse>(
+    `https://www.googleapis.com/youtube/v3/playlists?${params}`
+  );
+
+  return {
+    playlists: response.items || [],
+    total: response.pageInfo.totalResults,
+    nextPageToken: response.nextPageToken,
+  };
+}
+
+export async function fetchYouTubePlaylistItems(
+  playlistId: string,
+  maxResults: number,
+  pageToken?: string
+): Promise<{ items: YouTubePlaylistItemResource[]; total: number; nextPageToken?: string }> {
+  const params = new URLSearchParams({
+    part: "snippet,contentDetails",
+    playlistId,
+    maxResults: maxResults.toString(),
+  });
+
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  const response = await youtubeRequest<YouTubePlaylistItemsResponse>(
+    `https://www.googleapis.com/youtube/v3/playlistItems?${params}`
+  );
+
+  return {
+    items: response.items || [],
+    total: response.pageInfo.totalResults,
+    nextPageToken: response.nextPageToken,
+  };
+}
+
+export async function addVideoToYouTubePlaylist(
+  playlistId: string,
+  videoId: string
+): Promise<void> {
+  await youtubeRequest<YouTubePlaylistItemResource>(
+    "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        snippet: {
+          playlistId,
+          resourceId: {
+            kind: "youtube#video",
+            videoId,
+          },
+        },
+      }),
+    }
+  );
+}
+
+export function playlistItemToTrackData(item: YouTubePlaylistItemResource) {
+  const videoId = item.snippet.resourceId.videoId;
+  const thumbnails = item.snippet.thumbnails;
+  const bestThumbnail =
+    thumbnails.maxres ||
+    thumbnails.high ||
+    thumbnails.medium ||
+    thumbnails.default;
+
+  return {
+    id: videoId,
+    name: item.snippet.title,
+    artists: [item.snippet.channelTitle],
+    album: "YouTube Music",
+    albumArt: bestThumbnail?.url || "",
+    durationMs: 0,
+    uri: `youtube:video:${videoId}`,
+  };
+}

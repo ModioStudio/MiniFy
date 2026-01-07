@@ -3,6 +3,9 @@ import type {
   MusicProvider,
   UnifiedTrack,
   PlaybackState,
+  ProviderCapabilities,
+  PlaylistsResult,
+  PlaylistTracksResult,
 } from "../types";
 import {
   fetchCurrentlyPlaying,
@@ -16,6 +19,10 @@ import {
   playTrack as spotifyPlayTrack,
   addToQueue as spotifyAddToQueue,
   fetchRecentlyPlayed,
+  fetchUserPlaylists,
+  fetchPlaylistTracks,
+  addTrackToPlaylist,
+  fetchUserProfile,
   type SimplifiedTrack,
 } from "./client";
 
@@ -108,8 +115,8 @@ class SpotifyProviderImpl implements MusicProvider {
     return tracks.map(convertToUnifiedTrack);
   }
 
-  async playTrack(uri: string): Promise<void> {
-    await spotifyPlayTrack(uri);
+  async playTrack(uri: string, startPositionMs?: number): Promise<void> {
+    await spotifyPlayTrack(uri, startPositionMs);
   }
 
   async addToQueue(uri: string): Promise<void> {
@@ -119,6 +126,57 @@ class SpotifyProviderImpl implements MusicProvider {
   async getRecentlyPlayed(limit: number): Promise<UnifiedTrack[]> {
     const tracks = await fetchRecentlyPlayed(limit);
     return tracks.map(convertToUnifiedTrack);
+  }
+
+  getCapabilities(): ProviderCapabilities {
+    return {
+      hasPlaylists: true,
+      hasQueue: true,
+      hasExternalPlayback: true,
+      hasLikedSongs: true,
+    };
+  }
+
+  async getUserPlaylists(limit: number, offset: number): Promise<PlaylistsResult> {
+    const [response, userProfile] = await Promise.all([
+      fetchUserPlaylists(limit, offset),
+      fetchUserProfile(),
+    ]);
+    return {
+      playlists: response.playlists.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        images: (p.images ?? []).map((img) => ({
+          url: img.url,
+          width: img.width ?? 300,
+          height: img.height ?? 300,
+        })),
+        trackCount: p.tracks.total,
+        owner: {
+          id: p.owner.id,
+          name: p.owner.display_name,
+        },
+      })),
+      total: response.total,
+      currentUserId: userProfile.id,
+    };
+  }
+
+  async getPlaylistTracks(
+    playlistId: string,
+    limit: number,
+    offset: number
+  ): Promise<PlaylistTracksResult> {
+    const response = await fetchPlaylistTracks(playlistId, limit, offset);
+    return {
+      tracks: response.tracks.map(convertToUnifiedTrack),
+      total: response.total,
+    };
+  }
+
+  async addToPlaylist(playlistId: string, trackUri: string): Promise<void> {
+    await addTrackToPlaylist(playlistId, trackUri);
   }
 }
 
