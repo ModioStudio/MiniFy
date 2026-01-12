@@ -112,6 +112,7 @@ interface YouTubePlayerProps {
     author: string;
     duration: number;
   }) => void;
+  onVideoEnded?: () => void;
   playerRef?: React.MutableRefObject<YouTubePlayerRef | null>;
 }
 
@@ -150,6 +151,7 @@ export function YouTubePlayer({
   onStateChange,
   onError,
   onVideoChange,
+  onVideoEnded,
   playerRef,
 }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -163,6 +165,7 @@ export function YouTubePlayer({
   const onStateChangeRef = useRef(onStateChange);
   const onErrorRef = useRef(onError);
   const onVideoChangeRef = useRef(onVideoChange);
+  const onVideoEndedRef = useRef(onVideoEnded);
   const playerRefRef = useRef(playerRef);
 
   // Keep refs updated with latest callbacks
@@ -171,8 +174,9 @@ export function YouTubePlayer({
     onStateChangeRef.current = onStateChange;
     onErrorRef.current = onError;
     onVideoChangeRef.current = onVideoChange;
+    onVideoEndedRef.current = onVideoEnded;
     playerRefRef.current = playerRef;
-  }, [onReady, onStateChange, onError, onVideoChange, playerRef]);
+  }, [onReady, onStateChange, onError, onVideoChange, onVideoEnded, playerRef]);
 
   // Initialize player only once
   useEffect(() => {
@@ -230,6 +234,10 @@ export function YouTubePlayer({
         isEnded: state === YT.PlayerState.ENDED,
         isBuffering: state === YT.PlayerState.BUFFERING,
       });
+
+      if (state === YT.PlayerState.ENDED) {
+        onVideoEndedRef.current?.();
+      }
 
       if (state === YT.PlayerState.PLAYING) {
         const playerInstance = playerInstanceRef.current;

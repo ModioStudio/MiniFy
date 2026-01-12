@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
+import { startAutoplayMonitor, stopAutoplayMonitor } from "../lib/playback/autoplayService";
+import { startKeepAlive, stopKeepAlive } from "../lib/playback/spotifyKeepAlive";
 import {
   type LastPlayedTrack,
   type MusicProviderType,
@@ -133,7 +135,7 @@ export function useCurrentlyPlaying(pollMs = 3000) {
   const initialLoadDone = useRef<boolean>(false);
   const cachedTrackLoaded = useRef<boolean>(false);
 
-  // Load cached track on mount
+  // Load cached track on mount and start services
   useEffect(() => {
     if (cachedTrackLoaded.current) return;
     cachedTrackLoaded.current = true;
@@ -156,10 +158,21 @@ export function useCurrentlyPlaying(pollMs = 3000) {
             setState(cacheToPlaybackState(cached));
           }
         }
+
+        // Start playback services
+        startAutoplayMonitor();
+        if (provider === "spotify") {
+          startKeepAlive();
+        }
       } catch (err) {
         console.error("Failed to load cached track:", err);
       }
     })();
+
+    return () => {
+      stopAutoplayMonitor();
+      stopKeepAlive();
+    };
   }, []);
 
   // Poll for current playback state

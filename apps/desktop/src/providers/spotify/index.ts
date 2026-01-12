@@ -19,6 +19,7 @@ import {
   nextTrack as spotifyNextTrack,
   pause as spotifyPause,
   play as spotifyPlay,
+  playPlaylistContext as spotifyPlayPlaylistContext,
   playTrack as spotifyPlayTrack,
   previousTrack as spotifyPreviousTrack,
   searchTracks as spotifySearchTracks,
@@ -177,6 +178,10 @@ class SpotifyProviderImpl implements MusicProvider {
 
   async addToPlaylist(playlistId: string, trackUri: string): Promise<void> {
     await addTrackToPlaylist(playlistId, trackUri);
+  }
+
+  async playPlaylistFromIndex(playlistId: string, trackIndex: number): Promise<void> {
+    await spotifyPlayPlaylistContext(playlistId, trackIndex);
   }
 }
 

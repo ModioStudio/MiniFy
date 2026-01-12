@@ -150,11 +150,20 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
     loadedCountRef.current = 0;
   }, []);
 
-  const handlePlayTrack = async (track: UnifiedTrack) => {
+  const handlePlayTrack = async (track: UnifiedTrack, trackIndex: number) => {
     setPlayingId(track.id);
     try {
       const provider = await getActiveProvider();
-      await provider.playTrack(track.uri);
+      const type = await getActiveProviderType();
+
+      if (selectedPlaylist && provider.playPlaylistFromIndex) {
+        await provider.playPlaylistFromIndex(selectedPlaylist.id, trackIndex);
+      } else if (type === "youtube" && selectedPlaylist) {
+        const { startPlaylistPlayback } = await import("../../lib/playback/playbackQueueService");
+        await startPlaylistPlayback(selectedPlaylist.id, tracks, trackIndex);
+      } else {
+        await provider.playTrack(track.uri);
+      }
     } catch (err) {
       console.error("Play failed:", err);
     } finally {
@@ -341,7 +350,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                   className="h-full overflow-auto"
                 >
                   <ul className="py-2">
-                    {tracks.map((track) => {
+                    {tracks.map((track, index) => {
                       const albumArt = track.album.images[0]?.url;
                       const artistNames = track.artists.map((a) => a.name).join(", ");
                       const isPlaying = playingId === track.id;
@@ -350,7 +359,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                         <li key={track.id}>
                           <button
                             type="button"
-                            onClick={() => handlePlayTrack(track)}
+                            onClick={() => handlePlayTrack(track, index)}
                             disabled={isPlaying}
                             className="w-full flex items-center gap-3 px-3 py-2 text-left transition-all duration-150 cursor-pointer hover:bg-[--settings-item-hover] active:scale-[0.99] group"
                           >

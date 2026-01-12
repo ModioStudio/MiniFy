@@ -485,3 +485,49 @@ export async function addTrackToPlaylist(playlistId: string, trackUri: string): 
     body: JSON.stringify({ uris: [trackUri] }),
   });
 }
+
+export async function playPlaylistContext(
+  playlistId: string,
+  offset: number
+): Promise<void> {
+  await request<void>("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    body: JSON.stringify({
+      context_uri: `spotify:playlist:${playlistId}`,
+      offset: { position: offset },
+    }),
+  });
+}
+
+export async function playAlbumContext(albumId: string, offset: number): Promise<void> {
+  await request<void>("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    body: JSON.stringify({
+      context_uri: `spotify:album:${albumId}`,
+      offset: { position: offset },
+    }),
+  });
+}
+
+interface DevicesResponse {
+  devices: PlayerDevice[];
+}
+
+export async function getDevices(): Promise<PlayerDevice[]> {
+  const data = await request<DevicesResponse>("https://api.spotify.com/v1/me/player/devices");
+  return data.devices ?? [];
+}
+
+export async function transferPlayback(deviceId: string, play: boolean): Promise<void> {
+  await request<void>("https://api.spotify.com/v1/me/player", {
+    method: "PUT",
+    body: JSON.stringify({ device_ids: [deviceId], play }),
+  });
+}
+
+export async function getQueue(): Promise<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }> {
+  const data = await request<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }>(
+    "https://api.spotify.com/v1/me/player/queue"
+  );
+  return data;
+}
