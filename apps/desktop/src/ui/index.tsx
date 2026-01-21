@@ -354,6 +354,19 @@ export default function App() {
     updateCurrentYouTubeTrack(data);
   };
 
+  const handleYouTubeVideoEnded = async () => {
+    const { usePlaybackQueueStore } = await import("../lib/playback/playbackQueueStore");
+    const { getActiveProvider } = await import("../providers");
+
+    const store = usePlaybackQueueStore.getState();
+    const nextTrack = store.advanceToNext();
+
+    if (nextTrack) {
+      const provider = await getActiveProvider();
+      await provider.playTrack(nextTrack.uri);
+    }
+  };
+
   return (
     <div className="h-full w-full no-drag relative theme-scope transition-all duration-300">
       <div className="drag-area" onMouseDown={handleDragStart} />
@@ -374,6 +387,7 @@ export default function App() {
         playerRef={youtubePlayerRef}
         onReady={handleYouTubeReady}
         onVideoChange={handleYouTubeVideoChange}
+        onVideoEnded={handleYouTubeVideoEnded}
       />
     </div>
   );

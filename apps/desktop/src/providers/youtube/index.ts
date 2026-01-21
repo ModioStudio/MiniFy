@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { startPlaylistPlayback } from "../../lib/playback/playbackQueueService";
 import type { YouTubePlayerRef } from "../../ui/components/YouTubePlayer";
 import type {
   MusicProvider,
@@ -21,6 +22,7 @@ import {
 let playerRef: YouTubePlayerRef | null = null;
 let currentTrack: UnifiedTrack | null = null;
 let recentlyPlayedTracks: UnifiedTrack[] = [];
+let cachedPlaylistTracks: Map<string, UnifiedTrack[]> = new Map();
 const MAX_RECENT_TRACKS = 50;
 
 export function setYouTubePlayerRef(ref: YouTubePlayerRef | null): void {
@@ -262,6 +264,22 @@ class YouTubeProviderImpl implements MusicProvider {
   async addToPlaylist(playlistId: string, trackUri: string): Promise<void> {
     const videoId = trackUri.replace("youtube:video:", "");
     await addVideoToYouTubePlaylist(playlistId, videoId);
+  }
+
+  async playPlaylistFromIndex(playlistId: string, trackIndex: number): Promise<void> {
+    let tracks = cachedPlaylistTracks.get(playlistId);
+
+    if (!tracks) {
+      const result = await this.getPlaylistTracks(playlistId, 200, 0);
+      tracks = result.tracks;
+      cachedPlaylistTracks.set(playlistId, tracks);
+    }
+
+    if (tracks.length === 0) {
+      throw new Error("Playlist has no tracks");
+    }
+
+    await startPlaylistPlayback(playlistId, tracks, trackIndex);
   }
 }
 
