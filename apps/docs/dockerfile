@@ -2,7 +2,7 @@
 # Designed to work when build context is the monorepo root
 # Build: docker build -f apps/docs/dockerfile -t minify-docs .
 
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
