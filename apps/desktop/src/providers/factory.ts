@@ -1,6 +1,6 @@
 import { readSettings } from "../lib/settingLib";
 import { createSpotifyProvider } from "./spotify";
-import type { MusicProvider, MusicProviderType } from "./types";
+import type { MusicProvider, MusicProviderType } from "../type/";
 import { createYouTubeProvider } from "./youtube";
 
 type ProviderConstructor = () => MusicProvider;
@@ -12,7 +12,7 @@ let cachedProviderType: MusicProviderType | null = null;
 
 export function registerProvider(
   type: MusicProviderType,
-  providerFactory: ProviderConstructor
+  providerFactory: ProviderConstructor,
 ): void {
   providerRegistry.set(type, providerFactory);
 }
@@ -60,7 +60,9 @@ export function clearProviderCache(): void {
   cachedProviderType = null;
 }
 
-export async function isProviderAuthenticated(type: MusicProviderType): Promise<boolean> {
+export async function isProviderAuthenticated(
+  type: MusicProviderType,
+): Promise<boolean> {
   const providerFactory = providerRegistry.get(type);
   if (!providerFactory) {
     return false;

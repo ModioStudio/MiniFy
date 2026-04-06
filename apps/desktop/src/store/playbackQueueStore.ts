@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { MusicProviderType, UnifiedTrack } from "../providers/types";
+import type { MusicProviderType, UnifiedTrack } from "../type/provider.type";
 
 export interface PlaybackQueueState {
   tracks: UnifiedTrack[];
@@ -12,7 +12,7 @@ export interface PlaybackQueueState {
     playlistId: string,
     tracks: UnifiedTrack[],
     startIndex: number,
-    provider: MusicProviderType
+    provider: MusicProviderType,
   ) => void;
   setSingleTrack: (track: UnifiedTrack, provider: MusicProviderType) => void;
   advanceToNext: () => UnifiedTrack | null;

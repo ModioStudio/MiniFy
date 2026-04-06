@@ -22,7 +22,7 @@ import { startAIQueue, stopAIQueue } from "../../lib/ai/aiQueueService";
 import { musicTools } from "../../lib/musicTools";
 import { readSettings } from "../../lib/settingLib";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType } from "../../providers/types";
+import type { MusicProviderType } from "../../type/provider.type";
 import { useAIQueueStore } from "../../store/aiQueueStore";
 
 type AIDJViewProps = {
@@ -47,13 +47,19 @@ async function buildUserContext(): Promise<string> {
     const providerType = await getActiveProviderType();
     const provider = await getActiveProvider();
 
-    contextParts.push(`Provider: ${providerType === "youtube" ? "YouTube Music" : "Spotify"}`);
+    contextParts.push(
+      `Provider: ${providerType === "youtube" ? "YouTube Music" : "Spotify"}`,
+    );
 
     const now = new Date();
     const timeOfDay =
-      now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
+      now.getHours() < 12
+        ? "morning"
+        : now.getHours() < 17
+          ? "afternoon"
+          : "evening";
     contextParts.push(
-      `Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`
+      `Time: ${timeOfDay} (${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`,
     );
 
     const [currentTrack, recentTracks] = await Promise.all([
@@ -77,12 +83,16 @@ async function buildUserContext(): Promise<string> {
     // Continue with partial context
   }
 
-  return contextParts.length > 0 ? `[User Context]\n${contextParts.join("\n")}\n[End Context]` : "";
+  return contextParts.length > 0
+    ? `[User Context]\n${contextParts.join("\n")}\n[End Context]`
+    : "";
 }
 
 export default function AIDJView({ onBack }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(
+    null,
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +123,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   const handleScroll = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      50;
     setShouldAutoScroll(isAtBottom);
   };
 
@@ -131,7 +143,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
       const settings = await readSettings();
       const provider = await getActiveProviderWithKey(
         settings.ai_providers,
-        settings.active_ai_provider
+        settings.active_ai_provider,
       );
       setIsConfigured(provider !== null);
 
@@ -157,11 +169,13 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
     const settings = await readSettings();
     const provider = await getActiveProviderWithKey(
       settings.ai_providers,
-      settings.active_ai_provider
+      settings.active_ai_provider,
     );
 
     if (!provider) {
-      setError("No AI provider configured. Please add one in Settings > Connections.");
+      setError(
+        "No AI provider configured. Please add one in Settings > Connections.",
+      );
       return;
     }
 
@@ -231,7 +245,8 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to get response";
+      const message =
+        err instanceof Error ? err.message : "Failed to get response";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -259,10 +274,17 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   if (!isConfigured) {
     return (
-      <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
+      <div
+        className="h-full w-full p-4"
+        style={{ color: "var(--settings-text)" }}
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Waveform size={24} weight="fill" style={{ color: "var(--settings-accent)" }} />
+            <Waveform
+              size={24}
+              weight="fill"
+              style={{ color: "var(--settings-accent)" }}
+            />
             <h1 className="text-base font-semibold">AI DJ</h1>
           </div>
           <button
@@ -281,11 +303,16 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
             borderColor: "var(--settings-panel-border)",
           }}
         >
-          <Robot size={64} weight="duotone" style={{ color: "var(--settings-text-muted)" }} />
+          <Robot
+            size={64}
+            weight="duotone"
+            style={{ color: "var(--settings-text-muted)" }}
+          />
           <h2 className="text-lg font-medium">AI DJ Not Configured</h2>
           <p className="text-sm text-[--settings-text-muted] max-w-sm">
-            To use the AI DJ, you need to connect an AI provider first. Go to Settings → Connections
-            and add an API key for OpenAI, Anthropic, Google AI, or Groq.
+            To use the AI DJ, you need to connect an AI provider first. Go to
+            Settings → Connections and add an API key for OpenAI, Anthropic,
+            Google AI, or Groq.
           </p>
           <button
             type="button"
@@ -305,7 +332,11 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
 
   const suggestions =
     providerType === "youtube"
-      ? ["Find me something relaxing", "Play upbeat music", "Start the AI Queue"]
+      ? [
+          "Find me something relaxing",
+          "Play upbeat music",
+          "Start the AI Queue",
+        ]
       : [
           "Play something based on my recent history",
           "Find me something upbeat",
@@ -313,10 +344,17 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
         ];
 
   return (
-    <div className="h-full w-full p-4 flex flex-col" style={{ color: "var(--settings-text)" }}>
+    <div
+      className="h-full w-full p-4 flex flex-col"
+      style={{ color: "var(--settings-text)" }}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Waveform size={24} weight="fill" style={{ color: "var(--settings-accent)" }} />
+          <Waveform
+            size={24}
+            weight="fill"
+            style={{ color: "var(--settings-accent)" }}
+          />
           <h1 className="text-base font-semibold">AI DJ</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -329,7 +367,11 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                 ? "bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
                 : "bg-white/10 hover:bg-white/20 border border-white/20"
             }`}
-            title={aiQueueActive ? "Stop AI Queue" : "Start AI Queue (auto-generates playlist)"}
+            title={
+              aiQueueActive
+                ? "Stop AI Queue"
+                : "Start AI Queue (auto-generates playlist)"
+            }
           >
             {aiQueueLoading ? (
               <SpinnerGap size={14} className="animate-spin" />
@@ -383,7 +425,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                 )}
               </div>
 
-              <div className={`max-w-[80%] ${message.role === "user" ? "text-right" : ""}`}>
+              <div
+                className={`max-w-[80%] ${message.role === "user" ? "text-right" : ""}`}
+              >
                 <div
                   className="inline-block px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                   style={{
@@ -391,9 +435,14 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                       message.role === "assistant"
                         ? "rgba(255, 255, 255, 0.08)"
                         : "var(--settings-accent)",
-                    color: message.role === "assistant" ? "var(--settings-text)" : "#000",
+                    color:
+                      message.role === "assistant"
+                        ? "var(--settings-text)"
+                        : "#000",
                     borderRadius:
-                      message.role === "assistant" ? "4px 18px 18px 18px" : "18px 4px 18px 18px",
+                      message.role === "assistant"
+                        ? "4px 18px 18px 18px"
+                        : "18px 4px 18px 18px",
                   }}
                 >
                   {message.content}
@@ -414,18 +463,26 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                         <span>
                           {tr.toolName === "playTrack" && "Now playing"}
                           {tr.toolName === "searchTracks" && "Searched tracks"}
-                          {tr.toolName === "getRecentlyPlayed" && "Checked history"}
-                          {tr.toolName === "getCurrentTrack" && "Checked current track"}
-                          {tr.toolName === "startAIQueueWithMood" && "Started AI Queue"}
-                          {tr.toolName === "stopAIQueuePlayback" && "Stopped AI Queue"}
-                          {tr.toolName === "getAIQueueStatus" && "Checked queue status"}
+                          {tr.toolName === "getRecentlyPlayed" &&
+                            "Checked history"}
+                          {tr.toolName === "getCurrentTrack" &&
+                            "Checked current track"}
+                          {tr.toolName === "startAIQueueWithMood" &&
+                            "Started AI Queue"}
+                          {tr.toolName === "stopAIQueuePlayback" &&
+                            "Stopped AI Queue"}
+                          {tr.toolName === "getAIQueueStatus" &&
+                            "Checked queue status"}
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="text-xs mt-1" style={{ color: "var(--settings-text-muted)" }}>
+                <div
+                  className="text-xs mt-1"
+                  style={{ color: "var(--settings-text-muted)" }}
+                >
                   {message.timestamp.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -527,12 +584,17 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                 {aiQueueTracks[aiQueueCurrentIndex + 1]?.artists}
               </div>
             ) : (
-              <div className="text-[--settings-text-muted] truncate">Loading more tracks...</div>
+              <div className="text-[--settings-text-muted] truncate">
+                Loading more tracks...
+              </div>
             )}
           </div>
         )}
 
-        <div className="p-3 border-t" style={{ borderColor: "var(--settings-panel-border)" }}>
+        <div
+          className="p-3 border-t"
+          style={{ borderColor: "var(--settings-panel-border)" }}
+        >
           <div className="flex gap-2">
             <input
               type="text"

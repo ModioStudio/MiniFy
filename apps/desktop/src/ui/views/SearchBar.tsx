@@ -8,7 +8,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProvider } from "../../providers";
-import type { UnifiedTrack } from "../../providers/types";
+import type { UnifiedTrack } from "../../type/provider.type";
 
 type SearchBarProps = {
   onBack: () => void;
@@ -109,7 +109,10 @@ export default function SearchBar({ onBack }: SearchBarProps) {
   const isLoading = isSearching ? loading : loadingRecent;
 
   return (
-    <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
+    <div
+      className="h-full w-full p-4"
+      style={{ color: "var(--settings-text)" }}
+    >
       <div
         className="flex items-center justify-between mb-3"
         style={{ color: "var(--settings-header-text)" }}
@@ -233,7 +236,9 @@ export default function SearchBar({ onBack }: SearchBarProps) {
                         ) : (
                           <div
                             className="w-full h-full flex items-center justify-center"
-                            style={{ background: "var(--settings-item-active)" }}
+                            style={{
+                              background: "var(--settings-item-active)",
+                            }}
                           >
                             <Play size={16} weight="fill" />
                           </div>

@@ -1,6 +1,9 @@
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { UnifiedTrack } from "../../providers/types";
-import { getRelatedVideos, videoItemToTrackData } from "../../providers/youtube/client";
+import type { UnifiedTrack } from "../../type/provider.type";
+import {
+  getRelatedVideos,
+  videoItemToTrackData,
+} from "../../providers/youtube/client";
 import { useAIQueueStore } from "../../store/aiQueueStore";
 import { usePlaybackQueueStore } from "../../store/playbackQueueStore";
 import { state } from "../../type";
@@ -76,7 +79,9 @@ async function checkAndTriggerAutoplay(): Promise<void> {
   state.lastProcessedTrackId = track.id;
 }
 
-async function handleSpotifyAutoplay(currentTrack: UnifiedTrack): Promise<void> {
+async function handleSpotifyAutoplay(
+  currentTrack: UnifiedTrack,
+): Promise<void> {
   try {
     const queue = await spotifyGetQueue();
 
@@ -105,7 +110,7 @@ async function handleYouTubeAutoplay(
   currentTrack: UnifiedTrack,
   isPlaying: boolean,
   progressMs: number,
-  durationMs: number
+  durationMs: number,
 ): Promise<void> {
   const playbackQueue = usePlaybackQueueStore.getState();
 
@@ -136,7 +141,9 @@ async function handleYouTubeAutoplay(
       album: {
         id: "youtube-music",
         name: trackData.album,
-        images: trackData.albumArt ? [{ url: trackData.albumArt, width: 640, height: 640 }] : [],
+        images: trackData.albumArt
+          ? [{ url: trackData.albumArt, width: 640, height: 640 }]
+          : [],
       },
       uri: trackData.uri,
       provider: "youtube",

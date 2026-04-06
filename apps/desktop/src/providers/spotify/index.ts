@@ -6,7 +6,7 @@ import type {
   PlaylistTracksResult,
   ProviderCapabilities,
   UnifiedTrack,
-} from "../types";
+} from "../../type/provider.type";
 import {
   addTrackToPlaylist,
   fetchCurrentlyPlaying,
@@ -138,7 +138,10 @@ class SpotifyProviderImpl implements MusicProvider {
     };
   }
 
-  async getUserPlaylists(limit: number, offset: number): Promise<PlaylistsResult> {
+  async getUserPlaylists(
+    limit: number,
+    offset: number,
+  ): Promise<PlaylistsResult> {
     const [response, userProfile] = await Promise.all([
       fetchUserPlaylists(limit, offset),
       fetchUserProfile(),
@@ -167,7 +170,7 @@ class SpotifyProviderImpl implements MusicProvider {
   async getPlaylistTracks(
     playlistId: string,
     limit: number,
-    offset: number
+    offset: number,
   ): Promise<PlaylistTracksResult> {
     const response = await fetchPlaylistTracks(playlistId, limit, offset);
     return {
@@ -180,7 +183,10 @@ class SpotifyProviderImpl implements MusicProvider {
     await addTrackToPlaylist(playlistId, trackUri);
   }
 
-  async playPlaylistFromIndex(playlistId: string, trackIndex: number): Promise<void> {
+  async playPlaylistFromIndex(
+    playlistId: string,
+    trackIndex: number,
+  ): Promise<void> {
     await spotifyPlayPlaylistContext(playlistId, trackIndex);
   }
 }

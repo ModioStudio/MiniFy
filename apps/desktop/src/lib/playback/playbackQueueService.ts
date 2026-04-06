@@ -1,5 +1,5 @@
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType, UnifiedTrack } from "../../providers/types";
+import type { MusicProviderType, UnifiedTrack } from "../../type/provider.type";
 import { usePlaybackQueueStore } from "../../store/playbackQueueStore";
 
 let monitorInterval: ReturnType<typeof setInterval> | null = null;
@@ -8,7 +8,7 @@ let lastTrackedVideoId: string | null = null;
 export async function startPlaylistPlayback(
   playlistId: string,
   tracks: UnifiedTrack[],
-  startIndex: number
+  startIndex: number,
 ): Promise<void> {
   const providerType = await getActiveProviderType();
   const store = usePlaybackQueueStore.getState();

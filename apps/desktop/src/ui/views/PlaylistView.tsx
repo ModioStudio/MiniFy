@@ -1,8 +1,18 @@
-import { ArrowLeft, MusicNotes, Play, SpinnerGap, Warning } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  MusicNotes,
+  Play,
+  SpinnerGap,
+  Warning,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType, UnifiedPlaylist, UnifiedTrack } from "../../providers/types";
+import type {
+  MusicProviderType,
+  UnifiedPlaylist,
+  UnifiedTrack,
+} from "../../type/provider.type";
 
 type PlaylistViewProps = {
   onBack: () => void;
@@ -22,13 +32,16 @@ function formatDuration(ms: number): string {
 
 export default function PlaylistView({ onBack }: PlaylistViewProps) {
   const { setLayout } = useWindowLayout();
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(
+    null,
+  );
   const [hasPlaylistSupport, setHasPlaylistSupport] = useState<boolean>(true);
   const [playlists, setPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [allPlaylists, setAllPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showOnlyOwn, setShowOnlyOwn] = useState<boolean>(false);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<UnifiedPlaylist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] =
+    useState<UnifiedPlaylist | null>(null);
   const [tracks, setTracks] = useState<UnifiedTrack[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState<boolean>(true);
   const [loadingTracks, setLoadingTracks] = useState<boolean>(false);
@@ -82,25 +95,32 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
     }
   }, [showOnlyOwn, currentUserId, allPlaylists]);
 
-  const handleSelectPlaylist = useCallback(async (playlist: UnifiedPlaylist) => {
-    setSelectedPlaylist(playlist);
-    setViewMode("tracks");
-    setLoadingTracks(true);
-    setTracks([]);
-    loadedCountRef.current = 0;
-    try {
-      const provider = await getActiveProvider();
-      const response = await provider.getPlaylistTracks(playlist.id, TRACKS_PER_PAGE, 0);
-      setTracks(response.tracks);
-      setTotalTracks(response.total);
-      loadedCountRef.current = response.tracks.length;
-    } catch (err) {
-      console.error("Failed to load playlist tracks:", err);
+  const handleSelectPlaylist = useCallback(
+    async (playlist: UnifiedPlaylist) => {
+      setSelectedPlaylist(playlist);
+      setViewMode("tracks");
+      setLoadingTracks(true);
       setTracks([]);
-    } finally {
-      setLoadingTracks(false);
-    }
-  }, []);
+      loadedCountRef.current = 0;
+      try {
+        const provider = await getActiveProvider();
+        const response = await provider.getPlaylistTracks(
+          playlist.id,
+          TRACKS_PER_PAGE,
+          0,
+        );
+        setTracks(response.tracks);
+        setTotalTracks(response.total);
+        loadedCountRef.current = response.tracks.length;
+      } catch (err) {
+        console.error("Failed to load playlist tracks:", err);
+        setTracks([]);
+      } finally {
+        setLoadingTracks(false);
+      }
+    },
+    [],
+  );
 
   const loadMoreTracks = useCallback(async () => {
     if (!selectedPlaylist || loadingMore) return;
@@ -115,7 +135,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
       const response = await provider.getPlaylistTracks(
         selectedPlaylist.id,
         TRACKS_PER_PAGE,
-        currentOffset
+        currentOffset,
       );
 
       if (response.tracks.length > 0) {
@@ -159,7 +179,8 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
       if (selectedPlaylist && provider.playPlaylistFromIndex) {
         await provider.playPlaylistFromIndex(selectedPlaylist.id, trackIndex);
       } else if (type === "youtube" && selectedPlaylist) {
-        const { startPlaylistPlayback } = await import("../../lib/playback/playbackQueueService");
+        const { startPlaylistPlayback } =
+          await import("../../lib/playback/playbackQueueService");
         await startPlaylistPlayback(selectedPlaylist.id, tracks, trackIndex);
       } else {
         await provider.playTrack(track.uri);
@@ -180,13 +201,18 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   };
 
   return (
-    <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
+    <div
+      className="h-full w-full p-4"
+      style={{ color: "var(--settings-text)" }}
+    >
       <div
         className="flex items-center justify-between mb-3"
         style={{ color: "var(--settings-header-text)" }}
       >
         <h1 className="text-base font-semibold">
-          {viewMode === "playlists" ? "Playlists" : (selectedPlaylist?.name ?? "Playlist")}
+          {viewMode === "playlists"
+            ? "Playlists"
+            : (selectedPlaylist?.name ?? "Playlist")}
         </h1>
         <button
           type="button"
@@ -210,7 +236,9 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                 borderColor: "var(--settings-panel-border)",
               }}
             >
-              <span style={{ color: "var(--settings-text-muted)" }}>Only my playlists</span>
+              <span style={{ color: "var(--settings-text-muted)" }}>
+                Only my playlists
+              </span>
               <button
                 type="button"
                 onClick={() => setShowOnlyOwn(!showOnlyOwn)}
@@ -240,7 +268,11 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                   className="flex items-center justify-center h-full"
                   style={{ color: "var(--settings-text-muted)" }}
                 >
-                  <SpinnerGap size={24} weight="bold" className="animate-spin" />
+                  <SpinnerGap
+                    size={24}
+                    weight="bold"
+                    className="animate-spin"
+                  />
                 </div>
               )}
 
@@ -249,7 +281,11 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                   className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
                   style={{ color: "var(--settings-text-muted)" }}
                 >
-                  <Warning size={32} weight="fill" className="text-yellow-500" />
+                  <Warning
+                    size={32}
+                    weight="fill"
+                    className="text-yellow-500"
+                  />
                   <p className="font-medium">Playlists not available</p>
                   <p className="text-xs">
                     {providerType === "youtube"
@@ -259,67 +295,73 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                 </div>
               )}
 
-              {!loadingPlaylists && hasPlaylistSupport && playlists.length === 0 && (
-                <div
-                  className="flex items-center justify-center h-full"
-                  style={{ color: "var(--settings-text-muted)" }}
-                >
-                  <p>No playlists found</p>
-                </div>
-              )}
+              {!loadingPlaylists &&
+                hasPlaylistSupport &&
+                playlists.length === 0 && (
+                  <div
+                    className="flex items-center justify-center h-full"
+                    style={{ color: "var(--settings-text-muted)" }}
+                  >
+                    <p>No playlists found</p>
+                  </div>
+                )}
 
-              {!loadingPlaylists && hasPlaylistSupport && playlists.length > 0 && (
-                <ul className="py-2">
-                  {playlists.map((playlist) => {
-                    const playlistImage =
-                      playlist.images && playlist.images.length > 0
-                        ? playlist.images[0]?.url
-                        : null;
+              {!loadingPlaylists &&
+                hasPlaylistSupport &&
+                playlists.length > 0 && (
+                  <ul className="py-2">
+                    {playlists.map((playlist) => {
+                      const playlistImage =
+                        playlist.images && playlist.images.length > 0
+                          ? playlist.images[0]?.url
+                          : null;
 
-                    return (
-                      <li key={playlist.id}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectPlaylist(playlist)}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-left transition-all duration-150 cursor-pointer hover:bg-[--settings-item-hover] active:scale-[0.99] group"
-                        >
-                          <div className="relative w-11 h-11 rounded-md overflow-hidden flex-shrink-0 bg-black/30">
-                            {playlistImage ? (
-                              <img
-                                src={playlistImage}
-                                alt={playlist.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div
-                                className="w-full h-full flex items-center justify-center"
-                                style={{ background: "var(--settings-item-active)" }}
+                      return (
+                        <li key={playlist.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectPlaylist(playlist)}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-left transition-all duration-150 cursor-pointer hover:bg-[--settings-item-hover] active:scale-[0.99] group"
+                          >
+                            <div className="relative w-11 h-11 rounded-md overflow-hidden flex-shrink-0 bg-black/30">
+                              {playlistImage ? (
+                                <img
+                                  src={playlistImage}
+                                  alt={playlist.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center"
+                                  style={{
+                                    background: "var(--settings-item-active)",
+                                  }}
+                                >
+                                  <MusicNotes size={16} weight="fill" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="font-medium truncate text-sm"
+                                style={{ color: "var(--settings-text)" }}
                               >
-                                <MusicNotes size={16} weight="fill" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="font-medium truncate text-sm"
-                              style={{ color: "var(--settings-text)" }}
-                            >
-                              {playlist.name}
-                            </p>
-                            <p
-                              className="text-xs truncate"
-                              style={{ color: "var(--settings-text-muted)" }}
-                            >
-                              {playlist.trackCount} tracks
-                            </p>
-                          </div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                                {playlist.name}
+                              </p>
+                              <p
+                                className="text-xs truncate"
+                                style={{ color: "var(--settings-text-muted)" }}
+                              >
+                                {playlist.trackCount} tracks
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
             </>
           )}
 
@@ -330,7 +372,11 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                   className="flex items-center justify-center h-full"
                   style={{ color: "var(--settings-text-muted)" }}
                 >
-                  <SpinnerGap size={24} weight="bold" className="animate-spin" />
+                  <SpinnerGap
+                    size={24}
+                    weight="bold"
+                    className="animate-spin"
+                  />
                 </div>
               )}
 
@@ -352,7 +398,9 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                   <ul className="py-2">
                     {tracks.map((track, index) => {
                       const albumArt = track.album.images[0]?.url;
-                      const artistNames = track.artists.map((a) => a.name).join(", ");
+                      const artistNames = track.artists
+                        .map((a) => a.name)
+                        .join(", ");
                       const isPlaying = playingId === track.id;
 
                       return (
@@ -374,7 +422,9 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                               ) : (
                                 <div
                                   className="w-full h-full flex items-center justify-center"
-                                  style={{ background: "var(--settings-item-active)" }}
+                                  style={{
+                                    background: "var(--settings-item-active)",
+                                  }}
                                 >
                                   <Play size={16} weight="fill" />
                                 </div>
@@ -429,7 +479,11 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                       className="flex items-center justify-center py-3"
                       style={{ color: "var(--settings-text-muted)" }}
                     >
-                      <SpinnerGap size={18} weight="bold" className="animate-spin" />
+                      <SpinnerGap
+                        size={18}
+                        weight="bold"
+                        className="animate-spin"
+                      />
                     </div>
                   )}
 

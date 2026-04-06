@@ -2,7 +2,7 @@ import { encode } from "@toon-format/toon";
 import { tool } from "ai";
 import { z } from "zod";
 import { getActiveProvider, getActiveProviderType } from "../providers";
-import type { UnifiedTrack } from "../providers/types";
+import type { UnifiedTrack } from "../type/provider.type";
 import { useAIQueueStore } from "../store/aiQueueStore";
 import { startAIQueue, stopAIQueue } from "./ai/aiQueueService";
 
@@ -62,7 +62,12 @@ export const musicTools = {
     description:
       "Get the user's recently played tracks. Returns TOON format: n=name, a=artists, u=uri",
     parameters: z.object({
-      limit: z.number().min(1).max(50).default(10).describe("Number of tracks to retrieve (1-50)"),
+      limit: z
+        .number()
+        .min(1)
+        .max(50)
+        .default(10)
+        .describe("Number of tracks to retrieve (1-50)"),
     }),
     execute: async ({ limit }) => {
       try {
@@ -92,8 +97,15 @@ export const musicTools = {
     parameters: z.object({
       query: z
         .string()
-        .describe("Search query for finding tracks (e.g. 'upbeat pop' or 'artist name')"),
-      limit: z.number().min(1).max(20).default(5).describe("Number of results to return (1-20)"),
+        .describe(
+          "Search query for finding tracks (e.g. 'upbeat pop' or 'artist name')",
+        ),
+      limit: z
+        .number()
+        .min(1)
+        .max(20)
+        .default(5)
+        .describe("Number of results to return (1-20)"),
     }),
     execute: async ({ query, limit }) => {
       try {
@@ -117,7 +129,9 @@ export const musicTools = {
   playTrack: tool({
     description: "Play a specific track using its URI",
     parameters: z.object({
-      trackUri: z.string().describe("Track URI (spotify:track:ID or youtube:video:ID format)"),
+      trackUri: z
+        .string()
+        .describe("Track URI (spotify:track:ID or youtube:video:ID format)"),
     }),
     execute: async ({ trackUri }) => {
       try {
@@ -143,7 +157,7 @@ export const musicTools = {
       mood: z
         .string()
         .describe(
-          "The mood, genre, or context for the music queue (e.g., 'relaxing lofi beats for focus', 'upbeat pop for working out', 'chill jazz for evening')"
+          "The mood, genre, or context for the music queue (e.g., 'relaxing lofi beats for focus', 'upbeat pop for working out', 'chill jazz for evening')",
         ),
     }),
     execute: async ({ mood }) => {
@@ -152,7 +166,8 @@ export const musicTools = {
         if (store.isActive) {
           return {
             success: false,
-            message: "AI Queue is already active. Stop it first if you want to change the mood.",
+            message:
+              "AI Queue is already active. Stop it first if you want to change the mood.",
           };
         }
 
@@ -205,14 +220,19 @@ export const musicTools = {
       const providerType = await getActiveProviderType();
       const nextIndex = store.currentIndex + 1;
       const nextTrack = store.queue[nextIndex];
-      const remaining = Math.max(0, store.queue.length - store.currentIndex - 1);
+      const remaining = Math.max(
+        0,
+        store.queue.length - store.currentIndex - 1,
+      );
       return {
         success: true,
         isActive: store.isActive,
         isLoading: store.isLoading,
         queueLength: store.queue.length,
         remaining,
-        nextTrack: nextTrack ? `${nextTrack.name} - ${nextTrack.artists}` : null,
+        nextTrack: nextTrack
+          ? `${nextTrack.name} - ${nextTrack.artists}`
+          : null,
         provider: providerType,
       };
     },

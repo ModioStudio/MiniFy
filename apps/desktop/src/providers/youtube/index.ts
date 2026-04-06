@@ -8,7 +8,7 @@ import type {
   PlaylistTracksResult,
   ProviderCapabilities,
   UnifiedTrack,
-} from "../types";
+} from "../../type/";
 import {
   addVideoToYouTubePlaylist,
   fetchYouTubePlaylistItems,
@@ -40,16 +40,23 @@ export function clearYouTubeState(): void {
   }
 }
 
-function convertToUnifiedTrack(data: ReturnType<typeof videoItemToTrackData>): UnifiedTrack {
+function convertToUnifiedTrack(
+  data: ReturnType<typeof videoItemToTrackData>,
+): UnifiedTrack {
   return {
     id: data.id,
     name: data.name,
     durationMs: data.durationMs,
-    artists: data.artists.map((name, idx) => ({ id: `yt-artist-${idx}`, name })),
+    artists: data.artists.map((name, idx) => ({
+      id: `yt-artist-${idx}`,
+      name,
+    })),
     album: {
       id: "youtube-music",
       name: data.album,
-      images: data.albumArt ? [{ url: data.albumArt, width: 640, height: 640 }] : [],
+      images: data.albumArt
+        ? [{ url: data.albumArt, width: 640, height: 640 }]
+        : [],
     },
     uri: data.uri,
     provider: "youtube",
@@ -116,7 +123,9 @@ class YouTubeProviderImpl implements MusicProvider {
   }
 
   nextTrack(): void {
-    console.warn("YouTube Provider: nextTrack not implemented - use AI DJ queue");
+    console.warn(
+      "YouTube Provider: nextTrack not implemented - use AI DJ queue",
+    );
   }
 
   previousTrack(): void {
@@ -147,7 +156,9 @@ class YouTubeProviderImpl implements MusicProvider {
     }
 
     if (!playerRef || !playerRef.isReady()) {
-      throw new Error("YouTube player not ready after waiting. Please try again.");
+      throw new Error(
+        "YouTube player not ready after waiting. Please try again.",
+      );
     }
 
     playerRef.loadVideo(videoId);
@@ -170,7 +181,7 @@ class YouTubeProviderImpl implements MusicProvider {
 
   async addToQueue(uri: string): Promise<void> {
     console.warn(
-      "YouTube Provider: addToQueue not natively supported - track will be played directly"
+      "YouTube Provider: addToQueue not natively supported - track will be played directly",
     );
     await this.playTrack(uri);
   }
@@ -188,7 +199,10 @@ class YouTubeProviderImpl implements MusicProvider {
     };
   }
 
-  async getUserPlaylists(limit: number, offset: number): Promise<PlaylistsResult> {
+  async getUserPlaylists(
+    limit: number,
+    offset: number,
+  ): Promise<PlaylistsResult> {
     const pagesNeeded = Math.ceil((offset + limit) / 50);
     let allPlaylists: PlaylistsResult["playlists"] = [];
     let total = 0;
@@ -202,13 +216,22 @@ class YouTubeProviderImpl implements MusicProvider {
         response.playlists.map((p) => {
           const thumbnails = p.snippet.thumbnails;
           const bestThumb =
-            thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
+            thumbnails.maxres ||
+            thumbnails.high ||
+            thumbnails.medium ||
+            thumbnails.default;
           return {
             id: p.id,
             name: p.snippet.title,
             description: p.snippet.description || null,
             images: bestThumb
-              ? [{ url: bestThumb.url, width: bestThumb.width, height: bestThumb.height }]
+              ? [
+                  {
+                    url: bestThumb.url,
+                    width: bestThumb.width,
+                    height: bestThumb.height,
+                  },
+                ]
               : [],
             trackCount: p.contentDetails.itemCount,
             owner: {
@@ -216,7 +239,7 @@ class YouTubeProviderImpl implements MusicProvider {
               name: p.snippet.channelTitle,
             },
           };
-        })
+        }),
       );
 
       nextPageToken = response.nextPageToken;
@@ -232,7 +255,7 @@ class YouTubeProviderImpl implements MusicProvider {
   async getPlaylistTracks(
     playlistId: string,
     limit: number,
-    offset: number
+    offset: number,
   ): Promise<PlaylistTracksResult> {
     const pagesNeeded = Math.ceil((offset + limit) / 50);
     let allTracks: UnifiedTrack[] = [];
@@ -240,7 +263,11 @@ class YouTubeProviderImpl implements MusicProvider {
     let nextPageToken: string | undefined;
 
     for (let i = 0; i < pagesNeeded; i++) {
-      const response = await fetchYouTubePlaylistItems(playlistId, 50, nextPageToken);
+      const response = await fetchYouTubePlaylistItems(
+        playlistId,
+        50,
+        nextPageToken,
+      );
       total = response.total;
 
       const tracks = response.items
@@ -266,7 +293,10 @@ class YouTubeProviderImpl implements MusicProvider {
     await addVideoToYouTubePlaylist(playlistId, videoId);
   }
 
-  async playPlaylistFromIndex(playlistId: string, trackIndex: number): Promise<void> {
+  async playPlaylistFromIndex(
+    playlistId: string,
+    trackIndex: number,
+  ): Promise<void> {
     let tracks = cachedPlaylistTracks.get(playlistId);
 
     if (!tracks) {

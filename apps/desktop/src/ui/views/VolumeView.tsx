@@ -1,9 +1,15 @@
-import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  SpeakerHigh,
+  SpeakerLow,
+  SpeakerNone,
+  SpeakerX,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { readSettings, writeSettings } from "../../lib/settingLib";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType } from "../../providers/types";
+import type { MusicProviderType } from "../../type/provider.type";
 import { getPlayerState } from "../spotifyClient";
 
 type VolumeViewProps = {
@@ -12,7 +18,9 @@ type VolumeViewProps = {
 
 export default function VolumeView({ onBack }: VolumeViewProps) {
   const { setLayout } = useWindowLayout();
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(
+    null,
+  );
   const [volume, setLocalVolume] = useState<number>(50);
   const [loading, setLoading] = useState<boolean>(true);
   const [deviceName, setDeviceName] = useState<string>("");
@@ -61,7 +69,7 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
         await writeSettings({ youtube_volume: newVolume });
       }
     },
-    [providerType]
+    [providerType],
   );
 
   const handlePreset = useCallback(
@@ -75,7 +83,7 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
         await writeSettings({ youtube_volume: preset });
       }
     },
-    [providerType]
+    [providerType],
   );
 
   const getVolumeIcon = () => {
@@ -86,7 +94,10 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
   };
 
   return (
-    <div className="h-full w-full p-3" style={{ color: "var(--settings-text)" }}>
+    <div
+      className="h-full w-full p-3"
+      style={{ color: "var(--settings-text)" }}
+    >
       <div
         className="flex items-center justify-between mb-2"
         style={{ color: "var(--settings-header-text)" }}
@@ -128,8 +139,12 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
             )}
 
             <div className="flex items-center justify-center gap-3">
-              <div style={{ color: "var(--settings-accent)" }}>{getVolumeIcon()}</div>
-              <span className="text-2xl font-bold tabular-nums w-14 text-center">{volume}%</span>
+              <div style={{ color: "var(--settings-accent)" }}>
+                {getVolumeIcon()}
+              </div>
+              <span className="text-2xl font-bold tabular-nums w-14 text-center">
+                {volume}%
+              </span>
             </div>
 
             <div>
@@ -153,7 +168,9 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
                   type="button"
                   onClick={() => handlePreset(preset)}
                   className={`px-2 py-1 rounded-md border text-[10px] transition-all duration-150 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                    volume === preset ? "border-[--settings-accent]" : "border-white/10"
+                    volume === preset
+                      ? "border-[--settings-accent]"
+                      : "border-white/10"
                   }`}
                   style={{
                     background:

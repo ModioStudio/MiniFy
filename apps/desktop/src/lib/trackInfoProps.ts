@@ -1,4 +1,4 @@
-import type { UnifiedTrack } from "../providers/types";
+import type { UnifiedTrack } from "../type/provider.type";
 
 type TrackInfoProps = {
   track: UnifiedTrack | null;

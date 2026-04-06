@@ -1,9 +1,19 @@
-import { ArrowLeft, MusicNotes, Plus, SpinnerGap, Warning } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  MusicNotes,
+  Plus,
+  SpinnerGap,
+  Warning,
+} from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProviderType } from "../../providers";
-import type { MusicProviderType } from "../../providers/types";
-import { addTrackToPlaylist, fetchUserPlaylists, type SimplifiedPlaylist } from "../spotifyClient";
+import type { MusicProviderType } from "../../type/provider.type";
+import {
+  addTrackToPlaylist,
+  fetchUserPlaylists,
+  type SimplifiedPlaylist,
+} from "../spotifyClient";
 
 type AddToPlaylistViewProps = {
   trackId: string | null;
@@ -11,9 +21,15 @@ type AddToPlaylistViewProps = {
   onBack: () => void;
 };
 
-export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToPlaylistViewProps) {
+export default function AddToPlaylistView({
+  trackId,
+  trackName,
+  onBack,
+}: AddToPlaylistViewProps) {
   const { setLayout } = useWindowLayout();
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
+  const [providerType, setProviderType] = useState<MusicProviderType | null>(
+    null,
+  );
   const [playlists, setPlaylists] = useState<SimplifiedPlaylist[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -59,7 +75,10 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
   };
 
   return (
-    <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
+    <div
+      className="h-full w-full p-4"
+      style={{ color: "var(--settings-text)" }}
+    >
       <div
         className="flex items-center justify-between mb-3"
         style={{ color: "var(--settings-header-text)" }}
@@ -67,7 +86,10 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold">Add to Playlist</h1>
           {trackName && (
-            <p className="text-xs truncate mt-0.5" style={{ color: "var(--settings-text-muted)" }}>
+            <p
+              className="text-xs truncate mt-0.5"
+              style={{ color: "var(--settings-text-muted)" }}
+            >
               {trackName}
             </p>
           )}
@@ -107,7 +129,8 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
               <Warning size={32} weight="fill" className="text-yellow-500" />
               <p className="font-medium">Not available</p>
               <p className="text-xs">
-                YouTube Music does not support adding tracks to playlists through the API.
+                YouTube Music does not support adding tracks to playlists
+                through the API.
               </p>
             </div>
           )}
@@ -125,7 +148,9 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
             <ul className="py-2">
               {playlists.map((playlist) => {
                 const playlistImage =
-                  playlist.images && playlist.images.length > 0 ? playlist.images[0]?.url : null;
+                  playlist.images && playlist.images.length > 0
+                    ? playlist.images[0]?.url
+                    : null;
                 const isAdding = addingTo === playlist.id;
 
                 return (
@@ -146,7 +171,9 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
                         ) : (
                           <div
                             className="w-full h-full flex items-center justify-center"
-                            style={{ background: "var(--settings-item-active)" }}
+                            style={{
+                              background: "var(--settings-item-active)",
+                            }}
                           >
                             <MusicNotes size={16} weight="fill" />
                           </div>
@@ -177,7 +204,11 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
                             style={{ color: "var(--settings-accent)" }}
                           />
                         ) : (
-                          <Plus size={18} weight="bold" className="opacity-50" />
+                          <Plus
+                            size={18}
+                            weight="bold"
+                            className="opacity-50"
+                          />
                         )}
                       </div>
                     </button>
