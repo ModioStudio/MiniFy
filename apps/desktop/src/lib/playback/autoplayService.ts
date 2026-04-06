@@ -1,27 +1,16 @@
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { UnifiedTrack } from "../../providers/types";
 import { getRelatedVideos, videoItemToTrackData } from "../../providers/youtube/client";
+import { useAIQueueStore } from "../../store/aiQueueStore";
+import { usePlaybackQueueStore } from "../../store/playbackQueueStore";
+import { state } from "../../type";
 import {
-  addToQueue as spotifyAddToQueue,
   fetchRecommendations,
+  addToQueue as spotifyAddToQueue,
   getQueue as spotifyGetQueue,
 } from "../../ui/spotifyClient";
-import { useAIQueueStore } from "../aiQueueStore";
-import { usePlaybackQueueStore } from "./playbackQueueStore";
 
-interface AutoplayState {
-  enabled: boolean;
-  lastProcessedTrackId: string | null;
-  pendingAutoplayTracks: string[];
-}
-
-const state: AutoplayState = {
-  enabled: true,
-  lastProcessedTrackId: null,
-  pendingAutoplayTracks: [],
-};
-
-let autoplayMonitorInterval: ReturnType<typeof setInterval> | null = null;
+let autoplayMonitorInterval: ReturnType<typeof setInterval> | undefined;
 
 export function setAutoplayEnabled(enabled: boolean): void {
   state.enabled = enabled;
@@ -53,7 +42,7 @@ export function startAutoplayMonitor(): void {
 export function stopAutoplayMonitor(): void {
   if (autoplayMonitorInterval) {
     clearInterval(autoplayMonitorInterval);
-    autoplayMonitorInterval = null;
+    autoplayMonitorInterval = undefined;
   }
 }
 
@@ -140,7 +129,10 @@ async function handleYouTubeAutoplay(
       id: trackData.id,
       name: trackData.name,
       durationMs: trackData.durationMs,
-      artists: trackData.artists.map((name, idx) => ({ id: `yt-artist-${idx}`, name })),
+      artists: trackData.artists.map((name, idx) => ({
+        id: `yt-artist-${idx}`,
+        name,
+      })),
       album: {
         id: "youtube-music",
         name: trackData.album,

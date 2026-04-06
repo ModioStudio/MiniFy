@@ -1,6 +1,6 @@
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType, UnifiedTrack } from "../../providers/types";
-import { usePlaybackQueueStore } from "./playbackQueueStore";
+import { usePlaybackQueueStore } from "../../store/playbackQueueStore";
 
 let monitorInterval: ReturnType<typeof setInterval> | null = null;
 let lastTrackedVideoId: string | null = null;

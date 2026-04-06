@@ -2,9 +2,9 @@ import { getActiveProviderType } from "../../providers";
 import {
   getDevices,
   getPlayerState,
+  type PlayerDevice,
   play as spotifyPlay,
   transferPlayback,
-  type PlayerDevice,
 } from "../../ui/spotifyClient";
 
 interface KeepAliveState {
