@@ -18,14 +18,20 @@ export function TrackInfoLayout({ track, variant, size, maxLength }: Props) {
     case "cover":
       return (
         <TrackCover
-          src={track ? (getLargestImageUrl(track.album.images) ?? undefined) : undefined}
+          src={
+            track
+              ? (getLargestImageUrl(track.album.images) ?? undefined)
+              : undefined
+          }
           size={size || 64}
           isEmpty={!track}
         />
       );
 
     case "title":
-      return <TrackMeta title={track?.name} maxLength={maxLength} isEmpty={!track} />;
+      return (
+        <TrackMeta title={track?.name} maxLength={maxLength} isEmpty={!track} />
+      );
 
     case "artist":
       return (
@@ -37,8 +43,11 @@ export function TrackInfoLayout({ track, variant, size, maxLength }: Props) {
       );
 
     case "description":
-      if (!track) return <p className="text-sm text-white/60 line-clamp-2">—</p>;
-      return <p className="text-sm text-white/60 line-clamp-2">{track.album.name}</p>;
+      if (!track)
+        return <p className="text-sm text-white/60 line-clamp-2">—</p>;
+      return (
+        <p className="text-sm text-white/60 line-clamp-2">{track.album.name}</p>
+      );
 
     case "actions":
       if (!track) return null;
