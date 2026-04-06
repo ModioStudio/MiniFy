@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
-import { useAIQueueStore } from "../lib/aiQueueStore";
 import { startAutoplayMonitor, stopAutoplayMonitor } from "../lib/playback/autoplayService";
 import { startKeepAlive, stopKeepAlive } from "../lib/playback/spotifyKeepAlive";
 import {
@@ -16,6 +15,7 @@ import {
   type PlaybackState,
   type UnifiedTrack,
 } from "../providers";
+import { useAIQueueStore } from "../store/aiQueueStore";
 
 function updateDiscordPresence(
   trackName: string | null,
@@ -77,7 +77,10 @@ function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-let currentProviderCache: ProviderPlaybackCache = { spotify: null, youtube: null };
+let currentProviderCache: ProviderPlaybackCache = {
+  spotify: null,
+  youtube: null,
+};
 
 async function saveTrackToProviderCache(
   provider: MusicProviderType,

@@ -1,6 +1,7 @@
 import { encode } from "@toon-format/toon";
 import { tool } from "ai";
 import { z } from "zod";
+import { useAIQueueStore } from "../store/aiQueueStore";
 import {
   type AudioFeatures,
   type FullArtist,
@@ -17,15 +18,18 @@ import {
   searchTracks,
   type TimeRange,
 } from "../ui/spotifyClient";
-import { startAIQueue, stopAIQueue } from "./aiQueueService";
-import { useAIQueueStore } from "./aiQueueStore";
+import { startAIQueue, stopAIQueue } from "./ai/aiQueueService";
 
 function formatTrack(track: SimplifiedTrack): string {
   const artists = track.artists.map((a) => a.name).join(", ");
   return `"${track.name}" by ${artists}`;
 }
 
-function formatTrackForToon(track: SimplifiedTrack): { n: string; a: string; u: string } {
+function formatTrackForToon(track: SimplifiedTrack): {
+  n: string;
+  a: string;
+  u: string;
+} {
   return {
     n: track.name,
     a: track.artists.map((a) => a.name).join(", "),
@@ -33,7 +37,12 @@ function formatTrackForToon(track: SimplifiedTrack): { n: string; a: string; u: 
   };
 }
 
-function formatArtistForToon(artist: FullArtist): { n: string; g: string; p: number; id: string } {
+function formatArtistForToon(artist: FullArtist): {
+  n: string;
+  g: string;
+  p: number;
+  id: string;
+} {
   return {
     n: artist.name,
     g: artist.genres.slice(0, 3).join(", ") || "unknown",
@@ -131,7 +140,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get current track: ${message}` };
+        return {
+          success: false,
+          message: `Could not get current track: ${message}`,
+        };
       }
     },
   }),
@@ -155,7 +167,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get recent tracks: ${message}` };
+        return {
+          success: false,
+          message: `Could not get recent tracks: ${message}`,
+        };
       }
     },
   }),
@@ -227,7 +242,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get top tracks: ${message}` };
+        return {
+          success: false,
+          message: `Could not get top tracks: ${message}`,
+        };
       }
     },
   }),
@@ -268,7 +286,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get top artists: ${message}` };
+        return {
+          success: false,
+          message: `Could not get top artists: ${message}`,
+        };
       }
     },
   }),
@@ -284,7 +305,10 @@ export const spotifyTools = {
       try {
         const tracks = await fetchTopTracks(timeRange, 50);
         if (tracks.length === 0) {
-          return { success: false, message: "No tracks to analyze. Try getTopArtists instead." };
+          return {
+            success: false,
+            message: "No tracks to analyze. Try getTopArtists instead.",
+          };
         }
 
         const trackIds = tracks.map((t) => t.id);
@@ -328,7 +352,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Music taste analysis failed: ${message}` };
+        return {
+          success: false,
+          message: `Music taste analysis failed: ${message}`,
+        };
       }
     },
   }),
@@ -445,7 +472,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get user profile: ${message}` };
+        return {
+          success: false,
+          message: `Could not get user profile: ${message}`,
+        };
       }
     },
   }),
@@ -480,7 +510,10 @@ export const spotifyTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Failed to start AI Queue: ${message}` };
+        return {
+          success: false,
+          message: `Failed to start AI Queue: ${message}`,
+        };
       }
     },
   }),
@@ -492,14 +525,20 @@ export const spotifyTools = {
       try {
         const store = useAIQueueStore.getState();
         if (!store.isActive) {
-          return { success: false, message: "AI Queue is not currently active" };
+          return {
+            success: false,
+            message: "AI Queue is not currently active",
+          };
         }
 
         stopAIQueue();
         return { success: true, message: "AI Queue stopped" };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Failed to stop AI Queue: ${message}` };
+        return {
+          success: false,
+          message: `Failed to stop AI Queue: ${message}`,
+        };
       }
     },
   }),

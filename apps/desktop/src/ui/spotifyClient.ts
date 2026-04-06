@@ -486,10 +486,7 @@ export async function addTrackToPlaylist(playlistId: string, trackUri: string): 
   });
 }
 
-export async function playPlaylistContext(
-  playlistId: string,
-  offset: number
-): Promise<void> {
+export async function playPlaylistContext(playlistId: string, offset: number): Promise<void> {
   await request<void>("https://api.spotify.com/v1/me/player/play", {
     method: "PUT",
     body: JSON.stringify({
@@ -525,9 +522,13 @@ export async function transferPlayback(deviceId: string, play: boolean): Promise
   });
 }
 
-export async function getQueue(): Promise<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }> {
-  const data = await request<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }>(
-    "https://api.spotify.com/v1/me/player/queue"
-  );
+export async function getQueue(): Promise<{
+  currently_playing: SimplifiedTrack | null;
+  queue: SimplifiedTrack[];
+}> {
+  const data = await request<{
+    currently_playing: SimplifiedTrack | null;
+    queue: SimplifiedTrack[];
+  }>("https://api.spotify.com/v1/me/player/queue");
   return data;
 }

@@ -5,12 +5,12 @@ import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { getActiveProvider as getActiveAIProvider } from "../lib/aiClient";
-import { useAIQueueStore } from "../lib/aiQueueStore";
+import { getActiveProvider as getActiveAIProvider } from "../lib/ai/aiClient";
 import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
+import { useAIQueueStore } from "../store/aiQueueStore";
 import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 
 import LayoutA from "./layouts/LayoutA";
@@ -355,7 +355,7 @@ export default function App() {
   };
 
   const handleYouTubeVideoEnded = async () => {
-    const { usePlaybackQueueStore } = await import("../lib/playback/playbackQueueStore");
+    const { usePlaybackQueueStore } = await import("../store/playbackQueueStore");
     const { getActiveProvider } = await import("../providers");
 
     const store = usePlaybackQueueStore.getState();

@@ -13,13 +13,17 @@ import { encode } from "@toon-format/toon";
 import { type CoreMessage, generateText } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import { AI_DJ_SYSTEM_PROMPT, createAIModel, getActiveProviderWithKey } from "../../lib/aiClient";
-import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
-import { useAIQueueStore } from "../../lib/aiQueueStore";
+import {
+  AI_DJ_SYSTEM_PROMPT,
+  createAIModel,
+  getActiveProviderWithKey,
+} from "../../lib/ai/aiClient";
+import { startAIQueue, stopAIQueue } from "../../lib/ai/aiQueueService";
 import { musicTools } from "../../lib/musicTools";
 import { readSettings } from "../../lib/settingLib";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
+import { useAIQueueStore } from "../../store/aiQueueStore";
 
 type AIDJViewProps = {
   onBack: () => void;
@@ -449,15 +453,24 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
                 <div className="flex gap-1">
                   <span
                     className="w-2 h-2 rounded-full animate-bounce"
-                    style={{ background: "var(--settings-accent)", animationDelay: "0ms" }}
+                    style={{
+                      background: "var(--settings-accent)",
+                      animationDelay: "0ms",
+                    }}
                   />
                   <span
                     className="w-2 h-2 rounded-full animate-bounce"
-                    style={{ background: "var(--settings-accent)", animationDelay: "150ms" }}
+                    style={{
+                      background: "var(--settings-accent)",
+                      animationDelay: "150ms",
+                    }}
                   />
                   <span
                     className="w-2 h-2 rounded-full animate-bounce"
-                    style={{ background: "var(--settings-accent)", animationDelay: "300ms" }}
+                    style={{
+                      background: "var(--settings-accent)",
+                      animationDelay: "300ms",
+                    }}
                   />
                 </div>
               </div>

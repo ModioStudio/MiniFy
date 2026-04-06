@@ -22,7 +22,7 @@ import {
 let playerRef: YouTubePlayerRef | null = null;
 let currentTrack: UnifiedTrack | null = null;
 let recentlyPlayedTracks: UnifiedTrack[] = [];
-let cachedPlaylistTracks: Map<string, UnifiedTrack[]> = new Map();
+const cachedPlaylistTracks: Map<string, UnifiedTrack[]> = new Map();
 const MAX_RECENT_TRACKS = 50;
 
 export function setYouTubePlayerRef(ref: YouTubePlayerRef | null): void {

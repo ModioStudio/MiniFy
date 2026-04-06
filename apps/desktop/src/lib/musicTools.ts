@@ -3,15 +3,19 @@ import { tool } from "ai";
 import { z } from "zod";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import type { UnifiedTrack } from "../providers/types";
-import { startAIQueue, stopAIQueue } from "./aiQueueService";
-import { useAIQueueStore } from "./aiQueueStore";
+import { useAIQueueStore } from "../store/aiQueueStore";
+import { startAIQueue, stopAIQueue } from "./ai/aiQueueService";
 
 function formatTrack(track: UnifiedTrack): string {
   const artists = track.artists.map((a) => a.name).join(", ");
   return `"${track.name}" by ${artists}`;
 }
 
-function formatTrackForToon(track: UnifiedTrack): { n: string; a: string; u: string } {
+function formatTrackForToon(track: UnifiedTrack): {
+  n: string;
+  a: string;
+  u: string;
+} {
   return {
     n: track.name,
     a: track.artists.map((a) => a.name).join(", "),
@@ -46,7 +50,10 @@ export const musicTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get current track: ${message}` };
+        return {
+          success: false,
+          message: `Could not get current track: ${message}`,
+        };
       }
     },
   }),
@@ -71,7 +78,10 @@ export const musicTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Could not get recent tracks: ${message}` };
+        return {
+          success: false,
+          message: `Could not get recent tracks: ${message}`,
+        };
       }
     },
   }),
@@ -154,7 +164,10 @@ export const musicTools = {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Failed to start AI Queue: ${message}` };
+        return {
+          success: false,
+          message: `Failed to start AI Queue: ${message}`,
+        };
       }
     },
   }),
@@ -166,14 +179,20 @@ export const musicTools = {
       try {
         const store = useAIQueueStore.getState();
         if (!store.isActive) {
-          return { success: false, message: "AI Queue is not currently active" };
+          return {
+            success: false,
+            message: "AI Queue is not currently active",
+          };
         }
 
         stopAIQueue();
         return { success: true, message: "AI Queue stopped" };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        return { success: false, message: `Failed to stop AI Queue: ${message}` };
+        return {
+          success: false,
+          message: `Failed to stop AI Queue: ${message}`,
+        };
       }
     },
   }),
