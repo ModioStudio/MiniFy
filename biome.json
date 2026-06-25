@@ -32,7 +32,9 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "assist": { "actions": { "source": { "organizeImports": { "level": "on" } } } },
+  "assist": {
+    "actions": { "source": { "organizeImports": { "level": "on" } } }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -55,7 +57,8 @@
   },
   "css": {
     "parser": {
-      "cssModules": true
+      "cssModules": true,
+      "tailwindDirectives": true
     },
     "linter": {
       "enabled": true
