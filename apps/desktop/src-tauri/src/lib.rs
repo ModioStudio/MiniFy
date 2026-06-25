@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 pub mod ai_keyring;
+pub mod app_runtime;
 pub mod custom_themes;
 pub mod debug;
 pub mod discord_rpc;
@@ -11,9 +12,8 @@ pub mod youtube_auth;
 
 mod clear_all {
     use super::*;
-    use tauri::AppHandle;
 
-    pub async fn execute(app: &AppHandle) -> Result<(), String> {
+    pub async fn execute(app: &app_runtime::AppHandle) -> Result<(), String> {
         let settings_cleared = settings::clear_settings(app.clone());
         let themes_cleared = custom_themes::clear_custom_themes(app);
         let spotify_result = spotify_auth::clear_credentials().await;
@@ -35,14 +35,14 @@ mod clear_all {
 }
 
 #[tauri::command]
-async fn clear_everything(app: tauri::AppHandle) -> Result<(), String> {
+async fn clear_everything(app: app_runtime::AppHandle) -> Result<(), String> {
     clear_all::execute(&app).await
 }
 
 pub fn run() {
     let discord_state = discord_rpc::DiscordState::new();
 
-    let app = tauri::Builder::default()
+    let app = tauri::Builder::<app_runtime::AppRuntime>::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .manage(discord_state)

@@ -1,4 +1,5 @@
-use tauri::{WebviewWindow, Size, LogicalSize};
+use crate::app_runtime::WebviewWindow;
+use tauri::{LogicalSize, Size};
 
 #[derive(serde::Deserialize)]
 pub enum Layout {

@@ -9,7 +9,14 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "biome check .",
-    "clear-auth": "node scripts/clear-auth.js"
+    "clear-auth": "node scripts/clear-auth.js",
+    "cef:setup": "cargo install --force tauri-cli --git https://github.com/tauri-apps/tauri --branch feat/cef",
+    "cef:cleanup": "node scripts/cef-patch.mjs cleanup",
+    "dev:cef": "node scripts/cef-patch.mjs cargo tauri dev",
+    "build:cef": "node scripts/cef-patch.mjs cargo tauri build --no-bundle",
+    "build:cef:release": "node scripts/cef-patch.mjs cargo tauri build",
+    "build:cef:nsis": "node scripts/cef-patch.mjs cargo tauri build --bundles nsis,updater",
+    "build:cef:deb": "node scripts/cef-patch.mjs cargo tauri build --bundles deb,updater"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",

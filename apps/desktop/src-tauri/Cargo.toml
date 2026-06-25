@@ -14,11 +14,23 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "minify"
 path = "src/main.rs"
 
+[features]
+default = ["tauri-wry"]
+tauri-wry = ["tauri/wry"]
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cef"))'] }
+
 [build-dependencies]
 tauri-build = { version = "2.0", features = [] }
 
 [dependencies]
-tauri = { version = "2.9.3", features = [] }
+tauri = { version = "2.9.3", default-features = false, features = [
+  "compression",
+  "common-controls-v6",
+  "dynamic-acl",
+  "macos-private-api",
+  "x11",
+] }
 tauri-plugin-opener = "2.5"
 tauri-plugin-fs = "2.4"
 serde = { version = "1", features = ["derive"] }

@@ -75,3 +75,4 @@ apps/*/.next
 apps/*/.astro
 apps/*/src-tauri/target
 apps/*/src-tauri/WixTools
+apps/*/.cef-tools

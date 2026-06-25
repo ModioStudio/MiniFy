@@ -1,7 +1,8 @@
 ﻿use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use crate::app_runtime::AppHandle;
+use tauri::Manager;
 
 fn get_custom_themes_dir(app: &AppHandle) -> PathBuf {
     let mut path = app.path().app_data_dir().unwrap_or_else(|_| PathBuf::from("."));

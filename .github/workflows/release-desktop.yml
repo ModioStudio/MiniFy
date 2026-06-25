@@ -197,9 +197,158 @@ jobs:
             apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg.sig
           if-no-files-found: warn
 
+  build-cef:
+    name: Build CEF (${{ matrix.platform.name }})
+    needs: determine-version
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Windows
+            os: windows-latest
+            command: build:cef:nsis
+          - name: Linux
+            os: ubuntu-22.04
+            command: build:cef:deb
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.0'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm_store
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm_store.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Linux dependencies
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libx11-xcb-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libatk-bridge2.0-dev libnss3-dev
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './apps/desktop/src-tauri -> target'
+          shared-key: cef
+
+      - name: Cache CEF runtime
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/tauri-cef
+          key: ${{ runner.os }}-tauri-cef-runtime-v1
+          restore-keys: |
+            ${{ runner.os }}-tauri-cef-runtime-
+
+      - name: Cache CEF Tauri CLI
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/cargo-tauri
+            ~/.cargo/bin/cargo-tauri.exe
+          key: ${{ runner.os }}-cargo-tauri-feat-cef-v1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CEF Tauri CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v cargo-tauri >/dev/null 2>&1; then
+            cargo-tauri --version
+          else
+            pnpm --filter desktop cef:setup
+          fi
+
+      - name: Update version in tauri.conf.json
+        shell: bash
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version_without_v }}"
+          node -e "
+            const fs = require('fs');
+            const configPath = 'apps/desktop/src-tauri/tauri.conf.json';
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            config.version = '${VERSION}';
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+          "
+          echo "Updated tauri.conf.json version to ${VERSION}"
+
+      - name: Build CEF Tauri app
+        run: pnpm --filter desktop ${{ matrix.platform.command }}
+
+      - name: Collect CEF artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cef-artifacts
+
+          find apps/desktop/src-tauri/target/release/bundle -type f \( \
+            -name "*.exe" -o -name "*.exe.sig" \
+            -o -name "*.deb" -o -name "*.deb.sig" \
+          \) -print0 | while IFS= read -r -d '' file; do
+            base="$(basename "$file")"
+            case "$base" in
+              *.exe.sig)
+                stem="${base%.exe.sig}"
+                stem="${stem%-setup}"
+                cp "$file" "cef-artifacts/${stem}-cef-setup.exe.sig"
+                ;;
+              *.exe)
+                stem="${base%.exe}"
+                stem="${stem%-setup}"
+                cp "$file" "cef-artifacts/${stem}-cef-setup.exe"
+                ;;
+              *.deb.sig)
+                stem="${base%.deb.sig}"
+                cp "$file" "cef-artifacts/${stem}-cef.deb.sig"
+                ;;
+              *.deb)
+                stem="${base%.deb}"
+                cp "$file" "cef-artifacts/${stem}-cef.deb"
+                ;;
+            esac
+          done
+
+          if [ -z "$(find cef-artifacts -type f -print -quit)" ]; then
+            echo "No CEF artifacts were collected"
+            exit 1
+          fi
+
+          ls -la cef-artifacts/
+
+      - name: Upload CEF artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: artifacts-cef-${{ matrix.platform.os }}
+          path: cef-artifacts/*
+          if-no-files-found: error
+
   release:
     name: Create Release
-    needs: [determine-version, build]
+    needs: [determine-version, build, build-cef]
     runs-on: ubuntu-latest
 
     steps:
