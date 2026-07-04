@@ -154,7 +154,7 @@ with contributing code, documentation, themes, or ideas.
 
 | Tool | Version | Installation |
 |------|---------|--------------|
-| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| Node.js | 20.19.0+ | [nodejs.org](https://nodejs.org/) |
 | pnpm | 9+ | `npm install -g pnpm` |
 | Rust | Latest | [rustup.rs](https://rustup.rs/) |
 
@@ -177,7 +177,9 @@ pnpm docs:dev       # Run docs in development
 pnpm docs:build     # Build documentation
 
 # Code quality
-pnpm check          # Run Biome linter
+pnpm check          # Run Biome checks and apply safe fixes
+pnpm lint           # Run workspace lint
+pnpm test           # Run quality gates
 pnpm format         # Format code with Biome
 
 # All packages
@@ -189,11 +191,14 @@ pnpm build          # Build all packages
 
 ### Formatting and Linting
 
-We use [Biome](https://biomejs.dev/) for code formatting and linting:
+We use [Biome](https://biomejs.dev/) for formatting and baseline linting, plus
+Oxlint as a fast quality gate:
 
 ```bash
 # Check for issues
 pnpm check
+pnpm lint
+pnpm test
 
 # Fix issues automatically
 pnpm format

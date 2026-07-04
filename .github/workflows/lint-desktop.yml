@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '18'
+          node-version: '20.19.0'
           
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -44,3 +44,6 @@ jobs:
         
       - name: Run Turbo lint
         run: pnpm lint
+
+      - name: Run Oxlint quality gate
+        run: pnpm test

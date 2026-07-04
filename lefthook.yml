@@ -1,7 +1,0 @@
-pre-commit:
-  parallel: true
-  commands:
-    biome-check:
-      run: pnpm check
-      stage_fixed: true
-

@@ -67,7 +67,7 @@ updates:
           - "@biomejs/*"
           - "turbo"
           - "@turbo/*"
-          - "lefthook"
+          - "oxlint"
           - "@changesets/*"
       npm-runtime-misc:
         patterns:
@@ -98,7 +98,7 @@ updates:
           - "@biomejs/*"
           - "turbo"
           - "@turbo/*"
-          - "lefthook"
+          - "oxlint"
           - "@changesets/*"
 
   # ============================================================================

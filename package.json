@@ -7,6 +7,9 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "lint:oxlint": "oxlint . --ignore-path .gitignore --ignore-pattern apps/desktop/src-tauri/gen/** --ignore-pattern apps/www/components/ui/** --ignore-pattern apps/www/styles/**",
+    "quality": "pnpm lint:oxlint",
+    "test": "pnpm quality",
     "format": "biome format --write .",
     "check": "biome check --write .",
     "desktop:dev": "pnpm --filter desktop tauri dev",
@@ -23,11 +26,11 @@
     "@biomejs/biome": "^2.3.11",
     "@changesets/cli": "^2.28.1",
     "@turbo/gen": "^2.7.2",
-    "lefthook": "^2.0.13",
+    "oxlint": "^1.72.0",
     "turbo": "^2.7.2"
   },
   "packageManager": "pnpm@10.26.2",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   }
 }

@@ -9,8 +9,6 @@ WORKDIR /app
 
 FROM base AS deps
 
-ENV LEFTHOOK=0
-
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/www/package.json ./apps/www/package.json
 
@@ -23,7 +21,6 @@ WORKDIR /app
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV LEFTHOOK=0
 
 RUN pnpm install --frozen-lockfile --filter www...
 RUN pnpm --filter www build

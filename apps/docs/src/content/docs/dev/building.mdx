@@ -42,7 +42,7 @@ Ensure you have the following installed:
 
 | Tool | Version | Installation |
 |------|---------|--------------|
-| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| Node.js | 20.19.0+ | [nodejs.org](https://nodejs.org/) |
 | pnpm | 9+ | `npm install -g pnpm` |
 | Rust | Latest stable | [rustup.rs](https://rustup.rs/) |
 | Git | Any recent | [git-scm.com](https://git-scm.com/) |
@@ -50,7 +50,7 @@ Ensure you have the following installed:
 **Verify installations:**
 
 ```bash
-node --version   # Should be 18.x or higher
+node --version   # Should be 20.19.0 or higher
 pnpm --version   # Should be 9.x or higher
 rustc --version  # Should be 1.70.x or higher
 cargo --version  # Should match rustc version
@@ -277,7 +277,9 @@ Never commit Client IDs to version control. Use environment variables or CI/CD s
 | `pnpm docs:build` | Build documentation for production |
 | `pnpm build` | Build all packages |
 | `pnpm dev` | Run all packages in development mode |
-| `pnpm check` | Run Biome linter and formatter check |
+| `pnpm check` | Run Biome linter and formatter check with safe fixes |
+| `pnpm lint` | Run workspace lint |
+| `pnpm test` | Run quality gates |
 | `pnpm format` | Format all code with Biome |
 
 ## Environment Variables
