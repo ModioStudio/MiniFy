@@ -57,6 +57,7 @@ pub fn run() {
             spotify_auth::has_spotify_client_id,
             spotify_auth::save_spotify_client_id,
             spotify_auth::needs_spotify_setup,
+            spotify_auth::get_spotify_redirect_uri,
             spotify_auth::get_tokens,
             spotify_auth::has_valid_tokens,
             spotify_auth::start_oauth_flow,

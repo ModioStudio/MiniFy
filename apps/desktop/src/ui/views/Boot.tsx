@@ -28,6 +28,33 @@ export default function Boot({
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [redirectUri, setRedirectUri] = useState("http://127.0.0.1:3000/callback");
+  const [copied, setCopied] = useState(false);
+
+  // Fetch the exact redirect URI from the backend so the setup instructions
+  // always match what MiniFy actually sends to Spotify.
+  useEffect(() => {
+    invoke<string>("get_spotify_redirect_uri")
+      .then(setRedirectUri)
+      .catch(() => {});
+  }, []);
+
+  const copyRedirectUri = async () => {
+    try {
+      await navigator.clipboard.writeText(redirectUri);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard may be unavailable; the value is still visible to copy manually.
+    }
+  };
+
+  const cancelConnecting = async () => {
+    const cmd = selectedProvider === "youtube" ? "cancel_youtube_oauth_flow" : "cancel_oauth_flow";
+    await invoke(cmd).catch(() => {});
+    setError(null);
+    setStep("provider");
+  };
 
   const checkExistingAuth = useCallback(async () => {
     if (skipAuthCheck) return;
@@ -318,20 +345,72 @@ export default function Boot({
               <SpotifyLogo size={36} weight="fill" color="#000" />
             </div>
             <h1 className="font-circular text-xl font-bold mb-2">Spotify Setup</h1>
-            <p className="text-sm text-white/60">
-              Enter your Spotify Developer Client ID to continue
-            </p>
+            <p className="text-sm text-white/60">Two quick steps and you're in</p>
           </div>
 
-          <div className="w-full space-y-3">
-            <input
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSpotifyClientIdSubmit()}
-              placeholder="Enter your Spotify Client ID"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#1DB954]/50 transition-colors"
-            />
+          <div className="w-full space-y-4">
+            <ol className="space-y-3 text-sm text-white/70">
+              <li className="flex gap-3">
+                <span className="flex-none w-5 h-5 rounded-full bg-[#1DB954]/20 text-[#1DB954] text-xs font-bold flex items-center justify-center mt-0.5">
+                  1
+                </span>
+                <span>
+                  Open the{" "}
+                  <a
+                    href="https://developer.spotify.com/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#1DB954] hover:underline"
+                  >
+                    Spotify Developer Dashboard
+                  </a>{" "}
+                  and create an app (any name).
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-none w-5 h-5 rounded-full bg-[#1DB954]/20 text-[#1DB954] text-xs font-bold flex items-center justify-center mt-0.5">
+                  2
+                </span>
+                <div className="flex-1">
+                  <span>
+                    In the app settings, add this exact{" "}
+                    <span className="text-white">Redirect URI</span> and save:
+                  </span>
+                  <div className="mt-2 flex items-stretch gap-2">
+                    <code className="flex-1 min-w-0 truncate bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/90 font-mono">
+                      {redirectUri}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={copyRedirectUri}
+                      className="flex-none px-3 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/10 transition-colors"
+                    >
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-white/40">
+                    It must match character for character, or Spotify shows a "redirect_uri not
+                    matching" error.
+                  </p>
+                </div>
+              </li>
+            </ol>
+
+            <div className="pt-1">
+              <label htmlFor="spotify-client-id" className="block text-xs text-white/50 mb-1.5">
+                Then paste your <span className="text-white/80">Client ID</span> (from the app's
+                settings page)
+              </label>
+              <input
+                id="spotify-client-id"
+                type="text"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSpotifyClientIdSubmit()}
+                placeholder="e.g. 4f8b2c1a9d3e4f5a6b7c8d9e0f1a2b3c"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#1DB954]/50 transition-colors font-mono text-sm"
+              />
+            </div>
 
             <button
               type="button"
@@ -339,7 +418,7 @@ export default function Boot({
               className="w-full py-3 rounded-xl font-medium transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
               style={{ backgroundColor: "#1DB954", color: "#000" }}
             >
-              Continue
+              Connect to Spotify
             </button>
 
             <button
@@ -353,18 +432,6 @@ export default function Boot({
             >
               ← Back
             </button>
-          </div>
-
-          <div className="text-xs text-white/40 text-center">
-            <p>Get your Client ID from the</p>
-            <a
-              href="https://developer.spotify.com/dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#1DB954] hover:underline"
-            >
-              Spotify Developer Dashboard
-            </a>
           </div>
 
           {error && (
@@ -480,6 +547,17 @@ export default function Boot({
               style={{ animationDelay: "0.3s" }}
             />
           </div>
+          <button
+            type="button"
+            onClick={cancelConnecting}
+            className="mt-2 py-2 px-4 text-white/50 hover:text-white/80 text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <p className="text-xs text-white/30 text-center max-w-xs">
+            Seeing a "redirect_uri not matching" error in your browser? Cancel and make sure the
+            Redirect URI is added to your Spotify app.
+          </p>
         </div>
       )}
 

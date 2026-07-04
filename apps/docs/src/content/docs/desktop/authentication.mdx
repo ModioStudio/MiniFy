@@ -247,13 +247,24 @@ to configure anything.
 
 ### 2. User-provided
 
-For development or self-built versions:
+For development or self-built versions, MiniFy walks you through this on the
+setup screen:
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new application
-3. Add `http://127.0.0.1:3000/callback` to Redirect URIs
-4. Copy the Client ID
-5. Enter it in MiniFy's setup screen
+2. Create a new application (any name)
+3. Add the **exact** Redirect URI shown on the setup screen —
+   `http://127.0.0.1:3000/callback` — and save. Use the **Copy** button so it
+   matches character for character.
+4. Copy the Client ID from the app's settings
+5. Paste it into MiniFy's setup screen and click **Connect to Spotify**
+
+<Aside type="caution">
+The most common login failure is a Redirect URI that doesn't match. Spotify
+requires the loopback address `http://127.0.0.1:3000/callback` exactly —
+`http://localhost:3000/callback` will **not** work. If the browser shows
+"redirect_uri: Not matching configuration", the URI in your Spotify app doesn't
+match; copy it from the setup screen and re-save it in the dashboard.
+</Aside>
 
 <Aside type="caution">
 Never share your Client ID publicly if you've also configured a client secret

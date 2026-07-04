@@ -14,6 +14,16 @@ use keyring::Entry;
 use tokio::time::sleep;
 
 const KEYRING_SERVICE: &str = "minify";
+/// Port for the local OAuth callback server. Must match the port registered in
+/// the Spotify app's Redirect URI.
+const CALLBACK_PORT: u16 = 3000;
+/// The one and only redirect URI used for the OAuth flow. This exact string
+/// must be added to the Spotify app's "Redirect URIs" in the developer
+/// dashboard, otherwise Spotify rejects the login with
+/// "redirect_uri: Not matching configuration". Keep this as the single source
+/// of truth — the frontend fetches it via `get_spotify_redirect_uri` so the two
+/// can never drift apart.
+const REDIRECT_URI: &str = "http://127.0.0.1:3000/callback";
 const ACCESS_TOKEN_KEY: &str = "access_token";
 const REFRESH_TOKEN_KEY: &str = "refresh_token";
 const TOKEN_EXPIRY_KEY: &str = "token_expiry";
@@ -131,6 +141,14 @@ pub async fn save_spotify_client_id(client_id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn needs_spotify_setup() -> bool {
     !has_spotify_client_id().await
+}
+
+/// The exact redirect URI the user must register in their Spotify app.
+/// Exposed to the frontend so the setup screen can show a copy-paste value that
+/// always matches what the backend sends to Spotify.
+#[tauri::command]
+pub fn get_spotify_redirect_uri() -> String {
+    REDIRECT_URI.to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,11 +342,10 @@ pub async fn clear_credentials() -> Result<(), String> {
 }
 
 async fn exchange_code_for_tokens(state: &AuthState, code: &str) -> Result<SpotifyTokens, String> {
-    let redirect_uri = "http://127.0.0.1:3000/callback";
     let form = [
         ("grant_type", "authorization_code"),
         ("code", code),
-        ("redirect_uri", redirect_uri),
+        ("redirect_uri", REDIRECT_URI),
         ("client_id", &state.client_id),
         ("code_verifier", &state.code_verifier),
     ];
@@ -448,12 +465,16 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
             }),
         );
 
-        let addr: SocketAddr = "127.0.0.1:3000".parse().unwrap();
+        let addr = SocketAddr::from(([127, 0, 0, 1], CALLBACK_PORT));
         let listener = match tokio::net::TcpListener::bind(addr).await {
             Ok(l) => l,
             Err(e) => {
-                let _ = app_handle.emit("oauth-failed", json!({ "error": format!("bind_failed: {}", e) }));
-                let _ = ready_tx.send(Err(format!("bind_failed: {}", e)));
+                let msg = format!(
+                    "Port {} is already in use, so MiniFy can't receive the Spotify login. Close the app that is using it (or restart your computer) and try again. ({})",
+                    CALLBACK_PORT, e
+                );
+                let _ = app_handle.emit("oauth-failed", json!({ "error": msg }));
+                let _ = ready_tx.send(Err(msg));
                 return;
             }
         };
@@ -479,7 +500,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
 
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
 
-    let redirect_uri = urlencoding::encode("http://127.0.0.1:3000/callback");
+    let redirect_uri = urlencoding::encode(REDIRECT_URI);
     let scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-modify-public playlist-modify-private user-top-read user-read-recently-played user-library-read";
     let auth_url = format!(
         "https://accounts.spotify.com/authorize?client_id={}&response_type=code&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
