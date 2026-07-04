@@ -11,6 +11,7 @@ import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
+import MusicVisualizer from "./components/MusicVisualizer";
 import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 
 import LayoutA from "./layouts/LayoutA";
@@ -42,6 +43,9 @@ export default function App() {
   const [theme, setTheme] = useState<string>("dark");
   const [view, setView] = useState<AppView>("app");
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
+  const [showMusicVisualizer, setShowMusicVisualizer] = useState<boolean>(false);
+  const [musicVisualizerColor, setMusicVisualizerColor] = useState<string>("theme");
+  const [windowOpacity, setWindowOpacity] = useState<number>(100);
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState<AddToPlaylistTrack>(null);
   const [_isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
   const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
@@ -56,6 +60,9 @@ export default function App() {
       setLayout(settings.layout ?? "LayoutA");
       setTheme(settings.theme ?? "dark");
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
+      setShowMusicVisualizer(settings.show_music_visualizer ?? false);
+      setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
+      setWindowOpacity(settings.window_opacity ?? 100);
 
       const providerType = await getActiveProviderType();
       setIsYouTubeActive(providerType === "youtube");
@@ -100,6 +107,11 @@ export default function App() {
     };
     applyTheme();
   }, [theme]);
+
+  // ---- Apply window opacity
+  useEffect(() => {
+    document.body.style.opacity = String(windowOpacity / 100);
+  }, [windowOpacity]);
 
   // ---- Keyboard shortcuts
   useEffect(() => {
@@ -301,6 +313,9 @@ export default function App() {
             setView("app");
           }}
           onUpdateAIQueueBorder={setShowAIQueueBorder}
+          onUpdateMusicVisualizer={setShowMusicVisualizer}
+          onUpdateMusicVisualizerColor={setMusicVisualizerColor}
+          onUpdateWindowOpacity={setWindowOpacity}
           onMusicProviderChange={(provider) => {
             setIsYouTubeActive(provider === "youtube");
           }}
@@ -371,6 +386,9 @@ export default function App() {
     <div className="h-full w-full no-drag relative theme-scope transition-all duration-300">
       <div className="drag-area" onMouseDown={handleDragStart} />
       {renderView()}
+      {showMusicVisualizer && view === "app" && (
+        <MusicVisualizer colorMode={musicVisualizerColor} />
+      )}
       {showBorder && (
         <div
           className="absolute inset-0 pointer-events-none z-50"

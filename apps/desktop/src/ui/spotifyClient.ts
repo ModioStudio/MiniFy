@@ -488,13 +488,14 @@ export async function addTrackToPlaylist(playlistId: string, trackUri: string): 
 
 export async function playPlaylistContext(
   playlistId: string,
-  offset: number
+  offset: number,
+  trackUri?: string
 ): Promise<void> {
   await request<void>("https://api.spotify.com/v1/me/player/play", {
     method: "PUT",
     body: JSON.stringify({
       context_uri: `spotify:playlist:${playlistId}`,
-      offset: { position: offset },
+      offset: trackUri ? { uri: trackUri } : { position: offset },
     }),
   });
 }

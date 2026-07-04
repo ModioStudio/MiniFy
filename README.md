@@ -36,14 +36,6 @@ The repository also contains the public website and documentation site.
 - Provider settings for Spotify, YouTube Music, and AI services
 - Native desktop shell powered by Tauri and Rust
 
-## Screenshots
-
-|  |  |
-| :---: | :---: |
-| ![Compact player layout](./.assets/layouta.png)<br>**Compact Player**: horizontal overlay with cover art, track metadata, progress, and time | ![Card player layout](./.assets/Layoutb.png)<br>**Card Player**: larger controller layout with prominent transport controls |
-| ![AI DJ chat](./.assets/aidj-preview-chat.png)<br>**AI DJ**: chat-based music assistant that can inspect playback and suggest tracks | ![Connections settings](./.assets/settings-connections.png)<br>**Connections**: manage music providers and AI provider credentials in one place |
-| ![Theme selection](./.assets/settings-appearance.png)<br>**Themes**: switch between built-in visual styles from the settings screen | ![Theme Studio](./.assets/settings-theme-studio.png)<br>**Theme Studio**: edit, validate, preview, and save custom JSON themes |
-
 ## Architecture
 
 - `apps/desktop`: Tauri 2 desktop app with React, Vite, Tailwind CSS, and Rust.
@@ -115,6 +107,15 @@ must not embed a Spotify Client Secret.
 - Issues: [GitHub Issues](https://github.com/ModioStudio/MiniFy/issues)
 - Roadmap: [Project Board](https://github.com/orgs/ModioStudio/projects/2)
 - Discord: [discord.gg/haNyuz2zQ5](https://discord.gg/haNyuz2zQ5)
+
+## Screenshots
+
+|  |  |
+| :---: | :---: |
+| ![Compact player layout](./.assets/layouta.png)<br>**Compact Player**: horizontal overlay with cover art, track metadata, progress, and time | ![Card player layout](./.assets/Layoutb.png)<br>**Card Player**: larger controller layout with prominent transport controls |
+| ![AI DJ chat](./.assets/aidj-preview-chat.png)<br>**AI DJ**: chat-based music assistant that can inspect playback and suggest tracks | ![Connections settings](./.assets/settings-connections.png)<br>**Connections**: manage music providers and AI provider credentials in one place |
+| ![Theme selection](./.assets/settings-appearance.png)<br>**Themes**: switch between built-in visual styles from the settings screen | ![Theme Studio](./.assets/settings-theme-studio.png)<br>**Theme Studio**: edit, validate, preview, and save custom JSON themes |
+
 
 ## License
 

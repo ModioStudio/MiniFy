@@ -157,7 +157,7 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
       const type = await getActiveProviderType();
 
       if (selectedPlaylist && provider.playPlaylistFromIndex) {
-        await provider.playPlaylistFromIndex(selectedPlaylist.id, trackIndex);
+        await provider.playPlaylistFromIndex(selectedPlaylist.id, trackIndex, track.uri);
       } else if (type === "youtube" && selectedPlaylist) {
         const { startPlaylistPlayback } = await import("../../lib/playback/playbackQueueService");
         await startPlaylistPlayback(selectedPlaylist.id, tracks, trackIndex);

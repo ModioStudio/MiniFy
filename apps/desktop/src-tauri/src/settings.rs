@@ -63,6 +63,12 @@ pub struct Settings {
     pub show_ai_queue_border: bool,
     #[serde(default = "default_true")]
     pub discord_rpc_enabled: bool,
+    #[serde(default = "default_window_opacity")]
+    pub window_opacity: u8,
+    #[serde(default)]
+    pub show_music_visualizer: bool,
+    #[serde(default = "default_visualizer_color")]
+    pub music_visualizer_color: String,
     #[serde(default)]
     pub last_played_track: Option<LastPlayedTrack>,
 }
@@ -73,6 +79,14 @@ fn default_true() -> bool {
 
 fn default_music_provider() -> Option<String> {
     Some("spotify".to_string())
+}
+
+fn default_window_opacity() -> u8 {
+    100
+}
+
+fn default_visualizer_color() -> String {
+    "theme".to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -94,6 +108,9 @@ impl Default for Settings {
             active_music_provider: Some("spotify".into()),
             show_ai_queue_border: true,
             discord_rpc_enabled: true,
+            window_opacity: 100,
+            show_music_visualizer: false,
+            music_visualizer_color: "theme".into(),
             last_played_track: None,
         }
     }

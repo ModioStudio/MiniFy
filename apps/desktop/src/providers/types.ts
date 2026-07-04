@@ -101,7 +101,11 @@ export interface MusicProvider {
     offset: number
   ): Promise<PlaylistTracksResult>;
   addToPlaylist(playlistId: string, trackUri: string): Promise<void>;
-  playPlaylistFromIndex?(playlistId: string, trackIndex: number): Promise<void>;
+  playPlaylistFromIndex?(
+    playlistId: string,
+    trackIndex: number,
+    trackUri?: string
+  ): Promise<void>;
 }
 
 export interface ProviderAuthState {

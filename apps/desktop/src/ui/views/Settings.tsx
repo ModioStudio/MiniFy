@@ -117,6 +117,9 @@ type SettingsProps = {
   onUpdateTheme?: (theme: string) => void;
   onResetAuth?: (provider?: "spotify" | "youtube") => void;
   onUpdateAIQueueBorder?: (show: boolean) => void;
+  onUpdateMusicVisualizer?: (show: boolean) => void;
+  onUpdateMusicVisualizerColor?: (color: string) => void;
+  onUpdateWindowOpacity?: (opacity: number) => void;
   onMusicProviderChange?: (provider: MusicProviderType) => void;
 };
 
@@ -128,6 +131,25 @@ const categories = [
   { key: "aidj", label: "AI DJ", icon: Brain },
   { key: "privacy", label: "Privacy", icon: ShieldCheck },
 ] as const;
+
+// Preset colours for the music visualizer. "theme" follows the accent colour,
+// "random" smoothly cycles the hue; the rest are fixed swatches.
+const VISUALIZER_COLORS: { id: string; label: string; swatch: string }[] = [
+  { id: "theme", label: "Theme", swatch: "var(--settings-accent)" },
+  {
+    id: "random",
+    label: "Random",
+    swatch: "conic-gradient(from 0deg, #ff004c, #ffb300, #22c55e, #22d3ee, #3b82f6, #a855f7, #ff004c)",
+  },
+  { id: "#22D3EE", label: "Cyan", swatch: "#22D3EE" },
+  { id: "#3B82F6", label: "Blue", swatch: "#3B82F6" },
+  { id: "#A855F7", label: "Violet", swatch: "#A855F7" },
+  { id: "#EC4899", label: "Pink", swatch: "#EC4899" },
+  { id: "#EF4444", label: "Red", swatch: "#EF4444" },
+  { id: "#F97316", label: "Orange", swatch: "#F97316" },
+  { id: "#F59E0B", label: "Gold", swatch: "#F59E0B" },
+  { id: "#22C55E", label: "Green", swatch: "#22C55E" },
+];
 
 const themeColors: Record<string, string> = {
   catppuccin: "#F5C2E7",
@@ -187,6 +209,9 @@ export default function Settings({
   onUpdateTheme,
   onResetAuth,
   onUpdateAIQueueBorder,
+  onUpdateMusicVisualizer,
+  onUpdateMusicVisualizerColor,
+  onUpdateWindowOpacity,
   onMusicProviderChange,
 }: SettingsProps) {
   const { setLayout } = useWindowLayout();
@@ -226,7 +251,10 @@ export default function Settings({
     groq: null,
   });
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
+  const [showMusicVisualizer, setShowMusicVisualizer] = useState<boolean>(false);
+  const [musicVisualizerColor, setMusicVisualizerColor] = useState<string>("theme");
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
+  const [windowOpacity, setWindowOpacity] = useState<number>(100);
   const [showClearDialog, setShowClearDialog] = useState<boolean>(false);
   const [clearingData, setClearingData] = useState<boolean>(false);
 
@@ -298,7 +326,10 @@ export default function Settings({
         setActiveMusicProvider(settings.active_music_provider);
       }
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
+      setShowMusicVisualizer(settings.show_music_visualizer ?? false);
+      setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
       setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
+      setWindowOpacity(settings.window_opacity ?? 100);
       await refreshCustomThemes();
       await checkSpotifyConnection();
       await checkYouTubeConnection();
@@ -452,6 +483,19 @@ export default function Settings({
     onUpdateAIQueueBorder?.(newValue);
   };
 
+  const handleToggleMusicVisualizer = async () => {
+    const newValue = !showMusicVisualizer;
+    setShowMusicVisualizer(newValue);
+    await writeSettings({ show_music_visualizer: newValue });
+    onUpdateMusicVisualizer?.(newValue);
+  };
+
+  const handleSelectVisualizerColor = async (color: string) => {
+    setMusicVisualizerColor(color);
+    await writeSettings({ music_visualizer_color: color });
+    onUpdateMusicVisualizerColor?.(color);
+  };
+
   const handleToggleDiscordRpc = async () => {
     const newValue = !discordRpcEnabled;
     setDiscordRpcEnabled(newValue);
@@ -465,6 +509,13 @@ export default function Settings({
     } catch (err) {
       console.warn("Discord RPC toggle failed:", err);
     }
+  };
+
+  const handleWindowOpacityChange = async (value: number) => {
+    const nextOpacity = Math.min(100, Math.max(35, value));
+    setWindowOpacity(nextOpacity);
+    onUpdateWindowOpacity?.(nextOpacity);
+    await writeSettings({ window_opacity: nextOpacity });
   };
 
   const applyLayout = async (layout: string) => {
@@ -951,6 +1002,118 @@ export default function Settings({
 
           {active === "appearance" && (
             <div className="flex flex-col gap-4">
+              <div
+                className="p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Eye size={18} weight="fill" />
+                    <div>
+                      <div className="font-medium">Window Opacity</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-1">
+                        Adjust how transparent the desktop player window appears.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[--settings-text-muted] tabular-nums">
+                    {windowOpacity}%
+                  </span>
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="text-[10px] text-[--settings-text-muted] w-9">35%</span>
+                  <input
+                    type="range"
+                    min={35}
+                    max={100}
+                    step={1}
+                    value={windowOpacity}
+                    onChange={(event) => handleWindowOpacityChange(Number(event.target.value))}
+                    className="window-opacity-slider min-w-0 flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(90deg, var(--settings-accent) 0%, var(--settings-accent) ${
+                        ((windowOpacity - 35) / 65) * 100
+                      }%, rgba(255, 255, 255, 0.16) ${
+                        ((windowOpacity - 35) / 65) * 100
+                      }%, rgba(255, 255, 255, 0.16) 100%)`,
+                    }}
+                    aria-label="Window opacity"
+                  />
+                  <span className="text-[10px] text-[--settings-text-muted] w-9 text-right">
+                    100%
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: showMusicVisualizer
+                    ? "var(--settings-accent)"
+                    : "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <MusicNote size={18} weight="fill" />
+                    <div>
+                      <div className="font-medium">Music Visualizer</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-1">
+                        Show a wave-like glow around the player that reacts to the music and volume.
+                        Only visible in the player while something is playing.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleMusicVisualizer}
+                    aria-label="Toggle music visualizer"
+                    className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                      showMusicVisualizer ? "bg-[--settings-accent]" : "bg-white/20"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ${
+                        showMusicVisualizer ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {showMusicVisualizer && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="text-xs text-[--settings-text-muted] mb-2">Color</div>
+                    <div className="flex flex-wrap gap-2">
+                      {VISUALIZER_COLORS.map(({ id, label, swatch }) => {
+                        const selected = musicVisualizerColor === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => handleSelectVisualizerColor(id)}
+                            title={label}
+                            aria-label={label}
+                            className="w-7 h-7 rounded-full border-2 transition-transform duration-150 cursor-pointer hover:scale-110 active:scale-95"
+                            style={{
+                              background: swatch,
+                              borderColor: selected
+                                ? "var(--settings-text)"
+                                : "rgba(255, 255, 255, 0.2)",
+                              boxShadow: selected ? "0 0 0 2px var(--settings-accent)" : "none",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="font-medium">Built-in Themes</div>
                 <span className="text-xs text-[--settings-text-muted]">

@@ -180,8 +180,12 @@ class SpotifyProviderImpl implements MusicProvider {
     await addTrackToPlaylist(playlistId, trackUri);
   }
 
-  async playPlaylistFromIndex(playlistId: string, trackIndex: number): Promise<void> {
-    await spotifyPlayPlaylistContext(playlistId, trackIndex);
+  async playPlaylistFromIndex(
+    playlistId: string,
+    trackIndex: number,
+    trackUri?: string
+  ): Promise<void> {
+    await spotifyPlayPlaylistContext(playlistId, trackIndex, trackUri);
   }
 }
 

@@ -49,7 +49,7 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
           }}
           disabled={!track || !onAddToPlaylist}
           aria-label="Add to playlist"
-          className="w-8 h-8 flex items-center justify-center active:scale-[0.95] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center cursor-pointer active:scale-[0.95] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
           onMouseEnter={() => setPlusHovered(true)}
           onMouseLeave={() => setPlusHovered(false)}
         >
