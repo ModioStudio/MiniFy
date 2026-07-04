@@ -13,9 +13,13 @@ export default defineConfig({
         src: "./src/assets/logo.png",
         replacesTitle: false,
       },
-      social: {
-        github: "https://github.com/ModioStudio/MiniFy",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/ModioStudio/MiniFy",
+        },
+      ],
       customCss: ["./src/styles/custom.css"],
       head: [
         {
