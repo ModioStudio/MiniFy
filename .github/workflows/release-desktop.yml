@@ -197,9 +197,52 @@ jobs:
             apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg.sig
           if-no-files-found: warn
 
+  flatpak:
+    name: Build Flatpak
+    needs: [determine-version, build]
+    runs-on: ubuntu-22.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: artifacts-ubuntu-22.04
+          path: linux-artifacts
+
+      - name: Stage .deb for Flatpak build
+        run: |
+          set -euo pipefail
+          deb=$(find linux-artifacts -name '*.deb' | head -1)
+          if [ -z "$deb" ]; then
+            echo "No .deb artifact found; cannot build Flatpak" >&2
+            exit 1
+          fi
+          echo "Using $deb"
+          cp "$deb" apps/desktop/flatpak/minify.deb
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: MiniFy_${{ needs.determine-version.outputs.version_without_v }}_x86_64.flatpak
+          manifest-path: apps/desktop/flatpak/com.modiostudio.minify.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: artifacts-flatpak
+          path: MiniFy_*.flatpak
+          if-no-files-found: warn
+
   release:
     name: Create Release
-    needs: [determine-version, build]
+    needs: [determine-version, build, flatpak]
     runs-on: ubuntu-latest
 
     steps:
@@ -306,6 +349,7 @@ jobs:
             -o -name "*.rpm" -o -name "*.rpm.sig" \
             -o -name "*.AppImage" -o -name "*.AppImage.sig" \
             -o -name "*.dmg" -o -name "*.dmg.sig" \
+            -o -name "*.flatpak" \
           \) -exec cp {} release_files/ \;
           
           # List collected files

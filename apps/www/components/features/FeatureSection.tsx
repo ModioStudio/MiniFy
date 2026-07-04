@@ -37,11 +37,13 @@ export function FeaturesSection() {
 
         <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1DB954]/50 md:col-span-2 lg:col-span-2">
-            <div className="mb-6 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
-              <Lock className="h-6 w-6 text-[#1DB954]" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex w-fit shrink-0 rounded-lg bg-[#1DB954]/10 p-2.5">
+                <Lock className="h-5 w-5 text-[#1DB954]" />
+              </div>
+              <h3 className="text-xl font-bold">{t.features.spotify.title}</h3>
             </div>
-            <h3 className="mb-3 text-2xl font-bold">{t.features.spotify.title}</h3>
-            <p className="mb-8 text-muted-foreground">{t.features.spotify.description}</p>
+            <p className="mb-6 text-sm text-muted-foreground">{t.features.spotify.description}</p>
 
             <div className="relative rounded-lg border border-border/40 bg-background/50 p-6 backdrop-blur-sm">
               <div className="mb-4 flex items-center gap-3">
@@ -99,11 +101,13 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1ed760]/50">
-            <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
-              <Layout className="h-6 w-6 text-[#1ed760]" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex w-fit shrink-0 rounded-lg bg-[#1ed760]/10 p-2.5">
+                <Layout className="h-5 w-5 text-[#1ed760]" />
+              </div>
+              <h3 className="text-xl font-bold">{t.features.layouts.title}</h3>
             </div>
-            <h3 className="mb-3 text-2xl font-bold">{t.features.layouts.title}</h3>
-            <p className="mb-8 text-muted-foreground">{t.features.layouts.description}</p>
+            <p className="mb-6 text-sm text-muted-foreground">{t.features.layouts.description}</p>
 
             <div className="space-y-3">
               <div className="flex gap-2">
@@ -166,11 +170,13 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1DB954]/50">
-            <div className="mb-6 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
-              <Palette className="h-6 w-6 text-[#1DB954]" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex w-fit shrink-0 rounded-lg bg-[#1DB954]/10 p-2.5">
+                <Palette className="h-5 w-5 text-[#1DB954]" />
+              </div>
+              <h3 className="text-xl font-bold">{t.features.themes.title}</h3>
             </div>
-            <h3 className="mb-3 text-2xl font-bold">{t.features.themes.title}</h3>
-            <p className="mb-8 text-muted-foreground">{t.features.themes.description}</p>
+            <p className="mb-6 text-sm text-muted-foreground">{t.features.themes.description}</p>
 
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
@@ -210,11 +216,15 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1ed760]/50">
-            <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
-              <Zap className="h-6 w-6 text-[#1ed760]" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex w-fit shrink-0 rounded-lg bg-[#1ed760]/10 p-2.5">
+                <Zap className="h-5 w-5 text-[#1ed760]" />
+              </div>
+              <h3 className="text-xl font-bold">{t.features.performance.title}</h3>
             </div>
-            <h3 className="mb-3 text-2xl font-bold">{t.features.performance.title}</h3>
-            <p className="mb-8 text-muted-foreground">{t.features.performance.description}</p>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {t.features.performance.description}
+            </p>
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
@@ -252,11 +262,15 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm transition-all hover:border-[#1ed760]/50">
-            <div className="mb-6 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
-              <Sliders className="h-6 w-6 text-[#1ed760]" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex w-fit shrink-0 rounded-lg bg-[#1ed760]/10 p-2.5">
+                <Sliders className="h-5 w-5 text-[#1ed760]" />
+              </div>
+              <h3 className="text-xl font-bold">{t.features.customizable.title}</h3>
             </div>
-            <h3 className="mb-3 text-2xl font-bold">{t.features.customizable.title}</h3>
-            <p className="mb-8 text-muted-foreground">{t.features.customizable.description}</p>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {t.features.customizable.description}
+            </p>
 
             <div className="space-y-3">
               <div className="rounded-lg border border-border/40 bg-background/50 p-3">

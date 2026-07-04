@@ -14,19 +14,85 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GridBackground } from "@/components/ui/grid-background";
 import { useLanguage } from "@/hooks/use-language";
+import {
+  type PlatformAssets,
+  RELEASES_URL,
+  type ReleaseAsset,
+  resolvePlatformAssets,
+  useLatestRelease,
+} from "@/lib/github";
 
-const RELEASE_DATE = new Date("2025-10-28");
+function PrimaryDownload({
+  asset,
+  loading,
+  fallbackLabel,
+}: {
+  asset?: ReleaseAsset;
+  loading: boolean;
+  fallbackLabel: string;
+}) {
+  if (asset) {
+    return (
+      <Button
+        className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+        size="lg"
+        asChild
+      >
+        <a href={asset.browser_download_url}>
+          <Download className="mr-2 h-5 w-5" />
+          <span className="truncate">{asset.name}</span>
+        </a>
+      </Button>
+    );
+  }
 
-function formatReleaseDate(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
+  return (
+    <Button
+      className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+      size="lg"
+      disabled={loading}
+      asChild={!loading}
+    >
+      {loading ? (
+        <span>{fallbackLabel}</span>
+      ) : (
+        <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
+          <Github className="mr-2 h-5 w-5" />
+          GitHub Releases
+        </a>
+      )}
+    </Button>
+  );
+}
+
+function SecondaryDownloads({ assets }: { assets: PlatformAssets }) {
+  if (assets.extras.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {assets.extras.map(({ label, asset }) => (
+        <Button key={label} variant="outline" size="sm" asChild>
+          <a href={asset.browser_download_url}>
+            <Download className="mr-2 h-4 w-4" />
+            {label}
+          </a>
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 export default function DownloadPage() {
   const { t, language } = useLanguage();
+  const { release, loading, version } = useLatestRelease();
+  const platforms = resolvePlatformAssets(release);
+  const displayVersion = version ? `v${version}` : "…";
+  const releaseVersion = version || "x.y.z";
+
+  const releasedOn = release?.published_at
+    ? new Intl.DateTimeFormat(language, { dateStyle: "long" }).format(
+        new Date(release.published_at)
+      )
+    : "";
 
   return (
     <div className="min-h-screen">
@@ -47,7 +113,7 @@ export default function DownloadPage() {
           {/* Windows */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm">
             <div className="mb-6 flex items-start justify-between">
-              <div className="rounded-lg bg-[#1DB954]/10 p-4">
+              <div className="w-fit rounded-lg bg-[#1DB954]/10 p-4">
                 <svg
                   className="h-12 w-12 text-[#1DB954]"
                   fill="currentColor"
@@ -76,17 +142,12 @@ export default function DownloadPage() {
             </div>
 
             <div className="space-y-3">
-              <Button
-                className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
-                size="lg"
-              >
-                <Download className="mr-2 h-5 w-5" />
-                MiniFy-Setup-v0.1.0.exe
-              </Button>
-              <Button variant="outline" className="w-full bg-transparent" size="lg">
-                <Download className="mr-2 h-5 w-5" />
-                MiniFy-v0.1.0-portable.zip
-              </Button>
+              <PrimaryDownload
+                asset={platforms.windows.primary}
+                loading={loading}
+                fallbackLabel={t.download.loading}
+              />
+              <SecondaryDownloads assets={platforms.windows} />
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.windows.size}</p>
@@ -95,7 +156,7 @@ export default function DownloadPage() {
           {/* macOS */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm">
             <div className="mb-6 flex items-start justify-between">
-              <div className="rounded-lg bg-[#1DB954]/10 p-4">
+              <div className="w-fit rounded-lg bg-[#1DB954]/10 p-4">
                 <svg
                   className="h-12 w-12 text-[#1DB954]"
                   fill="currentColor"
@@ -121,17 +182,12 @@ export default function DownloadPage() {
             </div>
 
             <div className="space-y-3">
-              <Button
-                className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
-                size="lg"
-              >
-                <Download className="mr-2 h-5 w-5" />
-                MiniFy-v0.1.0-universal.dmg
-              </Button>
-              <Button variant="outline" className="w-full bg-transparent" size="lg">
-                <Download className="mr-2 h-5 w-5" />
-                MiniFy-v0.1.0-arm64.dmg
-              </Button>
+              <PrimaryDownload
+                asset={platforms.macos.primary}
+                loading={loading}
+                fallbackLabel={t.download.loading}
+              />
+              <SecondaryDownloads assets={platforms.macos} />
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.macos.size}</p>
@@ -140,7 +196,7 @@ export default function DownloadPage() {
           {/* Linux */}
           <Card className="group relative overflow-hidden border-border/40 bg-card/50 p-8 backdrop-blur-sm">
             <div className="mb-6 flex items-start justify-between">
-              <div className="rounded-lg bg-[#1ed760]/10 p-4">
+              <div className="w-fit rounded-lg bg-[#1ed760]/10 p-4">
                 <svg
                   className="h-12 w-12 text-[#1ed760]"
                   fill="currentColor"
@@ -165,24 +221,13 @@ export default function DownloadPage() {
               ))}
             </div>
 
-            <div className="space-y-3 -mt-6">
-              <Button
-                className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
-                size="lg"
-              >
-                <Download className="mr-2 h-5 w-5" />
-                minify_0.1.0_amd64.deb
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  .rpm
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  AppImage
-                </Button>
-              </div>
+            <div className="space-y-3">
+              <PrimaryDownload
+                asset={platforms.linux.primary}
+                loading={loading}
+                fallbackLabel={t.download.loading}
+              />
+              <SecondaryDownloads assets={platforms.linux} />
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">{t.downloadPage.linux.size}</p>
@@ -197,18 +242,18 @@ export default function DownloadPage() {
                 <CheckCircle2 className="h-6 w-6 text-[#1DB954]" />
               </div>
               <div>
-                <div className="font-semibold">{t.downloadPage.latestVersion}: v0.1.0</div>
-                <div className="text-sm text-muted-foreground">
-                  {t.downloadPage.releasedOn} {formatReleaseDate(RELEASE_DATE, language)}
+                <div className="font-semibold">
+                  {t.downloadPage.latestVersion}: {displayVersion}
                 </div>
+                {releasedOn && (
+                  <div className="text-sm text-muted-foreground">
+                    {t.downloadPage.releasedOn} {releasedOn}
+                  </div>
+                )}
               </div>
             </div>
             <Button variant="ghost" asChild>
-              <a
-                href="https://github.com/ModioStudio/MiniFy/releases"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
                 <Github className="mr-2 h-5 w-5" />
                 {t.downloadPage.allReleases}
               </a>
@@ -224,7 +269,7 @@ export default function DownloadPage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card className="border-border/40 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-4 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
+              <div className="mb-4 inline-flex w-fit rounded-lg bg-[#1DB954]/10 p-3">
                 <MonitorSmartphone className="h-6 w-6 text-[#1DB954]" />
               </div>
               <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.os}</h3>
@@ -238,7 +283,7 @@ export default function DownloadPage() {
             </Card>
 
             <Card className="border-border/40 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-4 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
+              <div className="mb-4 inline-flex w-fit rounded-lg bg-[#1ed760]/10 p-3">
                 <Cpu className="h-6 w-6 text-[#1ed760]" />
               </div>
               <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.cpu}</h3>
@@ -250,7 +295,7 @@ export default function DownloadPage() {
             </Card>
 
             <Card className="border-border/40 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-4 inline-flex rounded-lg bg-[#1DB954]/10 p-3">
+              <div className="mb-4 inline-flex w-fit rounded-lg bg-[#1DB954]/10 p-3">
                 <HardDrive className="h-6 w-6 text-[#1DB954]" />
               </div>
               <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.ram}</h3>
@@ -262,7 +307,7 @@ export default function DownloadPage() {
             </Card>
 
             <Card className="border-border/40 bg-card/50 p-6 backdrop-blur-sm">
-              <div className="mb-4 inline-flex rounded-lg bg-[#1ed760]/10 p-3">
+              <div className="mb-4 inline-flex w-fit rounded-lg bg-[#1ed760]/10 p-3">
                 <Terminal className="h-6 w-6 text-[#1ed760]" />
               </div>
               <h3 className="mb-2 font-semibold">{t.downloadPage.requirements.other}</h3>
@@ -316,7 +361,7 @@ export default function DownloadPage() {
                     {t.downloadPage.installSteps.linux.deb}
                   </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
-                    sudo dpkg -i minify_0.1.0_amd64.deb
+                    sudo dpkg -i minify_{releaseVersion}_amd64.deb
                   </code>
                 </div>
                 <div>
@@ -324,7 +369,7 @@ export default function DownloadPage() {
                     {t.downloadPage.installSteps.linux.rpm}
                   </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
-                    sudo rpm -i minify-0.1.0.x86_64.rpm
+                    sudo rpm -i minify-{releaseVersion}-1.x86_64.rpm
                   </code>
                 </div>
                 <div>
@@ -332,9 +377,9 @@ export default function DownloadPage() {
                     {t.downloadPage.installSteps.linux.appimage}
                   </p>
                   <code className="block rounded-md bg-muted p-3 text-xs">
-                    chmod +x MiniFy-0.1.0.AppImage
+                    chmod +x MiniFy_{releaseVersion}_amd64.AppImage
                     <br />
-                    ./MiniFy-0.1.0.AppImage
+                    ./MiniFy_{releaseVersion}_amd64.AppImage
                   </code>
                 </div>
               </div>
@@ -350,7 +395,7 @@ export default function DownloadPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button variant="outline" asChild>
                 <a
-                  href="https://github.com/ModioStudio/MiniFy/wiki"
+                  href="https://minify-docs.modio.studio/"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

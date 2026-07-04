@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.modiostudio.minify</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>MiniFy</name>
+  <summary>Lightweight Spotify mini player</summary>
+  <developer id="studio.modio">
+    <name>Modio Studio</name>
+  </developer>
+  <description>
+    <p>
+      MiniFy is a beautiful, lightweight desktop mini player for Spotify. Built with
+      Tauri and Rust, it offers OAuth authentication, multiple layouts, customizable
+      themes and a tiny always-on-top window that stays out of your way.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.modiostudio.minify.desktop</launchable>
+  <url type="homepage">https://minify.modio.studio</url>
+  <url type="bugtracker">https://github.com/ModioStudio/MiniFy/issues</url>
+  <url type="vcs-browser">https://github.com/ModioStudio/MiniFy</url>
+  <content_rating type="oars-1.1" />
+</component>

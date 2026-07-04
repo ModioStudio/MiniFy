@@ -6,6 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
+import {
+  assetFormatLabel,
+  type PlatformAssets,
+  RELEASES_URL,
+  resolvePlatformAssets,
+  useLatestRelease,
+} from "@/lib/github";
 
 const container = {
   hidden: {},
@@ -50,14 +57,42 @@ const LinuxIcon = () => (
   </svg>
 );
 
-const osData = [
-  { name: "Windows", Icon: WindowsIcon },
-  { name: "macOS", Icon: AppleIcon },
-  { name: "Linux", Icon: LinuxIcon },
-];
-
 export function DownloadSection() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { release, loading, version } = useLatestRelease();
+  const platforms = resolvePlatformAssets(release);
+
+  const osData: {
+    name: string;
+    Icon: () => React.JSX.Element;
+    description: string;
+    assets: PlatformAssets;
+  }[] = [
+    {
+      name: "Windows",
+      Icon: WindowsIcon,
+      description: t.download.windowsDescription,
+      assets: platforms.windows,
+    },
+    {
+      name: "macOS",
+      Icon: AppleIcon,
+      description: t.download.macosDescription,
+      assets: platforms.macos,
+    },
+    {
+      name: "Linux",
+      Icon: LinuxIcon,
+      description: t.download.linuxDescription,
+      assets: platforms.linux,
+    },
+  ];
+
+  const releasedOn = release?.published_at
+    ? new Intl.DateTimeFormat(language, { dateStyle: "long" }).format(
+        new Date(release.published_at)
+      )
+    : "";
 
   return (
     <section id="download" className="relative py-20 md:py-32">
@@ -86,7 +121,7 @@ export function DownloadSection() {
             variants={container}
             className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
           >
-            {osData.map(({ name: os, Icon }) => (
+            {osData.map(({ name: os, Icon, description, assets }) => (
               <motion.div
                 key={os}
                 variants={item}
@@ -100,18 +135,51 @@ export function DownloadSection() {
                     </div>
                   </div>
                   <h3 className="mb-2 text-2xl font-bold">{os}</h3>
-                  <p className="mb-6 flex-grow text-sm text-muted-foreground">
-                    {os === "Windows" && t.download.windowsDescription}
-                    {os === "macOS" && t.download.macosDescription}
-                    {os === "Linux" && t.download.linuxDescription}
-                  </p>
-                  <Button
-                    className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
-                    size="lg"
-                  >
-                    <Download className="mr-2 h-5 w-5" />
-                    {t.download.downloadButton}
-                  </Button>
+                  <p className="mb-6 flex-grow text-sm text-muted-foreground">{description}</p>
+                  {assets.primary ? (
+                    <Button
+                      className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+                      size="lg"
+                      asChild
+                    >
+                      <a href={assets.primary.browser_download_url}>
+                        <Download className="mr-2 h-5 w-5" />
+                        {t.download.downloadButton}
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+                      size="lg"
+                      disabled={loading}
+                      asChild={!loading}
+                    >
+                      {loading ? (
+                        <span>{t.download.loading}</span>
+                      ) : (
+                        <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
+                          <Github className="mr-2 h-5 w-5" />
+                          {t.download.viewReleases}
+                        </a>
+                      )}
+                    </Button>
+                  )}
+                  {assets.primary && (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
+                      <span className="font-medium text-muted-foreground">
+                        {assetFormatLabel(assets.primary.name)}
+                      </span>
+                      {assets.extras.map(({ label, asset }) => (
+                        <a
+                          key={label}
+                          href={asset.browser_download_url}
+                          className="font-medium text-muted-foreground underline-offset-4 hover:text-[#1DB954] hover:underline"
+                        >
+                          {label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             ))}
@@ -122,10 +190,14 @@ export function DownloadSection() {
             className="mb-8 flex items-center justify-center gap-2 text-sm text-muted-foreground"
           >
             <CheckCircle2 className="h-4 w-4 text-[#1DB954]" />
-            <span>
-              {t.download.latestVersion}: <strong className="text-foreground">v0.1.0</strong>{" "}
-              (28.10.2025)
-            </span>
+            {version ? (
+              <span>
+                {t.download.latestVersion}: <strong className="text-foreground">v{version}</strong>
+                {releasedOn && ` (${releasedOn})`}
+              </span>
+            ) : (
+              <span>{t.download.loading}</span>
+            )}
           </motion.div>
 
           <motion.div
@@ -136,11 +208,7 @@ export function DownloadSection() {
               <Link href="/download">{t.download.viewReleases}</Link>
             </Button>
             <Button variant="ghost" size="lg" asChild>
-              <a
-                href="https://github.com/ModioStudio/MiniFy"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
                 <Github className="mr-2 h-5 w-5" />
                 {t.hero.githubButton}
               </a>

@@ -17,7 +17,10 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden py-20 md:py-32">
-      <div className="absolute inset-0 bg-linear-to-br from-[#1DB954]/10 via-transparent to-[#1ed760]/10 dark:from-[#1DB954]/5 dark:to-[#1ed760]/5" />
+      {/* Grid backdrop */}
+      <div className="pointer-events-none absolute inset-0 [background-size:44px_44px] [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
+      {/* Brand glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[820px] max-w-full -translate-x-1/2 -translate-y-1/3 rounded-full bg-[#1DB954]/20 blur-[120px] dark:bg-[#1DB954]/15" />
 
       <div className="container relative mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">

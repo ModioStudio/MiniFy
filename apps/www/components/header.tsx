@@ -14,7 +14,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/hooks/use-theme";
 import { LANGUAGES, type Language } from "@/lib/translations";
 
-const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "https://minify-docs.modio.studio";
+const DOCS_URL = "https://minify-docs.modio.studio/";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -36,51 +36,59 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/70 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
+        <a href="/#" className="flex items-center gap-2" aria-label="MiniFy">
           <Image
             src="/logo.png"
-            alt="logo"
-            width={128}
-            height={128}
-            className="w-32 h-32 dark:invert-0 invert"
+            alt="MiniFy logo"
+            width={64}
+            height={64}
+            className="h-8 w-8 dark:invert-0 invert"
           />
-        </div>
+          <span className="text-lg font-bold tracking-tight">MiniFy</span>
+        </a>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          <a href="/#features" className="text-sm font-medium transition-colors hover:text-primary">
+        <nav className="hidden items-center gap-1 md:flex">
+          <a
+            href="/#features"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             {t.nav.features}
           </a>
-          <a href="/#download" className="text-sm font-medium transition-colors hover:text-primary">
+          <a
+            href="/#download"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             {t.nav.download}
           </a>
           <a
             href="/#opensource"
-            className="text-sm font-medium transition-colors hover:text-primary"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {t.nav.opensource}
-          </a>
-          <a
-            href={DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium transition-colors hover:text-primary inline-flex items-center gap-1"
-          >
-            <BookOpen className="h-4 w-4" />
-            {t.nav.docs}
           </a>
           <a
             href="https://github.com/ModioStudio/MiniFy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium transition-colors hover:text-primary"
+            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             GitHub
           </a>
         </nav>
 
         <div className="flex items-center gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="hidden md:inline-flex gap-2 bg-linear-to-r from-[#1DB954] to-[#1ed760] text-white hover:from-[#1ed760] hover:to-[#1DB954]"
+          >
+            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+              <BookOpen className="h-4 w-4" />
+              {t.nav.docs}
+            </a>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="hidden sm:flex gap-2">

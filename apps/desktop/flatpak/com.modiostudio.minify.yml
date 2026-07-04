@@ -1,0 +1,36 @@
+id: com.modiostudio.minify
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+command: minify
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --share=network
+  - --talk-name=org.freedesktop.Notifications
+
+modules:
+  - name: minify
+    buildsystem: simple
+    sources:
+      - type: file
+        path: minify.deb
+      - type: file
+        path: com.modiostudio.minify.desktop
+      - type: file
+        path: com.modiostudio.minify.metainfo.xml
+    build-commands:
+      # Unpack the Tauri-produced Debian package (ar archive -> data tarball).
+      - ar x minify.deb
+      - tar -xf data.tar.*
+      # Application binary.
+      - install -Dm755 usr/bin/minify /app/bin/minify
+      # Desktop entry + AppStream metadata (renamed to the Flatpak app-id).
+      - install -Dm644 com.modiostudio.minify.desktop /app/share/applications/com.modiostudio.minify.desktop
+      - install -Dm644 com.modiostudio.minify.metainfo.xml /app/share/metainfo/com.modiostudio.minify.metainfo.xml
+      # Icon shipped inside the .deb (hicolor theme).
+      - install -Dm644 usr/share/icons/hicolor/128x128/apps/minify.png /app/share/icons/hicolor/128x128/apps/com.modiostudio.minify.png

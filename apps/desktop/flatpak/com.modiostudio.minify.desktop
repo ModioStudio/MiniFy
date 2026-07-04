@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MiniFy
+GenericName=Spotify Mini Player
+Comment=Lightweight Spotify mini player
+Exec=minify
+Icon=com.modiostudio.minify
+Terminal=false
+Categories=Audio;AudioVideo;Player;GTK;
+Keywords=Spotify;Music;Player;Mini;
+StartupWMClass=MiniFy

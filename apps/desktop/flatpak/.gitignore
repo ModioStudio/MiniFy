@@ -1,0 +1,7 @@
+# Staged by CI before building the Flatpak bundle
+minify.deb
+# flatpak-builder working directories / output
+.flatpak-builder/
+build-dir/
+repo/
+*.flatpak
