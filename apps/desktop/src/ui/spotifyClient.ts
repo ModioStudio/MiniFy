@@ -325,8 +325,44 @@ export interface AudioFeatures {
   time_signature: number;
 }
 
+export interface AudioAnalysisBeat {
+  start: number;
+  duration: number;
+  confidence: number;
+}
+
+export interface AudioAnalysisSection {
+  start: number;
+  duration: number;
+  confidence: number;
+  loudness: number;
+  tempo: number;
+  tempo_confidence: number;
+  key_confidence: number;
+  mode_confidence: number;
+}
+
+export interface SpotifyAudioAnalysis {
+  track: {
+    duration: number;
+    loudness: number;
+    tempo: number;
+    tempo_confidence: number;
+    time_signature: number;
+  };
+  beats: AudioAnalysisBeat[];
+  sections: AudioAnalysisSection[];
+}
+
 interface AudioFeaturesResponse {
   audio_features: Array<AudioFeatures | null>;
+}
+
+function extractTrackId(trackIdOrUri: string): string {
+  if (trackIdOrUri.startsWith("spotify:track:")) {
+    return trackIdOrUri.replace("spotify:track:", "");
+  }
+  return trackIdOrUri;
 }
 
 export async function fetchAudioFeatures(trackIds: string[]): Promise<AudioFeatures[]> {
@@ -335,6 +371,12 @@ export async function fetchAudioFeatures(trackIds: string[]): Promise<AudioFeatu
   const url = `https://api.spotify.com/v1/audio-features?ids=${ids}`;
   const data = await request<AudioFeaturesResponse>(url);
   return data.audio_features.filter((f): f is AudioFeatures => f !== null);
+}
+
+export async function fetchAudioAnalysis(trackIdOrUri: string): Promise<SpotifyAudioAnalysis> {
+  const trackId = extractTrackId(trackIdOrUri);
+  const url = `https://api.spotify.com/v1/audio-analysis/${trackId}`;
+  return request<SpotifyAudioAnalysis>(url);
 }
 
 export interface SpotifyRecommendation {
@@ -349,13 +391,6 @@ export interface RecommendationParams {
   targetDanceability?: number;
   targetValence?: number;
   limit?: number;
-}
-
-function extractTrackId(trackIdOrUri: string): string {
-  if (trackIdOrUri.startsWith("spotify:track:")) {
-    return trackIdOrUri.replace("spotify:track:", "");
-  }
-  return trackIdOrUri;
 }
 
 export async function fetchRecommendations(

@@ -2,4 +2,4 @@
 "desktop": patch
 ---
 
-Fix playlist playback and add playlist button cursor
+Fix playlist playback, cursor, and visualizer dynamics
