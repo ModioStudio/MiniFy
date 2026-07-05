@@ -1,5 +1,6 @@
 import {
   AppleLogo,
+  ArrowClockwise,
   ArrowLeft,
   Brain,
   Check,
@@ -22,6 +23,7 @@ import {
   X,
   YoutubeLogo,
 } from "@phosphor-icons/react";
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -42,6 +44,7 @@ import {
   saveCustomTheme,
   writeSettings,
 } from "../../lib/settingLib";
+import { useUpdaterStore } from "../../lib/updaterStore";
 import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
 import { clearProviderCache } from "../../providers";
 import { clearYouTubeState } from "../../providers/youtube";
@@ -223,6 +226,9 @@ export default function Settings({
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
   const [currentTheme, setCurrentTheme] = useState<string>("dark");
   const [currentLayout, setCurrentLayout] = useState<string>("LayoutA");
+  const [appVersion, setAppVersion] = useState<string>("");
+  const manualCheckState = useUpdaterStore((s) => s.manual);
+  const runUpdateCheck = useUpdaterStore((s) => s.check);
 
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [editorContent, setEditorContent] = useState<string>(DEFAULT_THEME_JSON);
@@ -301,6 +307,12 @@ export default function Settings({
       onMusicProviderChange?.("youtube");
     }
   }, [activeMusicProvider, onMusicProviderChange]);
+
+  useEffect(() => {
+    getVersion()
+      .then(setAppVersion)
+      .catch(() => setAppVersion(""));
+  }, []);
 
   useEffect(() => {
     setLayout("Settings");
@@ -1472,6 +1484,60 @@ export default function Settings({
 
           {active === "privacy" && (
             <div className="flex flex-col gap-4">
+              <div
+                className="p-4 rounded-xl border"
+                style={{
+                  background: "rgba(0, 0, 0, 0.2)",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Download size={18} weight="fill" />
+                    <div>
+                      <div className="font-medium">Updates</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-1">
+                        {appVersion
+                          ? `Aktuelle Version ${appVersion}. Updates werden signiert und beim Start automatisch geprüft.`
+                          : "Updates werden signiert und beim Start automatisch geprüft."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => runUpdateCheck(true)}
+                    disabled={manualCheckState === "checking"}
+                    className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-[1.03] active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{
+                      background: "var(--settings-item-active)",
+                      color: "var(--settings-text)",
+                    }}
+                  >
+                    {manualCheckState === "checking" ? (
+                      <CircleNotch size={15} weight="bold" className="animate-spin" />
+                    ) : (
+                      <ArrowClockwise size={15} weight="bold" />
+                    )}
+                    {manualCheckState === "checking" ? "Suche…" : "Nach Updates suchen"}
+                  </button>
+                </div>
+
+                {manualCheckState === "up-to-date" && (
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-green-400">
+                    <Check size={13} weight="bold" />
+                    Du verwendest bereits die neueste Version.
+                  </div>
+                )}
+                {manualCheckState === "error" && (
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-red-400">
+                    <Warning size={13} weight="fill" />
+                    Update-Prüfung fehlgeschlagen. Später erneut versuchen.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-white/10 my-1" />
+
               <div className="flex items-center gap-2">
                 <GithubLogo size={18} weight="fill" />
                 <button

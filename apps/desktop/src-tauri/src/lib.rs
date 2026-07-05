@@ -42,9 +42,17 @@ async fn clear_everything(app: tauri::AppHandle) -> Result<(), String> {
 pub fn run() {
     let discord_state = discord_rpc::DiscordState::new();
 
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init());
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    let app = builder
         .manage(discord_state)
         .invoke_handler(tauri::generate_handler![
             clear_everything,

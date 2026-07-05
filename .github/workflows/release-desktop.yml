@@ -183,6 +183,8 @@ jobs:
             apps/desktop/src-tauri/target/release/bundle/**/*.AppImage.sig
             apps/desktop/src-tauri/target/release/bundle/**/*.dmg
             apps/desktop/src-tauri/target/release/bundle/**/*.dmg.sig
+            apps/desktop/src-tauri/target/release/bundle/**/*.app.tar.gz
+            apps/desktop/src-tauri/target/release/bundle/**/*.app.tar.gz.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.exe
             apps/desktop/src-tauri/target/**/release/bundle/**/*.exe.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.msi
@@ -195,6 +197,8 @@ jobs:
             apps/desktop/src-tauri/target/**/release/bundle/**/*.AppImage.sig
             apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg
             apps/desktop/src-tauri/target/**/release/bundle/**/*.dmg.sig
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.app.tar.gz
+            apps/desktop/src-tauri/target/**/release/bundle/**/*.app.tar.gz.sig
           if-no-files-found: warn
 
   flatpak:
@@ -349,12 +353,31 @@ jobs:
             -o -name "*.rpm" -o -name "*.rpm.sig" \
             -o -name "*.AppImage" -o -name "*.AppImage.sig" \
             -o -name "*.dmg" -o -name "*.dmg.sig" \
+            -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \
             -o -name "*.flatpak" \
           \) -exec cp {} release_files/ \;
           
           # List collected files
           echo "Collected files:"
           ls -la release_files/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.0'
+
+      - name: Generate updater manifest (latest.json)
+        env:
+          ARTIFACTS_DIR: release_files
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.determine-version.outputs.version }}
+          VERSION: ${{ needs.determine-version.outputs.version_without_v }}
+          NOTES: Automatic update to ${{ needs.determine-version.outputs.version }}.
+          OUT: release_files/latest.json
+        run: |
+          node apps/desktop/src-tauri/scripts/generate-latest-json.js
+          echo "--- latest.json ---"
+          cat release_files/latest.json
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

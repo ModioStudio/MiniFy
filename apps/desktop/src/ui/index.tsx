@@ -11,9 +11,9 @@ import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
+import AppUpdater from "./components/AppUpdater";
 import MusicVisualizer from "./components/MusicVisualizer";
 import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
-
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
@@ -416,6 +416,7 @@ export default function App() {
         onVideoChange={handleYouTubeVideoChange}
         onVideoEnded={handleYouTubeVideoEnded}
       />
+      <AppUpdater />
     </div>
   );
 }
