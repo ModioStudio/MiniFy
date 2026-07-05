@@ -119,6 +119,7 @@ type SettingsProps = {
   onUpdateAIQueueBorder?: (show: boolean) => void;
   onUpdateMusicVisualizer?: (show: boolean) => void;
   onUpdateMusicVisualizerColor?: (color: string) => void;
+  onUpdateMusicVisualizerIntensity?: (intensity: number) => void;
   onUpdateWindowOpacity?: (opacity: number) => void;
   onMusicProviderChange?: (provider: MusicProviderType) => void;
 };
@@ -139,7 +140,8 @@ const VISUALIZER_COLORS: { id: string; label: string; swatch: string }[] = [
   {
     id: "random",
     label: "Random",
-    swatch: "conic-gradient(from 0deg, #ff004c, #ffb300, #22c55e, #22d3ee, #3b82f6, #a855f7, #ff004c)",
+    swatch:
+      "conic-gradient(from 0deg, #ff004c, #ffb300, #22c55e, #22d3ee, #3b82f6, #a855f7, #ff004c)",
   },
   { id: "#22D3EE", label: "Cyan", swatch: "#22D3EE" },
   { id: "#3B82F6", label: "Blue", swatch: "#3B82F6" },
@@ -160,6 +162,8 @@ const themeColors: Record<string, string> = {
   bmw: "#C52B30",
   youtube: "#FF0000",
   chatgpt: "#10A37F",
+  aurora: "linear-gradient(135deg, #34D399 0%, #22D3EE 50%, #A78BFA 100%)",
+  ember: "linear-gradient(135deg, #F43F5E 0%, #FB923C 55%, #FBBF24 100%)",
 };
 
 const DEFAULT_THEME_JSON = `{
@@ -211,6 +215,7 @@ export default function Settings({
   onUpdateAIQueueBorder,
   onUpdateMusicVisualizer,
   onUpdateMusicVisualizerColor,
+  onUpdateMusicVisualizerIntensity,
   onUpdateWindowOpacity,
   onMusicProviderChange,
 }: SettingsProps) {
@@ -253,6 +258,7 @@ export default function Settings({
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [showMusicVisualizer, setShowMusicVisualizer] = useState<boolean>(false);
   const [musicVisualizerColor, setMusicVisualizerColor] = useState<string>("theme");
+  const [musicVisualizerIntensity, setMusicVisualizerIntensity] = useState<number>(100);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
   const [windowOpacity, setWindowOpacity] = useState<number>(100);
   const [showClearDialog, setShowClearDialog] = useState<boolean>(false);
@@ -328,6 +334,7 @@ export default function Settings({
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
       setShowMusicVisualizer(settings.show_music_visualizer ?? false);
       setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
+      setMusicVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
       setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
       setWindowOpacity(settings.window_opacity ?? 100);
       await refreshCustomThemes();
@@ -494,6 +501,13 @@ export default function Settings({
     setMusicVisualizerColor(color);
     await writeSettings({ music_visualizer_color: color });
     onUpdateMusicVisualizerColor?.(color);
+  };
+
+  const handleVisualizerIntensityChange = async (value: number) => {
+    const nextIntensity = Math.min(200, Math.max(20, value));
+    setMusicVisualizerIntensity(nextIntensity);
+    onUpdateMusicVisualizerIntensity?.(nextIntensity);
+    await writeSettings({ music_visualizer_intensity: nextIntensity });
   };
 
   const handleToggleDiscordRpc = async () => {
@@ -997,7 +1011,6 @@ export default function Settings({
                   </div>
                 );
               })}
-
             </div>
           )}
 
@@ -1091,6 +1104,37 @@ export default function Settings({
 
                 {showMusicVisualizer && (
                   <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs text-[--settings-text-muted]">Intensity</div>
+                      <span className="text-xs text-[--settings-text-muted] tabular-nums">
+                        {musicVisualizerIntensity}%
+                      </span>
+                    </div>
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="text-[10px] text-[--settings-text-muted] w-9">20%</span>
+                      <input
+                        type="range"
+                        min={20}
+                        max={200}
+                        step={5}
+                        value={musicVisualizerIntensity}
+                        onChange={(event) =>
+                          handleVisualizerIntensityChange(Number(event.target.value))
+                        }
+                        className="window-opacity-slider min-w-0 flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                        style={{
+                          background: `linear-gradient(90deg, var(--settings-accent) 0%, var(--settings-accent) ${
+                            ((musicVisualizerIntensity - 20) / 180) * 100
+                          }%, rgba(255, 255, 255, 0.16) ${
+                            ((musicVisualizerIntensity - 20) / 180) * 100
+                          }%, rgba(255, 255, 255, 0.16) 100%)`,
+                        }}
+                        aria-label="Visualizer intensity"
+                      />
+                      <span className="text-[10px] text-[--settings-text-muted] w-9 text-right">
+                        200%
+                      </span>
+                    </div>
                     <div className="text-xs text-[--settings-text-muted] mb-2">Color</div>
                     <div className="flex flex-wrap gap-2">
                       {VISUALIZER_COLORS.map(({ id, label, swatch }) => {
@@ -1137,6 +1181,8 @@ export default function Settings({
                   "youtube",
                   "milka",
                   "chatgpt",
+                  "aurora",
+                  "ember",
                 ].map((t) => (
                   <button
                     key={t}
@@ -1152,7 +1198,7 @@ export default function Settings({
                   >
                     <span
                       className="w-4 h-4 rounded-full border border-white/20"
-                      style={{ backgroundColor: themeColors[t] }}
+                      style={{ background: themeColors[t] }}
                     />
                     {t}
                   </button>
@@ -1218,7 +1264,7 @@ export default function Settings({
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {["LayoutA", "LayoutB", "LayoutC"].map((l) => (
+                {["LayoutA", "LayoutB", "LayoutC", "LayoutD", "LayoutE", "LayoutF"].map((l) => (
                   <button
                     key={l}
                     type="button"

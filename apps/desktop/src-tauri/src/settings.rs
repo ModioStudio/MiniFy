@@ -69,6 +69,8 @@ pub struct Settings {
     pub show_music_visualizer: bool,
     #[serde(default = "default_visualizer_color")]
     pub music_visualizer_color: String,
+    #[serde(default = "default_visualizer_intensity")]
+    pub music_visualizer_intensity: u8,
     #[serde(default)]
     pub last_played_track: Option<LastPlayedTrack>,
 }
@@ -87,6 +89,10 @@ fn default_window_opacity() -> u8 {
 
 fn default_visualizer_color() -> String {
     "theme".to_string()
+}
+
+fn default_visualizer_intensity() -> u8 {
+    100
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -111,6 +117,7 @@ impl Default for Settings {
             window_opacity: 100,
             show_music_visualizer: false,
             music_visualizer_color: "theme".into(),
+            music_visualizer_intensity: 100,
             last_played_track: None,
         }
     }

@@ -15,6 +15,7 @@ type Edge = "top" | "bottom" | "left" | "right";
 
 type MusicVisualizerProps = {
   colorMode: string;
+  intensity?: number;
 };
 
 type PlaybackSignal = {
@@ -95,6 +96,13 @@ function hashString(value: string): number {
 function seededUnit(seed: number, salt: number): number {
   const x = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453;
   return x - Math.floor(x);
+}
+
+function smoothNoise(seed: number, x: number): number {
+  const i = Math.floor(x);
+  const f = x - i;
+  const u = f * f * (3 - 2 * f);
+  return lerp(seededUnit(seed, i), seededUnit(seed, i + 1), u);
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -254,7 +262,9 @@ function buildSpotifyProfile(
             start: section.start,
             end: Math.min(durationSec, section.start + section.duration),
             intensity,
-            bass: clamp(bassWeight * (0.42 + loudnessLift * 0.78) * (0.86 + tempoConfidence * 0.18)),
+            bass: clamp(
+              bassWeight * (0.42 + loudnessLift * 0.78) * (0.86 + tempoConfidence * 0.18)
+            ),
             texture: clamp(
               0.12 + loudnessLift * 0.32 + dynamicRange * 0.26 + (1 - acousticness) * 0.22,
               0.08,
@@ -307,26 +317,27 @@ function buildSpotifyProfile(
 
 async function loadSpotifyDynamics(track: SimplifiedTrack): Promise<DynamicsProfile> {
   const artistText = track.artists.map((artist) => artist.name).join(", ");
-  const fallback = createProceduralProfile(`spotify:${track.id}`, track.name, artistText, track.duration_ms);
+  const fallback = createProceduralProfile(
+    `spotify:${track.id}`,
+    track.name,
+    artistText,
+    track.duration_ms
+  );
   const [featuresResult, analysisResult] = await Promise.allSettled([
     fetchAudioFeatures([track.id]),
     fetchAudioAnalysis(track.id),
   ]);
-  const features =
-    featuresResult.status === "fulfilled" ? (featuresResult.value[0] ?? null) : null;
+  const features = featuresResult.status === "fulfilled" ? (featuresResult.value[0] ?? null) : null;
   const analysis = analysisResult.status === "fulfilled" ? analysisResult.value : null;
   if (!features && !analysis) return fallback;
   return buildSpotifyProfile(track, features, analysis, fallback);
 }
 
-function getSection(profile: DynamicsProfile, seconds: number): VisualSection {
-  const duration = Math.max(1, profile.durationSec);
-  const position = ((seconds % duration) + duration) % duration;
-  const section = profile.sections.find((item) => position >= item.start && position < item.end);
+function sectionAt(profile: DynamicsProfile, index: number): VisualSection {
   return (
-    section ?? {
+    profile.sections[index] ?? {
       start: 0,
-      end: duration,
+      end: Math.max(1, profile.durationSec),
       intensity: profile.energy,
       bass: profile.bassWeight,
       texture: profile.dynamicRange,
@@ -334,6 +345,139 @@ function getSection(profile: DynamicsProfile, seconds: number): VisualSection {
       density: profile.danceability,
     }
   );
+}
+
+type Moment = {
+  section: VisualSection;
+  lift: number;
+  bassBoost: number;
+  textureBoost: number;
+  shimmer: number;
+  fill: boolean;
+  fillRamp: number;
+  barIndex: number;
+  endFade: number;
+};
+
+function getMoment(profile: DynamicsProfile, seconds: number): Moment {
+  const duration = Math.max(1, profile.durationSec);
+  const position = clamp(seconds, 0, duration - 0.001);
+  const index = profile.sections.findIndex((item) => position >= item.start && position < item.end);
+  const current = sectionAt(profile, index);
+  const previous = index > 0 ? sectionAt(profile, index - 1) : current;
+  const fade = clamp((position - current.start) / 1.6);
+  const mix = (a: number, b: number) => lerp(a, b, fade);
+
+  // Songs wind down at the end; taper everything over the last ~14 seconds.
+  const endLinear = clamp((duration - position) / 14);
+  const endFade = endLinear * endLinear * (3 - 2 * endLinear);
+
+  // Continuous drift keeps the intensity off fixed plateaus between sections.
+  const macro = smoothNoise(profile.seed, position * 0.07) - 0.5;
+  const wobble = smoothNoise(profile.seed + 11, position * 0.31) - 0.5;
+
+  const tempo = mix(previous.tempo, current.tempo);
+  const section: VisualSection = {
+    start: current.start,
+    end: current.end,
+    intensity: clamp(
+      mix(previous.intensity, current.intensity) *
+        (1 + macro * 0.34 + wobble * 0.18) *
+        lerp(0.12, 1, endFade),
+      0.02,
+      1
+    ),
+    bass: clamp(
+      mix(previous.bass, current.bass) * (1 + macro * 0.4) * lerp(0.1, 1, endFade),
+      0.02,
+      1
+    ),
+    texture: clamp(
+      mix(previous.texture, current.texture) * (1 + wobble * 0.5) * lerp(0.15, 1, endFade),
+      0.02,
+      1
+    ),
+    tempo,
+    density: clamp(mix(previous.density, current.density) + macro * 0.15, 0.05, 1),
+  };
+
+  // One seeded event per eight-bar phrase, scaled to the song's character.
+  const beatDuration = 60 / Math.max(55, tempo);
+  const barDuration = beatDuration * 4;
+  const phraseDuration = barDuration * 8;
+  const phraseIndex = Math.floor(position / phraseDuration);
+  const phrasePos = (position - phraseIndex * phraseDuration) / phraseDuration;
+  const roll = seededUnit(profile.seed, 900 + phraseIndex);
+  const weight = clamp(
+    0.5 + profile.energy * 0.4 + profile.danceability * 0.25 - profile.softness * 0.3,
+    0.2,
+    1.1
+  );
+
+  let lift = 0;
+  let bassBoost = 0;
+  let textureBoost = 0;
+  let shimmer = 0;
+  let fill = false;
+  let fillRamp = 0;
+
+  if (roll < 0.22) {
+    // steady phrase, the groove carries it
+  } else if (roll < 0.42) {
+    // riser: the last bar swells and fills into the next phrase
+    if (phrasePos > 0.875) {
+      fillRamp = (phrasePos - 0.875) / 0.125;
+      fill = true;
+      lift = fillRamp * 0.3 * weight;
+      textureBoost = fillRamp * 0.55 * weight;
+      shimmer = fillRamp * 0.5;
+    }
+  } else if (roll < 0.6) {
+    // drop: the phrase opens with an impact that bleeds off
+    const impact = Math.exp(-phrasePos * 9) * weight;
+    bassBoost = impact * 0.9;
+    lift = impact * 0.35;
+  } else if (roll < 0.76) {
+    // dip: the first half sits back before returning
+    const depth = Math.sin(clamp(phrasePos / 0.6) * Math.PI) * 0.3;
+    lift = -depth * (0.5 + profile.softness * 0.5);
+    textureBoost = -depth * 0.4;
+  } else if (roll < 0.9) {
+    // shimmer: texture breathes through the phrase
+    const breathe = Math.sin(phrasePos * Math.PI * 3);
+    textureBoost = breathe * 0.3 * weight;
+    shimmer = clamp(breathe) * 0.6 * weight;
+  } else {
+    // surge: intensity climbs across the whole phrase
+    lift = phrasePos * 0.28 * weight;
+    bassBoost = phrasePos * 0.2 * weight;
+    if (phrasePos > 0.9) {
+      fill = true;
+      fillRamp = (phrasePos - 0.9) / 0.1;
+    }
+  }
+
+  // No risers, drops, or fills into a fading outro.
+  if (endFade < 0.6) {
+    lift = Math.min(0, lift) * endFade;
+    bassBoost *= endFade;
+    textureBoost = Math.min(0, textureBoost) * endFade;
+    shimmer *= endFade;
+    fill = false;
+    fillRamp = 0;
+  }
+
+  return {
+    section,
+    lift,
+    bassBoost,
+    textureBoost,
+    shimmer: clamp(shimmer),
+    fill,
+    fillRamp,
+    barIndex: Math.floor(position / barDuration),
+    endFade,
+  };
 }
 
 function findBeatIndex(beats: VisualBeat[], seconds: number): number {
@@ -352,19 +496,23 @@ function findBeatIndex(beats: VisualBeat[], seconds: number): number {
   return best;
 }
 
-function getBeatPulse(profile: DynamicsProfile, seconds: number, section: VisualSection) {
+function getBeatPulse(profile: DynamicsProfile, seconds: number, moment: Moment) {
+  const section = moment.section;
   const beatDuration = 60 / Math.max(55, section.tempo || profile.tempo);
+  const duration = Math.max(1, profile.durationSec);
+  const position = clamp(seconds, 0, duration - 0.001);
+  const endTaper = 0.12 + 0.88 * moment.endFade;
+
   if (profile.beats.length > 0) {
-    const duration = Math.max(1, profile.durationSec);
-    const position = ((seconds % duration) + duration) % duration;
     const index = findBeatIndex(profile.beats, position);
     const beat = index >= 0 ? profile.beats[index] : null;
     const age = beat ? position - beat.time : beatDuration;
     const effectiveDuration = beat?.duration ?? beatDuration;
     const decay = lerp(5.5, 15, profile.bassWeight);
+    const accent = 0.75 + seededUnit(profile.seed, 300 + (index % 16)) * 0.5;
     const kick =
       beat && age >= 0 && age < effectiveDuration * 1.35
-        ? Math.exp(-age * decay) * beat.strength
+        ? Math.exp(-age * decay) * beat.strength * accent
         : 0;
     const offAge = age - effectiveDuration * 0.5;
     const off =
@@ -372,18 +520,40 @@ function getBeatPulse(profile: DynamicsProfile, seconds: number, section: Visual
         ? Math.exp(-offAge * 10) * profile.danceability * 0.42
         : 0;
     return {
-      kick: clamp(kick + off),
+      kick: clamp((kick + off) * endTaper),
       phase: clamp(age / Math.max(0.12, effectiveDuration)),
       duration: effectiveDuration,
     };
   }
 
-  const phase = (seconds / beatDuration) % 1;
-  const transient = Math.exp(-phase * lerp(5.5, 13, profile.bassWeight));
-  const offPhase = (phase + 0.5) % 1;
-  const off = Math.exp(-offPhase * 9) * profile.danceability * 0.25;
+  const beatIndex = Math.floor(position / beatDuration);
+  const beatInBar = beatIndex % 4;
+  const phase = (position / beatDuration) % 1;
+
+  // Downbeat and backbeat lead; a seeded 16-beat accent cycle keeps hits uneven.
+  let strength = beatInBar === 0 ? 1 : beatInBar === 2 ? 0.82 : 0.6;
+  strength *= 0.72 + seededUnit(profile.seed, 300 + (beatIndex % 16)) * 0.48;
+  if (beatInBar !== 0 && seededUnit(profile.seed, 500 + (beatIndex % 32)) < 0.1) {
+    strength *= 0.3;
+  }
+
+  const decay = lerp(6, 14, profile.bassWeight);
+  let kick = Math.exp(-phase * decay) * strength;
+
+  // Off-beat response scaled by danceability, varying per bar.
+  const offWeight =
+    profile.danceability *
+    (0.15 + seededUnit(profile.seed, 700 + (Math.floor(beatIndex / 4) % 8)) * 0.3);
+  kick += Math.exp(-((phase + 0.5) % 1) * 10) * offWeight;
+
+  // Fills subdivide into eighth notes and ramp into the next phrase.
+  if (moment.fill) {
+    const subPhase = (position / (beatDuration / 2)) % 1;
+    kick = Math.max(kick, Math.exp(-subPhase * decay * 1.4) * (0.45 + moment.fillRamp * 0.65));
+  }
+
   return {
-    kick: clamp((transient + off) * (0.38 + section.bass * 0.72)),
+    kick: clamp(kick * (0.4 + section.bass * 0.7) * endTaper),
     phase,
     duration: beatDuration,
   };
@@ -394,15 +564,17 @@ function estimateProgressSeconds(playback: PlaybackSignal, now: number): number 
   if (playback.isPlaying) {
     progress += now - playback.syncedAt;
   }
+  // Hold at the end instead of wrapping: extrapolating past the track's end
+  // must not restart the effect while nothing plays; the next poll resyncs.
   if (playback.durationMs > 0) {
-    progress %= playback.durationMs;
+    progress = Math.min(progress, playback.durationMs);
   }
   return Math.max(0, progress / 1000);
 }
 
 const idleProfile = createProceduralProfile("idle", "", "", 180000);
 
-export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
+export default function MusicVisualizer({ colorMode, intensity = 100 }: MusicVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playbackRef = useRef<PlaybackSignal>({
     provider: null,
@@ -421,6 +593,7 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
   const colorModeRef = useRef<string>(colorMode);
   const accentRef = useRef<[number, number, number]>(DEFAULT_ACCENT);
   const fixedRef = useRef<[number, number, number]>(DEFAULT_ACCENT);
+  const intensityRef = useRef<number>(intensity);
 
   useEffect(() => {
     colorModeRef.current = colorMode;
@@ -428,6 +601,10 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
       fixedRef.current = hexToRgb(colorMode);
     }
   }, [colorMode]);
+
+  useEffect(() => {
+    intensityRef.current = intensity;
+  }, [intensity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -493,7 +670,12 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
           }
 
           if (trackKey !== currentKey) {
-            profileRef.current = createProceduralProfile(trackKey, track.name, artistText, track.duration_ms);
+            profileRef.current = createProceduralProfile(
+              trackKey,
+              track.name,
+              artistText,
+              track.duration_ms
+            );
             const requestId = profileRequestRef.current + 1;
             profileRequestRef.current = requestId;
             loadSpotifyDynamics(track)
@@ -547,7 +729,7 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
     };
 
     void poll();
-    const id = setInterval(poll, 900);
+    const id = setInterval(poll, 650);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -604,28 +786,44 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
       t: number,
       edge: Edge,
       profile: DynamicsProfile,
-      section: VisualSection,
-      beatPhase: number
+      moment: Moment,
+      beatPhase: number,
+      seconds: number
     ): number => {
+      const section = moment.section;
       const phase = EDGE_PHASE[edge] + (profile.seed % 1000) * 0.002;
       const tempoFactor = clamp(section.tempo / 129, 0.65, 1.45);
       const movement = 0.82 + section.density * 0.38;
+      // Harmonic weights drift with the song position so the shape keeps evolving.
+      const w1 = 0.36 + smoothNoise(profile.seed + 41, seconds * 0.18 + EDGE_PHASE[edge]) * 0.28;
+      const w2 = 0.18 + smoothNoise(profile.seed + 42, seconds * 0.13 + EDGE_PHASE[edge]) * 0.24;
+      const w3 = 0.1 + textureLevel * 0.18;
+      const wShimmer = moment.shimmer * 0.24;
       let s = 0;
-      s += Math.sin(p * Math.PI * 2 * (3 + textureLevel * 0.8) + t * 2.6 * tempoFactor * movement + phase) * 0.5;
+      s +=
+        Math.sin(
+          p * Math.PI * 2 * (3 + textureLevel * 0.8) + t * 2.6 * tempoFactor * movement + phase
+        ) * w1;
       s +=
         Math.sin(
           p * Math.PI * 2 * (7 + section.texture * 1.6) -
             t * 3.7 * tempoFactor * movement +
             phase * 1.3
-        ) * 0.3;
+        ) * w2;
       s +=
         Math.sin(
           p * Math.PI * 2 * (13 + profile.dynamicRange * 2.2) +
             t * 5.0 * tempoFactor * (0.8 + textureLevel * 0.55)
-        ) * 0.2;
+        ) * w3;
+      if (wShimmer > 0.004) {
+        s += Math.sin(p * Math.PI * 2 * 21 - t * 7.5 * tempoFactor + phase * 1.7) * wShimmer;
+      }
+      s /= w1 + w2 + w3 + wShimmer;
+      // The bass lobe travels along the edge, flipping direction per bar.
+      const dir = seededUnit(profile.seed, 800 + (moment.barIndex % 16)) < 0.5 ? 1 : -1;
       const travellingBass = Math.sin(
         p * Math.PI * 2 * (1.8 + profile.danceability * 2.4) -
-          beatPhase * Math.PI * 2 +
+          dir * beatPhase * Math.PI * 2 +
           phase * 0.9
       );
       const bassLobe = clamp((travellingBass + 1) / 2) ** 3 * bassLevel * profile.bassWeight;
@@ -640,8 +838,9 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
       const playback = playbackRef.current;
       const profile = profileRef.current;
       const seconds = estimateProgressSeconds(playback, now);
-      const section = getSection(profile, seconds);
-      const beat = getBeatPulse(profile, seconds, section);
+      const moment = getMoment(profile, seconds);
+      const section = moment.section;
+      const beat = getBeatPulse(profile, seconds, moment);
       const volume = clamp(volumeRef.current);
       const playing = playback.isPlaying ? 1 : 0;
 
@@ -650,7 +849,7 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
         clamp(
           0.16 +
             volume * 0.38 +
-            section.intensity * 0.62 +
+            (section.intensity + moment.lift) * 0.62 +
             beat.kick * 0.18 -
             profile.acousticness * 0.06,
           0,
@@ -659,7 +858,7 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
       const targetBass =
         playing *
         clamp(
-          (beat.kick * 1.65 + section.bass * 0.28) *
+          (beat.kick * 1.65 + section.bass * 0.28 + moment.bassBoost) *
             section.bass *
             (0.66 + volume * 0.82) *
             (0.6 + profile.bassWeight * 0.9),
@@ -669,21 +868,26 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
       const targetTexture =
         playing *
         clamp(
-          (section.texture * 0.34 + beat.kick * section.density * 0.66) *
+          (section.texture * 0.34 +
+            beat.kick * section.density * 0.66 +
+            moment.textureBoost * 0.5) *
             (0.3 + profile.dynamicRange * 0.82),
           0,
           1
         );
 
-      level = easeToward(level, targetLevel, 9.5, 3.4, dt);
-      bassLevel = easeToward(bassLevel, targetBass, 30, 5.2, dt);
-      textureLevel = easeToward(textureLevel, targetTexture, 14, 4.4, dt);
+      // Fast attack so transients land the frame they happen; releases stay musical.
+      level = easeToward(level, targetLevel, 20, 4.2, dt);
+      bassLevel = Math.max(targetBass, bassLevel * Math.exp(-dt * lerp(5, 9, profile.bassWeight)));
+      textureLevel = Math.max(targetTexture, textureLevel * Math.exp(-dt * 7));
 
       const w = window.innerWidth;
       const h = window.innerHeight;
       ctx.clearRect(0, 0, w, h);
 
       if (level > 0.006) {
+        // 100 keeps the stock look; below shrinks the effect, above pushes it.
+        const gain = clamp(intensityRef.current / 100, 0.2, 2);
         const minSide = Math.min(w, h);
         const punch = 0.55 + bassLevel * 2.45 + textureLevel * 0.28;
         const maxDepth = Math.min(
@@ -691,19 +895,30 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
           minSide *
             0.34 *
             clamp(level * (0.72 + section.intensity * 0.5) + bassLevel * 0.72, 0.05, 1.55) *
-            punch
+            punch *
+            gain
         );
         const [r, g, b] = resolveColor(t);
-        const edgeAlpha = Math.min(0.72, 0.55 * level * (0.7 + 0.75 * bassLevel));
+        const edgeAlpha = Math.min(
+          Math.min(0.78, 0.72 * (0.75 + 0.25 * gain)),
+          0.55 * level * (0.7 + 0.75 * bassLevel) * (0.75 + 0.25 * gain)
+        );
 
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${0.7 * level})`;
         ctx.shadowBlur = (18 + 34 * bassLevel) * level;
 
+        // Waves ease off toward the corners so adjacent edges meet in a low,
+        // calm glow instead of stacking to a bright blob under "lighter".
+        const cornerEase = (p: number) => {
+          const s = clamp(Math.min(p, 1 - p) / 0.22);
+          return 0.25 + 0.75 * s * s * (3 - 2 * s);
+        };
+
         const depthAt = (p: number, edge: Edge) => {
-          const sectionWave = waveNorm(p, t, edge, profile, section, beat.phase);
-          return (0.12 + 0.88 * sectionWave) * maxDepth;
+          const sectionWave = waveNorm(p, t, edge, profile, moment, beat.phase, seconds);
+          return (0.12 + 0.88 * sectionWave) * maxDepth * cornerEase(p);
         };
 
         const grad = (x0: number, y0: number, x1: number, y1: number) => {
@@ -757,6 +972,40 @@ export default function MusicVisualizer({ colorMode }: MusicVisualizerProps) {
         ctx.closePath();
         ctx.fillStyle = grad(w, 0, w - maxDepth, 0);
         ctx.fill();
+
+        // Rounded blooms grow out of each corner, breathing with the ends of
+        // their neighbouring edges so the frame reads as one continuous ring.
+        const cornerSpecs: {
+          x: number;
+          y: number;
+          edgeA: Edge;
+          pA: number;
+          edgeB: Edge;
+          pB: number;
+        }[] = [
+          { x: 0, y: 0, edgeA: "top", pA: 0, edgeB: "left", pB: 0 },
+          { x: w, y: 0, edgeA: "top", pA: 1, edgeB: "right", pB: 0 },
+          { x: w, y: h, edgeA: "bottom", pA: 1, edgeB: "right", pB: 1 },
+          { x: 0, y: h, edgeA: "bottom", pA: 0, edgeB: "left", pB: 1 },
+        ];
+        for (const corner of cornerSpecs) {
+          const wave =
+            (waveNorm(corner.pA, t, corner.edgeA, profile, moment, beat.phase, seconds) +
+              waveNorm(corner.pB, t, corner.edgeB, profile, moment, beat.phase, seconds)) /
+            2;
+          const radius = Math.max(10, (0.45 + 0.65 * wave) * maxDepth * 1.2);
+          const bloom = ctx.createRadialGradient(corner.x, corner.y, 0, corner.x, corner.y, radius);
+          bloom.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${edgeAlpha * 0.85})`);
+          bloom.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${edgeAlpha * 0.32})`);
+          bloom.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+          ctx.fillStyle = bloom;
+          ctx.fillRect(
+            corner.x === 0 ? 0 : w - radius,
+            corner.y === 0 ? 0 : h - radius,
+            radius,
+            radius
+          );
+        }
 
         ctx.restore();
       }

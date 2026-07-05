@@ -1,0 +1,55 @@
+{
+  "name": "aurora",
+
+  "panel": {
+    "background": "linear-gradient(160deg, rgba(9, 20, 24, 0.92) 0%, rgba(12, 26, 33, 0.92) 45%, rgba(17, 24, 39, 0.94) 100%)",
+    "borderRadius": 18,
+    "shadow": "0 18px 48px rgba(4, 12, 15, 0.7), 0 0 0 1px rgba(94, 234, 212, 0.08)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(13, 27, 33, 0.6)",
+    "panelBorder": "rgba(94, 234, 212, 0.12)",
+    "text": "#E6FBF6",
+    "textMuted": "rgba(190, 227, 220, 0.68)",
+    "itemHover": "rgba(94, 234, 212, 0.08)",
+    "itemActive": "rgba(94, 234, 212, 0.16)",
+    "accent": "#5EEAD4"
+  },
+
+  "controls": {
+    "iconColor": "#B9F4E8",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(94, 234, 212, 0.1)"
+  },
+
+  "playbar": {
+    "trackBg": "rgba(148, 233, 218, 0.14)",
+    "trackFill": "linear-gradient(90deg, #34D399 0%, #22D3EE 52%, #A78BFA 100%)",
+    "thumbColor": "#ECFEFF",
+    "timeTextColor": "rgba(174, 224, 216, 0.8)"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#F2FFFB",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#6EE7D2",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#A7F3E5",
+    "iconBackground": "rgba(94, 234, 212, 0.06)",
+    "iconBackgroundHover": "rgba(94, 234, 212, 0.14)"
+  },
+
+  "cover": {
+    "borderColor": "rgba(94, 234, 212, 0.35)",
+    "borderRadius": 12
+  }
+}

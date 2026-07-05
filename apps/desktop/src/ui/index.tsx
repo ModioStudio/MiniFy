@@ -17,6 +17,9 @@ import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
+import LayoutD from "./layouts/LayoutD";
+import LayoutE from "./layouts/LayoutE";
+import LayoutF from "./layouts/LayoutF";
 
 import AddToPlaylistView from "./views/AddToPlaylistView";
 import AIDJView from "./views/AIDJView";
@@ -45,6 +48,7 @@ export default function App() {
   const [showAIQueueBorder, setShowAIQueueBorder] = useState<boolean>(true);
   const [showMusicVisualizer, setShowMusicVisualizer] = useState<boolean>(false);
   const [musicVisualizerColor, setMusicVisualizerColor] = useState<string>("theme");
+  const [musicVisualizerIntensity, setMusicVisualizerIntensity] = useState<number>(100);
   const [windowOpacity, setWindowOpacity] = useState<number>(100);
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState<AddToPlaylistTrack>(null);
   const [_isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
@@ -62,6 +66,7 @@ export default function App() {
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
       setShowMusicVisualizer(settings.show_music_visualizer ?? false);
       setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
+      setMusicVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
       setWindowOpacity(settings.window_opacity ?? 100);
 
       const providerType = await getActiveProviderType();
@@ -289,6 +294,9 @@ export default function App() {
   const renderLayout = () => {
     if (layout === "LayoutB") return <LayoutB onAddToPlaylist={handleOpenAddToPlaylist} />;
     if (layout === "LayoutC") return <LayoutC />;
+    if (layout === "LayoutD") return <LayoutD />;
+    if (layout === "LayoutE") return <LayoutE />;
+    if (layout === "LayoutF") return <LayoutF />;
     return <LayoutA />;
   };
 
@@ -315,6 +323,7 @@ export default function App() {
           onUpdateAIQueueBorder={setShowAIQueueBorder}
           onUpdateMusicVisualizer={setShowMusicVisualizer}
           onUpdateMusicVisualizerColor={setMusicVisualizerColor}
+          onUpdateMusicVisualizerIntensity={setMusicVisualizerIntensity}
           onUpdateWindowOpacity={setWindowOpacity}
           onMusicProviderChange={(provider) => {
             setIsYouTubeActive(provider === "youtube");
@@ -387,7 +396,7 @@ export default function App() {
       <div className="drag-area" onMouseDown={handleDragStart} />
       {renderView()}
       {showMusicVisualizer && view === "app" && (
-        <MusicVisualizer colorMode={musicVisualizerColor} />
+        <MusicVisualizer colorMode={musicVisualizerColor} intensity={musicVisualizerIntensity} />
       )}
       {showBorder && (
         <div

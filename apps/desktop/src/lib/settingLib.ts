@@ -92,6 +92,7 @@ export type Settings = {
   window_opacity: number;
   show_music_visualizer: boolean;
   music_visualizer_color: string;
+  music_visualizer_intensity: number;
   last_played_track: LastPlayedTrack | null;
   provider_playback_cache: ProviderPlaybackCache | null;
   youtube_volume: number | null;
@@ -154,6 +155,7 @@ export async function readSettings(): Promise<Settings> {
       window_opacity: settings.window_opacity ?? 100,
       show_music_visualizer: settings.show_music_visualizer ?? false,
       music_visualizer_color: settings.music_visualizer_color ?? "theme",
+      music_visualizer_intensity: settings.music_visualizer_intensity ?? 100,
       last_played_track: settings.last_played_track ?? null,
       provider_playback_cache: settings.provider_playback_cache ?? null,
       youtube_volume: settings.youtube_volume ?? null,
@@ -172,6 +174,7 @@ export async function readSettings(): Promise<Settings> {
       window_opacity: 100,
       show_music_visualizer: false,
       music_visualizer_color: "theme",
+      music_visualizer_intensity: 100,
       last_played_track: null,
       provider_playback_cache: null,
       youtube_volume: null,

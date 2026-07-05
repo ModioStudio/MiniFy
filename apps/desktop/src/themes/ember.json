@@ -1,0 +1,55 @@
+{
+  "name": "ember",
+
+  "panel": {
+    "background": "linear-gradient(155deg, rgba(28, 14, 16, 0.93) 0%, rgba(35, 17, 18, 0.93) 50%, rgba(23, 12, 17, 0.94) 100%)",
+    "borderRadius": 18,
+    "shadow": "0 18px 48px rgba(12, 4, 4, 0.72), 0 0 0 1px rgba(251, 146, 60, 0.09)"
+  },
+
+  "settings": {
+    "panelBg": "rgba(38, 19, 20, 0.6)",
+    "panelBorder": "rgba(251, 146, 60, 0.14)",
+    "text": "#FDEDE4",
+    "textMuted": "rgba(234, 200, 186, 0.68)",
+    "itemHover": "rgba(251, 146, 60, 0.09)",
+    "itemActive": "rgba(251, 146, 60, 0.17)",
+    "accent": "#FB923C"
+  },
+
+  "controls": {
+    "iconColor": "#F8C9A6",
+    "iconColorActive": "#FFFFFF",
+    "iconBackground": "transparent",
+    "iconBackgroundHover": "rgba(251, 146, 60, 0.12)"
+  },
+
+  "playbar": {
+    "trackBg": "rgba(251, 191, 160, 0.16)",
+    "trackFill": "linear-gradient(90deg, #F43F5E 0%, #FB923C 55%, #FBBF24 100%)",
+    "thumbColor": "#FFF7ED",
+    "timeTextColor": "rgba(245, 206, 184, 0.82)"
+  },
+
+  "typography": {
+    "songTitle": {
+      "color": "#FFF6EF",
+      "weight": 600
+    },
+    "songArtist": {
+      "color": "#FDBA74",
+      "weight": 400
+    }
+  },
+
+  "actions": {
+    "iconColor": "#FBCFA3",
+    "iconBackground": "rgba(251, 146, 60, 0.07)",
+    "iconBackgroundHover": "rgba(251, 146, 60, 0.16)"
+  },
+
+  "cover": {
+    "borderColor": "rgba(251, 146, 60, 0.38)",
+    "borderRadius": 12
+  }
+}

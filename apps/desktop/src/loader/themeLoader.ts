@@ -1,8 +1,10 @@
+import aurora from "../themes/aurora.json" with { type: "json" };
 import bmw from "../themes/bmw.json" with { type: "json" };
 import catppuccin from "../themes/catppuccin.json" with { type: "json" };
 import chatgpt from "../themes/chatgpt.json" with { type: "json" };
 import dark from "../themes/dark.json" with { type: "json" };
 import dracula from "../themes/dracula.json" with { type: "json" };
+import ember from "../themes/ember.json" with { type: "json" };
 import light from "../themes/light.json" with { type: "json" };
 import milka from "../themes/milka.json" with { type: "json" };
 import youtube from "../themes/youtube.json" with { type: "json" };
@@ -108,6 +110,8 @@ export const THEMES: Record<string, ThemeConfig> = {
   bmw: transformTheme(bmw),
   youtube: transformTheme(youtube),
   chatgpt: transformTheme(chatgpt),
+  aurora: transformTheme(aurora),
+  ember: transformTheme(ember),
 };
 
 export function applyThemeConfig(t: ThemeConfig): void {
