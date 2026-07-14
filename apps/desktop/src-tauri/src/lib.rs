@@ -2,6 +2,7 @@ use tauri::Manager;
 
 pub mod ai_keyring;
 pub mod custom_themes;
+mod credential_store;
 pub mod debug;
 pub mod discord_rpc;
 pub mod resize;

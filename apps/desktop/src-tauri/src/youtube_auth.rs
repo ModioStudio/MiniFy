@@ -1,3 +1,4 @@
+use crate::credential_store;
 use chrono::Utc;
 use rand::RngCore;
 use reqwest::header::CONTENT_TYPE;
@@ -8,10 +9,8 @@ use std::sync::{Arc, Mutex};
 use tauri::async_runtime as rt;
 use tauri::AppHandle;
 use tauri::Emitter;
-use keyring::Entry;
 use tokio::time::sleep;
 
-const KEYRING_SERVICE: &str = "minify";
 const YT_ACCESS_TOKEN_KEY: &str = "youtube_access_token";
 const YT_REFRESH_TOKEN_KEY: &str = "youtube_refresh_token";
 const YT_TOKEN_EXPIRY_KEY: &str = "youtube_token_expiry";
@@ -88,17 +87,13 @@ fn clear_cached_yt_client_secret() {
     }
 }
 
-fn entry(key: &str) -> Result<Entry, keyring::Error> {
-    Entry::new(KEYRING_SERVICE, key)
-}
-
 async fn get_stored_youtube_client_id() -> Option<String> {
     if let Some(cached) = get_cached_yt_client_id() {
         return Some(cached);
     }
     
     let result = tokio::task::spawn_blocking(|| {
-        entry(YT_CLIENT_ID_KEY).ok().and_then(|e| e.get_password().ok())
+        credential_store::get(YT_CLIENT_ID_KEY).ok()
     })
     .await
     .ok()
@@ -117,7 +112,7 @@ async fn get_stored_youtube_client_secret() -> Option<String> {
     }
     
     let result = tokio::task::spawn_blocking(|| {
-        entry(YT_CLIENT_SECRET_KEY).ok().and_then(|e| e.get_password().ok())
+        credential_store::get(YT_CLIENT_SECRET_KEY).ok()
     })
     .await
     .ok()
@@ -158,14 +153,10 @@ pub async fn save_youtube_credentials(client_id: String, client_secret: String) 
     let secret_clone = client_secret_trimmed.clone();
     
     tokio::task::spawn_blocking(move || {
-        entry(YT_CLIENT_ID_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&id_clone)
-            .map_err(|e| format!("Failed to save YouTube client ID: {}", e))?;
-        entry(YT_CLIENT_SECRET_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&secret_clone)
-            .map_err(|e| format!("Failed to save YouTube client secret: {}", e))
+        credential_store::set(YT_CLIENT_ID_KEY, &id_clone)
+            .map_err(|e| format!("Failed to save YouTube client ID: {e}"))?;
+        credential_store::set(YT_CLIENT_SECRET_KEY, &secret_clone)
+            .map_err(|e| format!("Failed to save YouTube client secret: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))??;
@@ -205,18 +196,12 @@ async fn save_youtube_tokens(tokens: &YouTubeTokens) -> Result<(), String> {
     let expires_at = tokens.expires_at.to_string();
     
     tokio::task::spawn_blocking(move || {
-        entry(YT_ACCESS_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&access_token)
-            .map_err(|e| format!("Failed to save YouTube access token: {}", e))?;
-        entry(YT_REFRESH_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&refresh_token)
-            .map_err(|e| format!("Failed to save YouTube refresh token: {}", e))?;
-        entry(YT_TOKEN_EXPIRY_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&expires_at)
-            .map_err(|e| format!("Failed to save YouTube token expiry: {}", e))?;
+        credential_store::set(YT_ACCESS_TOKEN_KEY, &access_token)
+            .map_err(|e| format!("Failed to save YouTube access token: {e}"))?;
+        credential_store::set(YT_REFRESH_TOKEN_KEY, &refresh_token)
+            .map_err(|e| format!("Failed to save YouTube refresh token: {e}"))?;
+        credential_store::set(YT_TOKEN_EXPIRY_KEY, &expires_at)
+            .map_err(|e| format!("Failed to save YouTube token expiry: {e}"))?;
         Ok::<(), String>(())
     })
     .await
@@ -233,18 +218,12 @@ pub async fn get_youtube_tokens() -> Result<YouTubeTokens, String> {
     }
     
     let result = tokio::task::spawn_blocking(|| -> Result<YouTubeTokens, String> {
-        let access_token = entry(YT_ACCESS_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get YouTube access token: {}", e))?;
-        let refresh_token = entry(YT_REFRESH_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get YouTube refresh token: {}", e))?;
-        let expires_at_str = entry(YT_TOKEN_EXPIRY_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get YouTube token expiry: {}", e))?;
+        let access_token = credential_store::get(YT_ACCESS_TOKEN_KEY)
+            .map_err(|e| format!("Failed to get YouTube access token: {e}"))?;
+        let refresh_token = credential_store::get(YT_REFRESH_TOKEN_KEY)
+            .map_err(|e| format!("Failed to get YouTube refresh token: {e}"))?;
+        let expires_at_str = credential_store::get(YT_TOKEN_EXPIRY_KEY)
+            .map_err(|e| format!("Failed to get YouTube token expiry: {e}"))?;
         let expires_at = expires_at_str
             .parse::<i64>()
             .map_err(|e| format!("Failed to parse expiry: {}", e))?;
@@ -281,11 +260,11 @@ pub async fn clear_youtube_credentials() -> Result<(), String> {
     clear_cached_yt_tokens();
 
     tokio::task::spawn_blocking(|| {
-        if let Ok(e) = entry(YT_ACCESS_TOKEN_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(YT_REFRESH_TOKEN_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(YT_TOKEN_EXPIRY_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(YT_CLIENT_ID_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(YT_CLIENT_SECRET_KEY) { let _ = e.delete_password(); }
+        let _ = credential_store::delete(YT_ACCESS_TOKEN_KEY);
+        let _ = credential_store::delete(YT_REFRESH_TOKEN_KEY);
+        let _ = credential_store::delete(YT_TOKEN_EXPIRY_KEY);
+        let _ = credential_store::delete(YT_CLIENT_ID_KEY);
+        let _ = credential_store::delete(YT_CLIENT_SECRET_KEY);
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?;

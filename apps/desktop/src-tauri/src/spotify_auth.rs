@@ -1,4 +1,5 @@
-﻿use base64::{engine::general_purpose, Engine as _};
+use crate::credential_store;
+use base64::{engine::general_purpose, Engine as _};
 use chrono::Utc;
 use rand::RngCore;
 use reqwest::header::CONTENT_TYPE;
@@ -10,10 +11,8 @@ use std::sync::{Arc, Mutex};
 use tauri::async_runtime as rt;
 use tauri::AppHandle;
 use tauri::Emitter;
-use keyring::Entry;
 use tokio::time::sleep;
 
-const KEYRING_SERVICE: &str = "minify";
 /// Port for the local OAuth callback server. Must match the port registered in
 /// the Spotify app's Redirect URI.
 const CALLBACK_PORT: u16 = 3000;
@@ -90,17 +89,13 @@ fn clear_cached_client_id() {
     }
 }
 
-fn entry(key: &str) -> Result<Entry, keyring::Error> {
-    Entry::new(KEYRING_SERVICE, key)
-}
-
 async fn get_stored_spotify_client_id() -> Option<String> {
     if let Some(cached) = get_cached_client_id() {
         return Some(cached);
     }
     
     let result = tokio::task::spawn_blocking(|| {
-        entry(SPOTIFY_CLIENT_ID_KEY).ok().and_then(|e| e.get_password().ok())
+        credential_store::get(SPOTIFY_CLIENT_ID_KEY).ok()
     })
     .await
     .ok()
@@ -129,10 +124,8 @@ pub async fn save_spotify_client_id(client_id: String) -> Result<(), String> {
     
     let client_id_clone = client_id_trimmed.clone();
     tokio::task::spawn_blocking(move || {
-        entry(SPOTIFY_CLIENT_ID_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&client_id_clone)
-            .map_err(|e| format!("Failed to save client ID: {}", e))
+        credential_store::set(SPOTIFY_CLIENT_ID_KEY, &client_id_clone)
+            .map_err(|e| format!("Failed to save client ID: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -195,10 +188,8 @@ fn generate_code_challenge(verifier: &str) -> String {
 pub async fn set_music_provider(provider: String) -> Result<(), String> {
     let provider_clone = provider.clone();
     tokio::task::spawn_blocking(move || {
-        entry(MUSIC_PROVIDER_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&provider_clone)
-            .map_err(|e| format!("Failed to save music provider: {}", e))
+        credential_store::set(MUSIC_PROVIDER_KEY, &provider_clone)
+            .map_err(|e| format!("Failed to save music provider: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))??;
@@ -214,10 +205,8 @@ pub async fn get_music_provider() -> Result<String, String> {
     }
     
     let result = tokio::task::spawn_blocking(|| {
-        entry(MUSIC_PROVIDER_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get music provider: {}", e))
+        credential_store::get(MUSIC_PROVIDER_KEY)
+            .map_err(|e| format!("Failed to get music provider: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))??;
@@ -237,18 +226,12 @@ async fn save_tokens(tokens: &SpotifyTokens) -> Result<(), String> {
     let expires_at = tokens.expires_at.to_string();
     
     tokio::task::spawn_blocking(move || {
-        entry(ACCESS_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&access_token)
-            .map_err(|e| format!("Failed to save access token: {}", e))?;
-        entry(REFRESH_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&refresh_token)
-            .map_err(|e| format!("Failed to save refresh token: {}", e))?;
-        entry(TOKEN_EXPIRY_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&expires_at)
-            .map_err(|e| format!("Failed to save token expiry: {}", e))?;
+        credential_store::set(ACCESS_TOKEN_KEY, &access_token)
+            .map_err(|e| format!("Failed to save access token: {e}"))?;
+        credential_store::set(REFRESH_TOKEN_KEY, &refresh_token)
+            .map_err(|e| format!("Failed to save refresh token: {e}"))?;
+        credential_store::set(TOKEN_EXPIRY_KEY, &expires_at)
+            .map_err(|e| format!("Failed to save token expiry: {e}"))?;
         Ok::<(), String>(())
     })
     .await
@@ -282,18 +265,12 @@ pub async fn get_tokens() -> Result<SpotifyTokens, String> {
     }
     
     let result = tokio::task::spawn_blocking(|| -> Result<SpotifyTokens, String> {
-        let access_token = entry(ACCESS_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get access token: {}", e))?;
-        let refresh_token = entry(REFRESH_TOKEN_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get refresh token: {}", e))?;
-        let expires_at_str = entry(TOKEN_EXPIRY_KEY)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get token expiry: {}", e))?;
+        let access_token = credential_store::get(ACCESS_TOKEN_KEY)
+            .map_err(|e| format!("Failed to get access token: {e}"))?;
+        let refresh_token = credential_store::get(REFRESH_TOKEN_KEY)
+            .map_err(|e| format!("Failed to get refresh token: {e}"))?;
+        let expires_at_str = credential_store::get(TOKEN_EXPIRY_KEY)
+            .map_err(|e| format!("Failed to get token expiry: {e}"))?;
         let expires_at = expires_at_str
             .parse::<i64>()
             .map_err(|e| format!("Failed to parse expiry: {}", e))?;
@@ -330,11 +307,11 @@ pub async fn clear_credentials() -> Result<(), String> {
     clear_cached_music_provider();
     
     tokio::task::spawn_blocking(|| {
-        if let Ok(e) = entry(ACCESS_TOKEN_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(REFRESH_TOKEN_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(TOKEN_EXPIRY_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(MUSIC_PROVIDER_KEY) { let _ = e.delete_password(); }
-        if let Ok(e) = entry(SPOTIFY_CLIENT_ID_KEY) { let _ = e.delete_password(); }
+        let _ = credential_store::delete(ACCESS_TOKEN_KEY);
+        let _ = credential_store::delete(REFRESH_TOKEN_KEY);
+        let _ = credential_store::delete(TOKEN_EXPIRY_KEY);
+        let _ = credential_store::delete(MUSIC_PROVIDER_KEY);
+        let _ = credential_store::delete(SPOTIFY_CLIENT_ID_KEY);
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?;

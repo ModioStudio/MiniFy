@@ -1,9 +1,8 @@
-﻿use keyring::Entry;
+use crate::credential_store;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-const KEYRING_SERVICE: &str = "minify";
 const AI_KEY_PREFIX: &str = "ai_key_";
 
 lazy_static::lazy_static! {
@@ -18,10 +17,6 @@ pub struct AIProviderKeyring {
 
 fn get_ai_key_name(provider: &str) -> String {
     format!("{}{}", AI_KEY_PREFIX, provider)
-}
-
-fn entry(key: &str) -> Result<Entry, keyring::Error> {
-    Entry::new(KEYRING_SERVICE, key)
 }
 
 fn get_cached_ai_key(provider: &str) -> Option<String> {
@@ -59,10 +54,8 @@ pub async fn save_ai_api_key(provider: String, api_key: String) -> Result<(), St
     let api_key_clone = api_key_trimmed.clone();
     
     tokio::task::spawn_blocking(move || {
-        entry(&key_name)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .set_password(&api_key_clone)
-            .map_err(|e| format!("Failed to save AI API key: {}", e))
+        credential_store::set(&key_name, &api_key_clone)
+            .map_err(|e| format!("Failed to save AI API key: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -78,10 +71,8 @@ pub async fn get_ai_api_key(provider: String) -> Result<String, String> {
     let provider_clone = provider.clone();
     
     let result = tokio::task::spawn_blocking(move || {
-        entry(&key_name)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .get_password()
-            .map_err(|e| format!("Failed to get AI API key: {}", e))
+        credential_store::get(&key_name)
+            .map_err(|e| format!("Failed to get AI API key: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))??;
@@ -100,7 +91,7 @@ pub async fn has_ai_api_key(provider: String) -> bool {
     let provider_clone = provider.clone();
     
     let result = tokio::task::spawn_blocking(move || {
-        entry(&key_name).ok().and_then(|e| e.get_password().ok())
+        credential_store::get(&key_name).ok()
     })
     .await
     .ok()
@@ -119,10 +110,8 @@ pub async fn delete_ai_api_key(provider: String) -> Result<(), String> {
     
     let key_name = get_ai_key_name(&provider);
     tokio::task::spawn_blocking(move || {
-        entry(&key_name)
-            .map_err(|e| format!("Keyring error: {}", e))?
-            .delete_password()
-            .map_err(|e| format!("Failed to delete AI API key: {}", e))
+        credential_store::delete(&key_name)
+            .map_err(|e| format!("Failed to delete AI API key: {e}"))
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -152,9 +141,7 @@ pub async fn clear_all_ai_keys() -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
         for p in providers {
             let key_name = get_ai_key_name(p);
-            if let Ok(e) = entry(&key_name) {
-                let _ = e.delete_password();
-            }
+            let _ = credential_store::delete(&key_name);
         }
         Ok::<(), String>(())
     })
