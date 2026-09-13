@@ -91,11 +91,6 @@ fn clear_cached_music_provider() {
     }
 }
 
-fn get_embedded_spotify_client_id() -> Option<String> {
-    option_env!("SPOTIFY_CLIENT_ID")
-        .and_then(normalize_spotify_client_id)
-}
-
 fn normalize_spotify_client_id(client_id: &str) -> Option<String> {
     let trimmed = client_id.trim();
     if trimmed.len() == 32 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -147,7 +142,7 @@ async fn get_stored_spotify_client_id() -> Option<String> {
 
 #[tauri::command]
 pub async fn has_spotify_client_id() -> bool {
-    get_embedded_spotify_client_id().is_some() || get_stored_spotify_client_id().await.is_some()
+    get_stored_spotify_client_id().await.is_some()
 }
 
 #[tauri::command]
@@ -461,8 +456,8 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
     
     sleep(std::time::Duration::from_millis(100)).await;
 
-    let client_id = get_embedded_spotify_client_id()
-        .or(get_stored_spotify_client_id().await)
+    let client_id = get_stored_spotify_client_id()
+        .await
         .ok_or_else(|| "No Spotify Client ID configured. Please set up your Client ID first.".to_string())?;
 
     if let Ok(mut s) = AUTH_STATE.lock() {
@@ -687,8 +682,8 @@ mod tests {
 #[tauri::command]
 pub async fn refresh_access_token() -> Result<SpotifyTokens, String> {
     let tokens = get_tokens().await?;
-    let client_id = get_embedded_spotify_client_id()
-        .or(get_stored_spotify_client_id().await)
+    let client_id = get_stored_spotify_client_id()
+        .await
         .ok_or_else(|| "No Spotify Client ID configured".to_string())?;
     let form = [
         ("grant_type", "refresh_token"),

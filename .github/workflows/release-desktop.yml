@@ -157,23 +157,10 @@ jobs:
           "
           echo "Updated tauri.conf.json version to ${VERSION}"
 
-      - name: Validate Spotify Client ID
-        shell: bash
-        env:
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-        run: |
-          set -euo pipefail
-
-          if [[ ! "$SPOTIFY_CLIENT_ID" =~ ^[0-9a-fA-F]{32}$ ]]; then
-            echo "::error::SPOTIFY_CLIENT_ID must be the 32-character Client ID from the Spotify Developer Dashboard."
-            exit 1
-          fi
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
         with:
           projectPath: apps/desktop
           tauriScript: pnpm tauri
