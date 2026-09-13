@@ -68,6 +68,16 @@ export interface ProviderCapabilities {
   hasQueue: boolean;
   hasExternalPlayback: boolean;
   hasLikedSongs: boolean;
+  /** Provider exposes other playback targets the user can switch between. */
+  hasConnectDevices: boolean;
+}
+
+export interface UnifiedUserProfile {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  provider: MusicProviderType;
+  subtitle?: string;
 }
 
 export interface MusicProvider {
@@ -79,6 +89,7 @@ export interface MusicProvider {
 
   getCurrentTrack(): Promise<UnifiedTrack | null>;
   getPlaybackState(): Promise<PlaybackState | null>;
+  getUserProfile(): Promise<UnifiedUserProfile>;
 
   play(): void;
   pause(): void;
@@ -101,11 +112,7 @@ export interface MusicProvider {
     offset: number
   ): Promise<PlaylistTracksResult>;
   addToPlaylist(playlistId: string, trackUri: string): Promise<void>;
-  playPlaylistFromIndex?(
-    playlistId: string,
-    trackIndex: number,
-    trackUri?: string
-  ): Promise<void>;
+  playPlaylistFromIndex?(playlistId: string, trackIndex: number, trackUri?: string): Promise<void>;
 }
 
 export interface ProviderAuthState {

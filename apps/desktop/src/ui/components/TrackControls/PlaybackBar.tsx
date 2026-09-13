@@ -7,6 +7,12 @@ type PlaybackBarProps = {
   isPlaying: boolean;
   onSeek?: (ms: number) => void;
   className?: string;
+  /**
+   * "stacked" puts the timestamps above the bar, which is what the mini player
+   * needs in its narrow layout. "inline" puts them either side, so the whole
+   * transport stays one row high in the desktop player bar.
+   */
+  variant?: "stacked" | "inline";
 };
 
 function msToTime(ms: number): string {
@@ -31,6 +37,7 @@ export function PlaybackBar({
   isPlaying,
   onSeek,
   className = "",
+  variant = "stacked",
 }: PlaybackBarProps) {
   const [localProgress, setLocalProgress] = useState(progressMs ?? 0);
   const lastTick = useRef<number | null>(null);
@@ -125,46 +132,68 @@ export function PlaybackBar({
     [localProgress, durationMs, onSeek]
   );
 
-  return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-(--player-playbar-time-color) text-base tabular-nums font-circular italic">
-          {msToTime(localProgress)}
-        </span>
-        <span className="text-(--player-playbar-time-color) text-base tabular-nums font-circular italic">
-          {msToTime(durationMs)}
-        </span>
-      </div>
+  const elapsedLabel = (
+    <span className="playbar-time text-(--player-playbar-time-color) tabular-nums font-circular">
+      {msToTime(localProgress)}
+    </span>
+  );
+  const totalLabel = (
+    <span className="playbar-time text-(--player-playbar-time-color) tabular-nums font-circular">
+      {msToTime(durationMs)}
+    </span>
+  );
+
+  const track = (
+    <div
+      className="relative h-2 w-full rounded-full cursor-pointer select-none"
+      style={{ background: "var(--player-playbar-track-bg)" }}
+      role="slider"
+      aria-label="Seek"
+      aria-valuemin={0}
+      aria-valuemax={durationMs}
+      aria-valuenow={localProgress}
+      aria-valuetext={`${msToTime(localProgress)} of ${msToTime(durationMs)}`}
+      tabIndex={0}
+      onPointerDown={startDrag}
+      onPointerMove={onDrag}
+      onPointerUp={endDrag}
+      onClick={handlePointer}
+      onKeyDown={handleKeyDown}
+    >
       <div
-        className="relative h-2 w-full rounded-full cursor-pointer select-none"
-        style={{ background: "var(--player-playbar-track-bg)" }}
-        role="slider"
-        aria-valuemin={0}
-        aria-valuemax={durationMs}
-        aria-valuenow={localProgress}
-        tabIndex={0}
-        onPointerDown={startDrag}
-        onPointerMove={onDrag}
-        onPointerUp={endDrag}
-        onClick={handlePointer}
-        onKeyDown={handleKeyDown}
-      >
-        <div
-          className="absolute left-0 top-0 h-full rounded-full    "
-          style={{
-            width: `${pct}%`,
-            background: "var(--player-playbar-track-fill)",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
-          }}
-        />
-        <div
-          className="absolute top-1/2 -translate-y-1/2 -ml-1 h-3 w-3 rounded-full shadow"
-          style={{
-            left: `${pct}%`,
-            background: "var(--player-playbar-thumb-color)",
-          }}
-        />
+        className="absolute left-0 top-0 h-full rounded-full"
+        style={{
+          width: `${pct}%`,
+          background: "var(--player-playbar-track-fill)",
+        }}
+      />
+      <div
+        className="playbar-thumb absolute top-1/2 -translate-y-1/2 -ml-1 h-3 w-3 rounded-full"
+        style={{
+          left: `${pct}%`,
+          background: "var(--player-playbar-thumb-color)",
+        }}
+      />
+    </div>
+  );
+
+  if (variant === "inline") {
+    return (
+      <div className={`playbar playbar-inline ${className}`}>
+        {elapsedLabel}
+        {track}
+        {totalLabel}
       </div>
+    );
+  }
+
+  return (
+    <div className={`playbar playbar-stacked flex flex-col gap-1 ${className}`}>
+      <div className="flex items-center justify-between">
+        {elapsedLabel}
+        {totalLabel}
+      </div>
+      {track}
     </div>
   );
 }

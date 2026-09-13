@@ -37,7 +37,7 @@ export function TrackControls({
 
       if (next) {
         const playbackState = await provider.getPlaybackState();
-        const hasActiveTrack = playbackState?.track !== null;
+        const hasActiveTrack = playbackState?.track != null;
 
         if (!hasActiveTrack) {
           const cached = await getLastPlayedForProvider(providerType);

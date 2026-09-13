@@ -304,6 +304,17 @@ export interface YouTubePlaylistItemResource {
   };
 }
 
+export interface YouTubeChannelResponse {
+  items: Array<{
+    id: string;
+    snippet: {
+      title: string;
+      customUrl?: string;
+      thumbnails: YouTubeVideoSnippet["thumbnails"];
+    };
+  }>;
+}
+
 export interface YouTubePlaylistItemsResponse {
   items: YouTubePlaylistItemResource[];
   pageInfo: {
@@ -361,6 +372,38 @@ export async function fetchYouTubePlaylistItems(
     items: response.items || [],
     total: response.pageInfo.totalResults,
     nextPageToken: response.nextPageToken,
+  };
+}
+
+export async function fetchYouTubeUserProfile(): Promise<{
+  id: string;
+  title: string;
+  customUrl?: string;
+  imageUrl: string | null;
+}> {
+  const params = new URLSearchParams({
+    part: "snippet",
+    mine: "true",
+  });
+
+  const response = await youtubeRequest<YouTubeChannelResponse>(
+    `https://www.googleapis.com/youtube/v3/channels?${params}`
+  );
+  const channel = response.items[0];
+
+  if (!channel) {
+    throw new Error("No YouTube channel found for this account");
+  }
+
+  const thumbnails = channel.snippet.thumbnails;
+  const bestThumbnail =
+    thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
+
+  return {
+    id: channel.id,
+    title: channel.snippet.title,
+    customUrl: channel.snippet.customUrl,
+    imageUrl: bestThumbnail?.url ?? null,
   };
 }
 

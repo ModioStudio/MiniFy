@@ -16,6 +16,7 @@ export interface PlaybackQueueState {
   ) => void;
   setSingleTrack: (track: UnifiedTrack, provider: MusicProviderType) => void;
   advanceToNext: () => UnifiedTrack | null;
+  rewindToPrevious: () => UnifiedTrack | null;
   getCurrentTrack: () => UnifiedTrack | null;
   getNextTrack: () => UnifiedTrack | null;
   getRemainingCount: () => number;
@@ -54,6 +55,16 @@ export const usePlaybackQueueStore = create<PlaybackQueueState>((set, get) => ({
     if (nextIndex < state.tracks.length) {
       set({ currentIndex: nextIndex });
       return state.tracks[nextIndex] ?? null;
+    }
+    return null;
+  },
+
+  rewindToPrevious: () => {
+    const state = get();
+    const previousIndex = state.currentIndex - 1;
+    if (previousIndex >= 0) {
+      set({ currentIndex: previousIndex });
+      return state.tracks[previousIndex] ?? null;
     }
     return null;
   },

@@ -16,6 +16,8 @@ type Edge = "top" | "bottom" | "left" | "right";
 type MusicVisualizerProps = {
   colorMode: string;
   intensity?: number;
+  fit?: "viewport" | "container";
+  className?: string;
 };
 
 type PlaybackSignal = {
@@ -574,7 +576,12 @@ function estimateProgressSeconds(playback: PlaybackSignal, now: number): number 
 
 const idleProfile = createProceduralProfile("idle", "", "", 180000);
 
-export default function MusicVisualizer({ colorMode, intensity = 100 }: MusicVisualizerProps) {
+export default function MusicVisualizer({
+  colorMode,
+  intensity = 100,
+  fit = "viewport",
+  className = "",
+}: MusicVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const playbackRef = useRef<PlaybackSignal>({
     provider: null,
@@ -761,18 +768,30 @@ export default function MusicVisualizer({ colorMode, intensity = 100 }: MusicVis
     let textureLevel = 0;
     let last = performance.now();
 
+    let width = 0;
+    let height = 0;
+
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      const bounds =
+        fit === "container"
+          ? (canvas.parentElement?.getBoundingClientRect() ?? canvas.getBoundingClientRect())
+          : null;
+      width = Math.max(1, Math.round(bounds?.width ?? window.innerWidth));
+      height = Math.max(1, Math.round(bounds?.height ?? window.innerHeight));
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
+    const observedElement = fit === "container" ? canvas.parentElement : null;
+    const resizeObserver = observedElement ? new ResizeObserver(resize) : null;
+    if (observedElement) {
+      resizeObserver?.observe(observedElement);
+    }
 
     const resolveColor = (t: number): [number, number, number] => {
       const mode = colorModeRef.current;
@@ -881,8 +900,8 @@ export default function MusicVisualizer({ colorMode, intensity = 100 }: MusicVis
       bassLevel = Math.max(targetBass, bassLevel * Math.exp(-dt * lerp(5, 9, profile.bassWeight)));
       textureLevel = Math.max(targetTexture, textureLevel * Math.exp(-dt * 7));
 
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = width;
+      const h = height;
       ctx.clearRect(0, 0, w, h);
 
       if (level > 0.006) {
@@ -1017,13 +1036,14 @@ export default function MusicVisualizer({ colorMode, intensity = 100 }: MusicVis
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      resizeObserver?.disconnect();
     };
-  }, []);
+  }, [fit]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 pointer-events-none z-40"
+      className={`music-visualizer-canvas absolute inset-0 pointer-events-none z-40 ${className}`}
       style={{ borderRadius: "12px" }}
     />
   );

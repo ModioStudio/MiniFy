@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { startPlaylistPlayback } from "../../lib/playback/playbackQueueService";
+import { usePlaybackQueueStore } from "../../lib/playback/playbackQueueStore";
 import type { YouTubePlayerRef } from "../../ui/components/YouTubePlayer";
 import type {
   MusicProvider,
@@ -8,11 +9,13 @@ import type {
   PlaylistTracksResult,
   ProviderCapabilities,
   UnifiedTrack,
+  UnifiedUserProfile,
 } from "../types";
 import {
   addVideoToYouTubePlaylist,
   fetchYouTubePlaylistItems,
   fetchYouTubeUserPlaylists,
+  fetchYouTubeUserProfile,
   getVideoDetails,
   playlistItemToTrackData,
   searchYouTubeVideos,
@@ -22,7 +25,7 @@ import {
 let playerRef: YouTubePlayerRef | null = null;
 let currentTrack: UnifiedTrack | null = null;
 let recentlyPlayedTracks: UnifiedTrack[] = [];
-let cachedPlaylistTracks: Map<string, UnifiedTrack[]> = new Map();
+const cachedPlaylistTracks: Map<string, UnifiedTrack[]> = new Map();
 const MAX_RECENT_TRACKS = 50;
 
 export function setYouTubePlayerRef(ref: YouTubePlayerRef | null): void {
@@ -115,12 +118,32 @@ class YouTubeProviderImpl implements MusicProvider {
     playerRef?.pause();
   }
 
+  // YouTube has no Connect-style transport, so skipping walks MiniFy's own
+  // queue — the same queue playlist playback and the AI DJ already fill.
   nextTrack(): void {
-    console.warn("YouTube Provider: nextTrack not implemented - use AI DJ queue");
+    const next = usePlaybackQueueStore.getState().advanceToNext();
+    if (!next) {
+      console.warn("YouTube Provider: nothing queued after the current track");
+      return;
+    }
+    void this.playTrack(next.uri);
   }
 
   previousTrack(): void {
-    console.warn("YouTube Provider: previousTrack not implemented");
+    const state = playerRef?.getState();
+    // Match the usual transport convention: restart the track first, and only
+    // step back when the user hits previous again near the start.
+    if (state && state.currentTime > 3) {
+      playerRef?.seek(0);
+      return;
+    }
+
+    const previous = usePlaybackQueueStore.getState().rewindToPrevious();
+    if (!previous) {
+      playerRef?.seek(0);
+      return;
+    }
+    void this.playTrack(previous.uri);
   }
 
   seek(positionMs: number): void {
@@ -184,7 +207,19 @@ class YouTubeProviderImpl implements MusicProvider {
       hasPlaylists: true,
       hasQueue: false,
       hasExternalPlayback: false,
+      hasConnectDevices: false,
       hasLikedSongs: false,
+    };
+  }
+
+  async getUserProfile(): Promise<UnifiedUserProfile> {
+    const profile = await fetchYouTubeUserProfile();
+    return {
+      id: profile.id,
+      name: profile.title,
+      imageUrl: profile.imageUrl,
+      provider: "youtube",
+      subtitle: profile.customUrl ?? "YouTube account",
     };
   }
 

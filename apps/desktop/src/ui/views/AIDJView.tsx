@@ -23,6 +23,8 @@ import type { MusicProviderType } from "../../providers/types";
 
 type AIDJViewProps = {
   onBack: () => void;
+  onOpenSettings?: () => void;
+  surface?: "mini" | "desktop";
 };
 
 type ChatMessage = {
@@ -76,8 +78,10 @@ async function buildUserContext(): Promise<string> {
   return contextParts.length > 0 ? `[User Context]\n${contextParts.join("\n")}\n[End Context]` : "";
 }
 
-export default function AIDJView({ onBack }: AIDJViewProps) {
+export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
+  const isDesktop = surface === "desktop";
+  const title = isDesktop ? "AI Chat" : "AI DJ";
   const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -103,8 +107,9 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
   };
 
   useEffect(() => {
+    if (isDesktop) return;
     setLayout("AIDJ");
-  }, [setLayout]);
+  }, [isDesktop, setLayout]);
 
   const handleScroll = () => {
     const container = messagesContainerRef.current;
@@ -259,15 +264,17 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Waveform size={24} weight="fill" style={{ color: "var(--settings-accent)" }} />
-            <h1 className="text-base font-semibold">AI DJ</h1>
+            <h1 className="text-base font-semibold">{title}</h1>
           </div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
-          >
-            <ArrowLeft size={20} weight="bold" />
-          </button>
+          {!isDesktop && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft size={20} weight="bold" />
+            </button>
+          )}
         </div>
 
         <div
@@ -285,14 +292,14 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
           </p>
           <button
             type="button"
-            onClick={onBack}
+            onClick={onOpenSettings ?? onBack}
             className="mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-90"
             style={{
               background: "var(--settings-accent)",
               color: "#000",
             }}
           >
-            Go to Settings
+            {onOpenSettings ? "Open Settings" : "Go to Settings"}
           </button>
         </div>
       </div>
@@ -313,7 +320,7 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Waveform size={24} weight="fill" style={{ color: "var(--settings-accent)" }} />
-          <h1 className="text-base font-semibold">AI DJ</h1>
+          <h1 className="text-base font-semibold">{title}</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -336,13 +343,15 @@ export default function AIDJView({ onBack }: AIDJViewProps) {
             )}
             {aiQueueActive ? "Stop Queue" : "AI Queue"}
           </button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
-          >
-            <ArrowLeft size={20} weight="bold" />
-          </button>
+          {!isDesktop && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-full w-8 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft size={20} weight="bold" />
+            </button>
+          )}
         </div>
       </div>
 

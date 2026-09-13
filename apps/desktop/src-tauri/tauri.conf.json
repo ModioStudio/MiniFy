@@ -15,12 +15,16 @@
     "windows": [
       {
         "title": "MiniFy",
-        "decorations": false,
-        "minWidth": 400,
-        "minHeight": 200,
-        "resizable": false,
-        "transparent": true,
-        "alwaysOnTop": true
+        "label": "main",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 640,
+        "decorations": true,
+        "resizable": true,
+        "maximized": true,
+        "transparent": false,
+        "alwaysOnTop": false
       }
     ],
     "security": {
@@ -40,9 +44,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGMzVDRDRGQ0UyRTdEMTgKUldRWWZTN09UODAxZnpvemRYYXc1TTJycERLR3F5cVZXNHBuZ0lTeGpXdXlhR3Ivbjh0ZXNETCsK",
-      "endpoints": [
-        "https://github.com/ModioStudio/MiniFy/releases/latest/download/latest.json"
-      ],
+      "endpoints": ["https://github.com/ModioStudio/MiniFy/releases/latest/download/latest.json"],
       "windows": {
         "installMode": "passive"
       }

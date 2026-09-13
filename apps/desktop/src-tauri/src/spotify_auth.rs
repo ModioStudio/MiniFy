@@ -27,7 +27,31 @@ const ACCESS_TOKEN_KEY: &str = "access_token";
 const REFRESH_TOKEN_KEY: &str = "refresh_token";
 const TOKEN_EXPIRY_KEY: &str = "token_expiry";
 const MUSIC_PROVIDER_KEY: &str = "music_provider";
+const GRANTED_SCOPES_KEY: &str = "spotify_granted_scopes";
 const SPOTIFY_CLIENT_ID_KEY: &str = "spotify_client_id";
+
+/// Scopes MiniFy asks for. `streaming` is what lets the Web Playback SDK
+/// register MiniFy as a Spotify Connect device and decode audio itself, so an
+/// install authorised before that scope existed can talk to the Web API but can
+/// never play anything locally. Refresh tokens keep the scope set they were
+/// issued with, so widening this list has to force a re-login — see
+/// `spotify_scopes_up_to_date`.
+const REQUIRED_SCOPES: &[&str] = &[
+    "streaming",
+    "user-read-private",
+    "user-read-email",
+    "user-read-playback-state",
+    "user-modify-playback-state",
+    "user-read-currently-playing",
+    "user-read-playback-position",
+    "playlist-read-private",
+    "playlist-modify-public",
+    "playlist-modify-private",
+    "user-top-read",
+    "user-read-recently-played",
+    "user-library-read",
+    "user-library-modify",
+];
 
 lazy_static::lazy_static! {
     static ref CLIENT_ID_CACHE: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
@@ -220,6 +244,38 @@ pub async fn has_music_provider() -> bool {
     get_music_provider().await.is_ok()
 }
 
+async fn save_granted_scopes(scope: Option<String>) {
+    let Some(scope) = scope else { return };
+    let _ = tokio::task::spawn_blocking(move || credential_store::set(GRANTED_SCOPES_KEY, &scope)).await;
+}
+
+async fn read_granted_scopes() -> Option<String> {
+    tokio::task::spawn_blocking(|| credential_store::get(GRANTED_SCOPES_KEY).ok())
+        .await
+        .ok()
+        .flatten()
+}
+
+/// `Some(false)` when the stored authorisation predates a scope MiniFy now
+/// needs, so the frontend can send the user back through the login flow instead
+/// of silently running with a token that cannot stream.
+///
+/// `None` means MiniFy has not seen a token response yet — installs that
+/// authorised before scope tracking existed land here. That is not evidence of
+/// a bad grant, so it must not be reported as one; the scope set is recorded on
+/// the next refresh and the answer becomes definite.
+#[tauri::command]
+pub async fn spotify_scopes_up_to_date() -> Option<bool> {
+    let granted = read_granted_scopes().await?;
+    let granted: Vec<&str> = granted.split_whitespace().collect();
+    Some(REQUIRED_SCOPES.iter().all(|needed| granted.contains(needed)))
+}
+
+#[tauri::command]
+pub fn spotify_required_scopes() -> Vec<String> {
+    REQUIRED_SCOPES.iter().map(|s| s.to_string()).collect()
+}
+
 async fn save_tokens(tokens: &SpotifyTokens) -> Result<(), String> {
     let access_token = tokens.access_token.clone();
     let refresh_token = tokens.refresh_token.clone();
@@ -310,6 +366,7 @@ pub async fn clear_credentials() -> Result<(), String> {
         let _ = credential_store::delete(ACCESS_TOKEN_KEY);
         let _ = credential_store::delete(REFRESH_TOKEN_KEY);
         let _ = credential_store::delete(TOKEN_EXPIRY_KEY);
+        let _ = credential_store::delete(GRANTED_SCOPES_KEY);
         let _ = credential_store::delete(MUSIC_PROVIDER_KEY);
         let _ = credential_store::delete(SPOTIFY_CLIENT_ID_KEY);
     })
@@ -347,6 +404,7 @@ async fn exchange_code_for_tokens(state: &AuthState, code: &str) -> Result<Spoti
         access_token: String,
         refresh_token: Option<String>,
         expires_in: i64,
+        scope: Option<String>,
     }
 
     let tr: TokenResponse = response
@@ -358,6 +416,7 @@ async fn exchange_code_for_tokens(state: &AuthState, code: &str) -> Result<Spoti
     let refresh_token = tr
         .refresh_token
         .ok_or_else(|| "Missing refresh_token in response".to_string())?;
+    save_granted_scopes(tr.scope).await;
 
     Ok(SpotifyTokens { access_token: tr.access_token, refresh_token, expires_at })
 }
@@ -478,12 +537,12 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
 
     let redirect_uri = urlencoding::encode(REDIRECT_URI);
-    let scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-modify-public playlist-modify-private user-top-read user-read-recently-played user-library-read";
+    let scopes = REQUIRED_SCOPES.join(" ");
     let auth_url = format!(
         "https://accounts.spotify.com/authorize?client_id={}&response_type=code&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
         urlencoding::encode(&client_id),
         redirect_uri,
-        urlencoding::encode(scopes),
+        urlencoding::encode(&scopes),
         code_challenge,
         state_nonce
     );
@@ -623,6 +682,7 @@ pub async fn refresh_access_token() -> Result<SpotifyTokens, String> {
         access_token: String,
         refresh_token: Option<String>,
         expires_in: i64,
+        scope: Option<String>,
     }
 
     let rr: RefreshResponse = response
@@ -632,6 +692,7 @@ pub async fn refresh_access_token() -> Result<SpotifyTokens, String> {
 
     let expires_at = Utc::now().timestamp() + rr.expires_in - 30;
     let refresh_token = rr.refresh_token.unwrap_or(tokens.refresh_token);
+    save_granted_scopes(rr.scope).await;
 
     let updated = SpotifyTokens { access_token: rr.access_token, refresh_token, expires_at };
     save_tokens(&updated).await?;

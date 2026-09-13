@@ -125,15 +125,23 @@ type SettingsProps = {
   onUpdateMusicVisualizerIntensity?: (intensity: number) => void;
   onUpdateWindowOpacity?: (opacity: number) => void;
   onMusicProviderChange?: (provider: MusicProviderType) => void;
+  /**
+   * Which window is rendering this. The mini player is a 400px floating panel,
+   * the desktop shell is a full window with its own navigation — they need
+   * different densities and expose different settings.
+   */
+  surface?: "mini" | "desktop";
 };
 
 const categories = [
-  { key: "appearance", label: "Appearance", icon: GearSix },
-  { key: "layout", label: "Layout", icon: SquaresFour },
-  { key: "themestudio", label: "Theme Studio", icon: PaintBrush },
-  { key: "connections", label: "Connections", icon: Link },
-  { key: "aidj", label: "AI DJ", icon: Brain },
-  { key: "privacy", label: "Privacy", icon: ShieldCheck },
+  { key: "appearance", label: "Appearance", icon: GearSix, miniOnly: false },
+  // Layout picks a mini-player size preset, which the resizable desktop window
+  // has no use for.
+  { key: "layout", label: "Mini player", icon: SquaresFour, miniOnly: true },
+  { key: "themestudio", label: "Theme Studio", icon: PaintBrush, miniOnly: false },
+  { key: "connections", label: "Connections", icon: Link, miniOnly: false },
+  { key: "aidj", label: "AI DJ", icon: Brain, miniOnly: false },
+  { key: "privacy", label: "Privacy", icon: ShieldCheck, miniOnly: false },
 ] as const;
 
 // Preset colours for the music visualizer. "theme" follows the accent colour,
@@ -221,7 +229,12 @@ export default function Settings({
   onUpdateMusicVisualizerIntensity,
   onUpdateWindowOpacity,
   onMusicProviderChange,
+  surface = "mini",
 }: SettingsProps) {
+  const isDesktop = surface === "desktop";
+  const visibleCategories = categories.filter((category) =>
+    isDesktop ? !category.miniOnly : true
+  );
   const { setLayout } = useWindowLayout();
   const [active, setActive] = useState<(typeof categories)[number]["key"]>("appearance");
   const [currentTheme, setCurrentTheme] = useState<string>("dark");
@@ -640,35 +653,33 @@ export default function Settings({
   };
 
   return (
-    <div className="h-full w-full p-4" style={{ color: "var(--settings-text)" }}>
-      <div
-        className="flex items-center justify-between mb-3"
-        style={{ color: "var(--settings-header-text)" }}
-      >
-        <h1 className="text-base font-semibold">Settings</h1>
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back"
-          // Bug Report, DragArea grab cursor collision with Settings Nav (Urgent 2 fix)
-          className="mt-3 rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.95] transition-transform duration-150 hover:bg-[rgba(255,255,255,0.08)]"
-        >
-          <ArrowLeft size={20} weight="bold" />
-        </button>
+    <div
+      className={`settings-surface settings-surface--${surface} h-full w-full`}
+      style={{ color: "var(--settings-text)" }}
+    >
+      <div className="settings-topbar" style={{ color: "var(--settings-header-text)" }}>
+        <h1>Settings</h1>
+        {!isDesktop && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back"
+            // Bug Report, DragArea grab cursor collision with Settings Nav (Urgent 2 fix)
+            className="rounded-full w-8 h-8 flex items-center justify-center active:scale-[0.95] transition-transform duration-150 hover:bg-[rgba(255,255,255,0.08)]"
+          >
+            <ArrowLeft size={20} weight="bold" />
+          </button>
+        )}
       </div>
 
-      <div className="h-[calc(100%-40px)] w-full grid grid-cols-[160px_1fr] gap-3">
+      <div className="settings-body">
         {/* Sidebar */}
         <div
-          className="rounded-xl border overflow-auto text-sm"
-          style={{
-            background: "var(--settings-panel-bg)",
-            borderColor: "var(--settings-panel-border)",
-            color: "var(--settings-text)",
-          }}
+          className="settings-pane settings-pane-nav overflow-auto text-sm"
+          style={{ color: "var(--settings-text)" }}
         >
           <ul className="py-2">
-            {categories.map(({ key, label, icon: Icon }) => (
+            {visibleCategories.map(({ key, label, icon: Icon }) => (
               <li key={key} className="relative">
                 <button
                   type="button"
@@ -692,12 +703,8 @@ export default function Settings({
         {/* Main Panel */}
         <div
           key={active}
-          className="rounded-xl border overflow-auto text-sm p-4 transition-all duration-300 ease-in-out opacity-0 animate-fadeIn"
-          style={{
-            background: "var(--settings-panel-bg)",
-            borderColor: "var(--settings-panel-border)",
-            color: "var(--settings-text)",
-          }}
+          className="settings-pane settings-pane-main overflow-auto text-sm transition-all duration-300 ease-in-out opacity-0 animate-fadeIn"
+          style={{ color: "var(--settings-text)" }}
         >
           {active === "connections" && (
             <div className="flex flex-col gap-4">
@@ -721,9 +728,9 @@ export default function Settings({
                 return (
                   <div
                     key={id}
-                    className={`flex items-center justify-between p-4 rounded-xl border ${!available ? "opacity-50" : ""}`}
+                    className={`settings-connection-row flex items-center justify-between p-4 rounded-xl border ${!available ? "opacity-50" : ""}`}
                     style={{
-                      background: "rgba(0, 0, 0, 0.2)",
+                      background: "var(--settings-card-bg)",
                       borderColor:
                         isConnected && isActive
                           ? `${color}50`
@@ -846,9 +853,9 @@ export default function Settings({
               </p>
 
               <div
-                className="flex items-center justify-between p-4 rounded-xl border"
+                className="settings-connection-row flex items-center justify-between p-4 rounded-xl border"
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
+                  background: "var(--settings-card-bg)",
                   borderColor: discordRpcEnabled ? "#5865F230" : "rgba(255, 255, 255, 0.1)",
                 }}
               >
@@ -916,9 +923,9 @@ export default function Settings({
                 return (
                   <div
                     key={id}
-                    className="flex flex-col gap-2 p-4 rounded-xl border"
+                    className="settings-connection-row flex flex-col gap-2 p-4 rounded-xl border"
                     style={{
-                      background: "rgba(0, 0, 0, 0.2)",
+                      background: "var(--settings-card-bg)",
                       borderColor:
                         isConnected && isActive
                           ? `${color}50`
@@ -1028,11 +1035,14 @@ export default function Settings({
 
           {active === "appearance" && (
             <div className="flex flex-col gap-4">
+              {/* The desktop window is opaque by design, so transparency is a
+                  mini-player-only control. */}
               <div
                 className="p-4 rounded-xl border"
+                hidden={isDesktop}
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  background: "var(--settings-card-bg)",
+                  borderColor: "var(--settings-card-border)",
                 }}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -1078,10 +1088,10 @@ export default function Settings({
               <div
                 className="p-4 rounded-xl border"
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: showMusicVisualizer
-                    ? "var(--settings-accent)"
-                    : "rgba(255, 255, 255, 0.1)",
+                  background: "var(--settings-card-bg)",
+                  // The toggle already shows the on/off state; ringing the whole
+                  // section in the accent colour on top of it just shouts.
+                  borderColor: "var(--settings-card-border)",
                 }}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -1426,8 +1436,8 @@ export default function Settings({
               <div
                 className="flex items-center justify-between p-4 rounded-xl border"
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  background: "var(--settings-card-bg)",
+                  borderColor: "var(--settings-card-border)",
                 }}
               >
                 <div className="flex flex-col gap-1">
@@ -1487,8 +1497,8 @@ export default function Settings({
               <div
                 className="p-4 rounded-xl border"
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  background: "var(--settings-card-bg)",
+                  borderColor: "var(--settings-card-border)",
                 }}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -1566,7 +1576,7 @@ export default function Settings({
               <div
                 className="p-3 rounded-lg text-xs space-y-1.5"
                 style={{
-                  background: "rgba(0, 0, 0, 0.2)",
+                  background: "var(--settings-card-bg)",
                   borderLeft: "3px solid var(--settings-accent)",
                 }}
               >

@@ -8,6 +8,7 @@ import ember from "../themes/ember.json" with { type: "json" };
 import light from "../themes/light.json" with { type: "json" };
 import milka from "../themes/milka.json" with { type: "json" };
 import youtube from "../themes/youtube.json" with { type: "json" };
+import { applyDesktopThemeVars } from "./desktopTheme";
 
 export type ThemeConfig = {
   name: string;
@@ -166,6 +167,10 @@ export function applyThemeConfig(t: ThemeConfig): void {
   root.style.setProperty("--settings-item-hover", t.settings?.itemHover ?? "#ffffff14");
   root.style.setProperty("--settings-item-active", t.settings?.itemActive ?? "#ffffff24");
   root.style.setProperty("--settings-accent", t.settings?.accent ?? "#74C7EC");
+
+  // The desktop shell needs opaque surfaces the mini-player themes do not
+  // define, so they are derived from the same theme rather than hard-coded.
+  applyDesktopThemeVars(t);
 }
 
 export function applyThemeByName(themeName: string): void {

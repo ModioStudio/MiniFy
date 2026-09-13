@@ -1,8 +1,8 @@
-use tauri::Manager;
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub mod ai_keyring;
-pub mod custom_themes;
 mod credential_store;
+pub mod custom_themes;
 pub mod debug;
 pub mod discord_rpc;
 pub mod resize;
@@ -40,6 +40,32 @@ async fn clear_everything(app: tauri::AppHandle) -> Result<(), String> {
     clear_all::execute(&app).await
 }
 
+#[tauri::command]
+async fn open_mini_player(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("mini") {
+        window.show().map_err(|err| err.to_string())?;
+        window.set_focus().map_err(|err| err.to_string())?;
+        return Ok(());
+    }
+
+    WebviewWindowBuilder::new(
+        &app,
+        "mini",
+        WebviewUrl::App("index.html?window=mini".into()),
+    )
+    .title("MiniFy Mini Player")
+    .inner_size(500.0, 150.0)
+    .min_inner_size(400.0, 118.0)
+    .resizable(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .build()
+    .map_err(|err| err.to_string())?;
+
+    Ok(())
+}
+
 pub fn run() {
     let discord_state = discord_rpc::DiscordState::new();
 
@@ -57,6 +83,7 @@ pub fn run() {
         .manage(discord_state)
         .invoke_handler(tauri::generate_handler![
             clear_everything,
+            open_mini_player,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,
@@ -72,6 +99,8 @@ pub fn run() {
             spotify_auth::start_oauth_flow,
             spotify_auth::cancel_oauth_flow,
             spotify_auth::refresh_access_token,
+            spotify_auth::spotify_scopes_up_to_date,
+            spotify_auth::spotify_required_scopes,
             spotify_auth::clear_credentials,
             ai_keyring::save_ai_api_key,
             ai_keyring::get_ai_api_key,
@@ -80,6 +109,7 @@ pub fn run() {
             ai_keyring::get_all_ai_providers,
             ai_keyring::clear_all_ai_keys,
             debug::open_webview_devtools,
+            debug::log_diagnostic,
             resize::set_layout,
             custom_themes::save_custom_theme,
             custom_themes::load_custom_themes,
@@ -119,4 +149,3 @@ pub fn run() {
         }
     });
 }
-

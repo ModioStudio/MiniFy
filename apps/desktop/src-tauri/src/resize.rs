@@ -1,4 +1,4 @@
-use tauri::{WebviewWindow, Size, LogicalSize};
+use tauri::{LogicalSize, Size, WebviewWindow};
 
 #[derive(serde::Deserialize)]
 pub enum Layout {
@@ -16,17 +16,51 @@ pub enum Layout {
 
 #[tauri::command]
 pub fn set_layout(window: WebviewWindow, layout: Layout) {
+    if window.label() != "mini" {
+        return;
+    }
+
     let size = match layout {
-        Layout::A => LogicalSize { width: 500.0, height: 150.0 },
-        Layout::B => LogicalSize { width: 400.0, height: 200.0 },
-        Layout::C => LogicalSize { width: 400.0, height: 200.0 },
-        Layout::D => LogicalSize { width: 520.0, height: 236.0 },
-        Layout::E => LogicalSize { width: 400.0, height: 424.0 },
-        Layout::F => LogicalSize { width: 620.0, height: 118.0 },
-        Layout::Settings => LogicalSize { width: 800.0, height: 800.0 },
-        Layout::SearchSongs => LogicalSize { width: 400.0, height: 600.0 },
-        Layout::AIDJ => LogicalSize { width: 400.0, height: 600.0 },
-        Layout::Volume => LogicalSize { width: 300.0, height: 280.0 },
+        Layout::A => LogicalSize {
+            width: 500.0,
+            height: 150.0,
+        },
+        Layout::B => LogicalSize {
+            width: 400.0,
+            height: 200.0,
+        },
+        Layout::C => LogicalSize {
+            width: 400.0,
+            height: 200.0,
+        },
+        Layout::D => LogicalSize {
+            width: 520.0,
+            height: 236.0,
+        },
+        Layout::E => LogicalSize {
+            width: 400.0,
+            height: 424.0,
+        },
+        Layout::F => LogicalSize {
+            width: 620.0,
+            height: 118.0,
+        },
+        Layout::Settings => LogicalSize {
+            width: 800.0,
+            height: 800.0,
+        },
+        Layout::SearchSongs => LogicalSize {
+            width: 400.0,
+            height: 600.0,
+        },
+        Layout::AIDJ => LogicalSize {
+            width: 400.0,
+            height: 600.0,
+        },
+        Layout::Volume => LogicalSize {
+            width: 300.0,
+            height: 280.0,
+        },
     };
 
     window.set_size(Size::Logical(size)).unwrap();

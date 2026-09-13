@@ -1,31 +1,56 @@
 import { getActiveProviderType } from "../../providers";
-import {
-  getDevices,
-  getPlayerState,
-  play as spotifyPlay,
-  transferPlayback,
-  type PlayerDevice,
-} from "../../ui/spotifyClient";
+import { getDevices, getPlayerState, transferPlayback } from "../../ui/spotifyClient";
+import { logDiagnostic } from "../diagnostics";
+import { getSpotifyWebPlaybackStatus } from "../spotifyWebPlayback";
+import { getSpotifyWebPlaybackDeviceId } from "../spotifyWebPlaybackDevice";
+
+/**
+ * Keeps a Spotify Connect target alive so the transport controls always have
+ * somewhere to send commands.
+ *
+ * It deliberately does *not* chase the active device around. The previous
+ * version transferred playback to `devices.find(type === "Computer") ?? devices[0]`
+ * whenever it disliked the current state, which meant it could yank playback
+ * off MiniFy — or off a speaker the user had just picked — in the background.
+ * Now it only steps in when Spotify reports no active device at all.
+ */
 
 interface KeepAliveState {
   enabled: boolean;
-  lastActiveDeviceId: string | null;
+  /** Device the user (or the SDK) last chose. Never overridden automatically. */
+  preferredDeviceId: string | null;
   lastSuccessfulPing: number;
   consecutiveFailures: number;
 }
 
 const state: KeepAliveState = {
   enabled: true,
-  lastActiveDeviceId: null,
+  preferredDeviceId: null,
   lastSuccessfulPing: Date.now(),
   consecutiveFailures: 0,
 };
 
 const PING_INTERVAL_MS = 120_000;
-const MAX_CONSECUTIVE_FAILURES = 3;
-const RECOVERY_DELAY_MS = 2000;
+const TRANSFER_SETTLE_MS = 1500;
+/**
+ * The Web Playback SDK takes a few seconds to register MiniFy's own device.
+ * Pinging before then finds "no active device", grabs whatever unrelated
+ * speaker is listed first, and the user's music starts playing in the wrong
+ * room. Give the local device a head start.
+ */
+const FIRST_PING_DELAY_MS = 12_000;
 
 let keepAliveInterval: ReturnType<typeof setInterval> | null = null;
+let firstPingTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Records the device the user picked, so recovery returns to it. */
+export function setPreferredSpotifyDevice(deviceId: string | null): void {
+  state.preferredDeviceId = deviceId;
+}
+
+export function getPreferredSpotifyDevice(): string | null {
+  return state.preferredDeviceId ?? getSpotifyWebPlaybackDeviceId();
+}
 
 export function setKeepAliveEnabled(enabled: boolean): void {
   state.enabled = enabled;
@@ -43,14 +68,14 @@ export function isKeepAliveEnabled(): boolean {
 export function startKeepAlive(): void {
   if (keepAliveInterval) return;
 
-  keepAliveInterval = setInterval(async () => {
-    const providerType = await getActiveProviderType();
-    if (providerType !== "spotify" || !state.enabled) return;
-
-    await performKeepAlivePing();
+  keepAliveInterval = setInterval(() => {
+    void performKeepAlivePing();
   }, PING_INTERVAL_MS);
 
-  performKeepAlivePing();
+  firstPingTimer = setTimeout(() => {
+    firstPingTimer = null;
+    void performKeepAlivePing();
+  }, FIRST_PING_DELAY_MS);
 }
 
 export function stopKeepAlive(): void {
@@ -58,131 +83,76 @@ export function stopKeepAlive(): void {
     clearInterval(keepAliveInterval);
     keepAliveInterval = null;
   }
+  if (firstPingTimer) {
+    clearTimeout(firstPingTimer);
+    firstPingTimer = null;
+  }
 }
 
 async function performKeepAlivePing(): Promise<void> {
+  if (!state.enabled) return;
+  if ((await getActiveProviderType()) !== "spotify") return;
+
+  const playback = getSpotifyWebPlaybackStatus();
+  // MiniFy either is the device or is still becoming it; either way there is
+  // nothing to recover and adopting some other device would hijack playback.
+  if (playback.ready || playback.connecting) return;
+
   try {
     const playerState = await getPlayerState();
-
     if (playerState?.device) {
-      state.lastActiveDeviceId = playerState.device.id;
       state.lastSuccessfulPing = Date.now();
       state.consecutiveFailures = 0;
       return;
     }
 
-    const devices = await getDevices();
-    if (devices.length === 0) {
-      state.consecutiveFailures++;
-      return;
-    }
-
-    const activeDevice = devices.find((d) => d.is_active);
-    if (activeDevice) {
-      state.lastActiveDeviceId = activeDevice.id;
-      state.lastSuccessfulPing = Date.now();
-      state.consecutiveFailures = 0;
-      return;
-    }
-
-    state.consecutiveFailures++;
-
-    if (state.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      await attemptRecovery(devices);
-    }
-  } catch (err) {
-    state.consecutiveFailures++;
-    console.warn("Spotify keep-alive ping failed:", err);
-
-    if (state.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      try {
-        const devices = await getDevices();
-        if (devices.length > 0) {
-          await attemptRecovery(devices);
-        }
-      } catch (recoveryErr) {
-        console.error("Spotify recovery failed:", recoveryErr);
-      }
-    }
+    // No active device: Spotify has nothing to send commands to, so adopt the
+    // preferred one without starting playback.
+    await adoptPreferredDevice();
+  } catch (error) {
+    state.consecutiveFailures += 1;
+    logDiagnostic(
+      "keepalive",
+      `ping failed (${state.consecutiveFailures}): ${error instanceof Error ? error.message : error}`
+    );
   }
 }
 
-async function attemptRecovery(devices: PlayerDevice[]): Promise<void> {
-  const targetDevice =
-    devices.find((d) => d.id === state.lastActiveDeviceId) ??
-    devices.find((d) => d.type === "Computer") ??
-    devices[0];
+async function adoptPreferredDevice(): Promise<boolean> {
+  const devices = await getDevices();
+  if (devices.length === 0) return false;
 
-  if (!targetDevice) return;
+  const preferred = getPreferredSpotifyDevice();
+  const target = devices.find((device) => device.id === preferred) ?? devices[0];
+  if (!target) return false;
 
-  try {
-    await transferPlayback(targetDevice.id, false);
-    await new Promise((resolve) => setTimeout(resolve, RECOVERY_DELAY_MS));
+  await transferPlayback(target.id, false);
+  await new Promise((resolve) => setTimeout(resolve, TRANSFER_SETTLE_MS));
 
-    const newState = await getPlayerState();
-    if (newState?.device) {
-      state.lastActiveDeviceId = newState.device.id;
-      state.lastSuccessfulPing = Date.now();
-      state.consecutiveFailures = 0;
-    }
-  } catch (err) {
-    console.error("Failed to transfer playback:", err);
-  }
+  state.preferredDeviceId = target.id;
+  state.lastSuccessfulPing = Date.now();
+  state.consecutiveFailures = 0;
+  logDiagnostic("keepalive", `adopted device ${target.name}`);
+  return true;
 }
 
+/** Returns true when Spotify has a device that can accept player commands. */
 export async function ensureActiveDevice(): Promise<boolean> {
-  const providerType = await getActiveProviderType();
-  if (providerType !== "spotify") return true;
+  if ((await getActiveProviderType()) !== "spotify") return true;
 
   try {
     const playerState = await getPlayerState();
-    if (playerState?.device) {
-      state.lastActiveDeviceId = playerState.device.id;
-      return true;
-    }
-
-    const devices = await getDevices();
-    if (devices.length === 0) {
-      return false;
-    }
-
-    const targetDevice =
-      devices.find((d) => d.id === state.lastActiveDeviceId) ??
-      devices.find((d) => d.type === "Computer") ??
-      devices[0];
-
-    if (!targetDevice) return false;
-
-    await transferPlayback(targetDevice.id, false);
-    await new Promise((resolve) => setTimeout(resolve, RECOVERY_DELAY_MS));
-
-    state.lastActiveDeviceId = targetDevice.id;
-    state.consecutiveFailures = 0;
-    return true;
-  } catch (err) {
-    console.error("Failed to ensure active device:", err);
+    if (playerState?.device) return true;
+    return await adoptPreferredDevice();
+  } catch (error) {
+    logDiagnostic(
+      "keepalive",
+      `ensureActiveDevice failed: ${error instanceof Error ? error.message : error}`
+    );
     return false;
   }
 }
 
-export async function recoverAndPlay(): Promise<boolean> {
-  const hasDevice = await ensureActiveDevice();
-  if (!hasDevice) return false;
-
-  try {
-    spotifyPlay();
-    return true;
-  } catch (err) {
-    console.error("Failed to resume playback after recovery:", err);
-    return false;
-  }
-}
-
-export function getKeepAliveStatus(): {
-  enabled: boolean;
-  lastActiveDeviceId: string | null;
-  lastSuccessfulPing: number;
-  consecutiveFailures: number;
-} {
+export function getKeepAliveStatus(): KeepAliveState {
   return { ...state };
 }

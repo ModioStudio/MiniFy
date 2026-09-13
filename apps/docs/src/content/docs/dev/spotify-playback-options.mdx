@@ -1,0 +1,127 @@
+---
+title: Spotify Playback Options
+description: Primary-source research on official and unofficial ways MiniFy could play Spotify without the official Spotify desktop app.
+---
+
+# Spotify playback options
+
+Checked on 2026-09-13. Sources are primary sources: Spotify developer docs, Spotify legal pages, Spotify support pages, YouTube API terms, Google YouTube API policy, and Tauri docs.
+
+## Recommendation
+
+MiniFy should implement the Web Playback SDK first, behind a Premium-only playback path and with a Web API fallback for controlling an existing Spotify Connect device. The SDK is the only official option in this set that can create a local Spotify Connect playback device inside a web app.
+
+Before building the full feature, MiniFy should make a narrow Tauri proof of concept that loads the SDK, requests `streaming`, and confirms that the app WebView can play encrypted Spotify audio on Windows, macOS, and Linux. Spotify documents browser support, not Tauri WebView support, and Tauri uses the operating system's native web renderer.
+
+Do not implement a Spotube-style Spotify metadata plus YouTube audio path. Spotify policy prohibits products integrated with streams or content from another service, and the Widget Terms also prohibit integrating Spotify Content with streams from another service. YouTube policy also expects playback to stay in a YouTube playback experience, not as a hidden audio substitute.
+
+Embeds are useful only as a low-effort preview or promotional fallback. They are Spotify-hosted widgets with limited control and presentation rules, not a replacement for a custom mini player.
+
+## Comparison
+
+| Option | Can work without the official Spotify desktop app? | Premium requirement | Scopes | Browser or WebView support | Terms and policy concerns | Fit for MiniFy |
+| --- | --- | --- | --- | --- | --- | --- |
+| Spotify Web API controlling external devices | Partly. It can control a Spotify Connect device, but it does not create a local playback device. It works without the desktop app only when another controllable device exists, such as a phone, speaker, browser player, or SDK-created device. | Player control endpoints such as Start/Resume Playback and Transfer Playback require Premium. Spotify's Web API overview also currently says a Premium account is needed to use the Web API. | `user-read-playback-state` for available devices and playback state, `user-read-currently-playing` for the current item, and `user-modify-playback-state` for play, pause, seek, skip, volume, shuffle, repeat, queue, and transfer. | HTTP API. MiniFy can call it from the Tauri app after OAuth. Playback still happens on a Spotify Connect device outside the API. | Spotify defines Streaming to include controlling a background Spotify application. Streaming SDAs are subject to Premium and commercial-use limits. Devices can be restricted, and Web API commands are not accepted by restricted devices. | Keep as the existing control and state layer. It is not enough by itself for app-free local playback. |
+| Web Playback SDK embedded in the Tauri WebView | Yes, if the SDK works in the target WebView. Spotify says the SDK creates a local Spotify Connect device in the browser and streams Spotify audio in the web app. | Required. Spotify's SDK how-to states that Web Playback SDK requires Premium, and the `streaming` scope says the user must have Premium. | Minimum SDK tutorial scopes are `streaming`, `user-read-email`, and `user-read-private`. Add `user-read-playback-state` and `user-modify-playback-state` when MiniFy also reads Connect state or transfers playback through Web API. | Spotify lists Chrome, Firefox, Safari, and Microsoft Edge on desktop and mobile. Spotify does not explicitly list Tauri WebViews. Tauri says it uses the operating system's native web renderer, so MiniFy must test WebView2 on Windows, WKWebView on macOS, and WebKitGTK or the configured Linux webview. Autoplay and encrypted media can also affect playback. | The SDK page says the SDK must not be used in commercial projects without Spotify's prior written approval. Streaming SDAs have Spotify policy limits, including Premium-only music streaming and commercial-use restrictions. | Best first implementation for local app-free playback. Ship only after a platform proof of concept verifies DRM, autoplay, and device readiness. |
+| Spotify iframe or Embed | Yes. Playback is inside Spotify's hosted iframe, so the official desktop app is not needed. | Spotify policy allows Widgets and Audio Preview Clips to be available to non-Premium users to the extent the platform supports that functionality. Music streaming through the platform is otherwise Premium-only. Embeds can fall back to less-than-30-second previews when encrypted media fails. | No Spotify OAuth scope is needed for a static Embed or the iFrame API. The iFrame API uses Spotify's script and controller methods. | Spotify says Embeds work best in Chrome, Firefox, Edge, Opera, and Safari. Full playback needs encrypted media support, and the generated iframe must keep `allow="encrypted-media"`. Programmatic play may fail under browser autoplay policies. WebView support is not explicitly guaranteed. | Widget Terms require the widget to be displayed in the form Spotify provides, prohibit obfuscation or alteration, limit commercial use of the Play Button, and forbid local caching or content saving. | Reasonable as a fallback or docs/demo surface. Poor fit for MiniFy's custom controls, layout system, and native-feeling playback UX. |
+| Spotify metadata plus YouTube audio | It can avoid the official Spotify app, but it is not an official Spotify playback option. It uses Spotify only for metadata and another service for audio. | Spotify Premium is not what unlocks YouTube playback. YouTube playback follows YouTube's own terms and product behavior. | Spotify metadata scopes depend on the data used. YouTube Data API search can be unauthenticated for public videos, but write or account actions require YouTube authorization. | Technically possible only through YouTube's approved playback surfaces and APIs. It is not Spotify playback and does not preserve Spotify availability, licensing, queue, play count, or Connect semantics. | High risk. Spotify policy says developers must not create a product integrated with streams or content from another service. Widget Terms also prohibit integrating Spotify Content with streams from another service. YouTube API policy prohibits mixing non-YouTube sources into YouTube search results and says YouTube actions must be clearly identifiable as YouTube actions. | Do not build. It undermines Spotify licensing expectations and creates matching, attribution, availability, and policy problems. |
+
+## Findings
+
+### Web API controlling external devices
+
+Spotify describes the Web API as a way to retrieve metadata or control playback. The Web API overview says a Premium account is needed to use the Web API, and specific player endpoints such as Start/Resume Playback and Transfer Playback say that they only work for Premium users.
+
+The Web API is a remote-control surface, not an audio engine. Player endpoints target the user's active device or a `device_id`. The scopes page maps read operations to `user-read-playback-state` and `user-read-currently-playing`, and write operations to `user-modify-playback-state`.
+
+This means MiniFy can control the official desktop app, a phone, a speaker, Spotify Web Player, or a Web Playback SDK device. It cannot play locally by itself unless another component creates the playback device.
+
+Primary sources:
+
+- [Spotify Web API overview](https://developer.spotify.com/documentation/web-api)
+- [Start/Resume Playback](https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback)
+- [Transfer Playback](https://developer.spotify.com/documentation/web-api/reference/transfer-a-users-playback)
+- [Get Available Devices](https://developer.spotify.com/documentation/web-api/reference/get-a-users-available-devices)
+- [Spotify scopes](https://developer.spotify.com/documentation/web-api/concepts/scopes)
+
+### Web Playback SDK embedded in a Tauri WebView
+
+Spotify says the Web Playback SDK is a client-side JavaScript library that creates a local Spotify Connect device in the browser, streams Spotify audio inside the website, controls audio tracks, and exposes playback metadata. Spotify's SDK how-to states that the SDK requires Premium.
+
+Spotify documents the `streaming` scope as the Web Playback SDK scope and states that the user must have Premium. Spotify's tutorial also requests `streaming`, `user-read-email`, and `user-read-private`.
+
+The SDK looks like the right official path for MiniFy because it creates the missing local device. The main unknown is WebView support. Spotify lists common browsers, while Tauri says it uses the operating system's native web renderer. MiniFy should validate the SDK on every target platform before committing product work around it.
+
+Primary sources:
+
+- [Web Playback SDK overview](https://developer.spotify.com/documentation/web-playback-sdk)
+- [Building a Spotify Player inside a Web app](https://developer.spotify.com/documentation/web-playback-sdk/howtos/web-app-player)
+- [Web Playback SDK reference](https://developer.spotify.com/documentation/web-playback-sdk/reference)
+- [Spotify scopes](https://developer.spotify.com/documentation/web-api/concepts/scopes)
+- [Tauri 2.0 docs](https://v2.tauri.app/)
+
+### Spotify iframe and Embed
+
+Spotify Embeds add interactive Spotify content to a website. A static Embed can be copied from Spotify, and the iFrame API can create controllers, load entities, play, pause, resume, seek, and listen for playback events.
+
+Embeds are much less flexible than the Web Playback SDK. Spotify's troubleshooting page says unsupported browsers or a missing `allow="encrypted-media"` iframe attribute can limit playback to preview clips. The iFrame API page also warns that programmatic play may not work in every browser or for every user because of autoplay rules.
+
+The Widget Terms make embeds a constrained Spotify-controlled surface. They prohibit altering or obfuscating widgets and prohibit local caching, content saving, and integrating Spotify Content with streams from another service.
+
+Primary sources:
+
+- [Spotify Embeds overview](https://developer.spotify.com/documentation/embeds)
+- [Creating an Embed](https://developer.spotify.com/documentation/embeds/tutorials/creating-an-embed)
+- [Using the iFrame API](https://developer.spotify.com/documentation/embeds/tutorials/using-the-iframe-api)
+- [iFrame API reference](https://developer.spotify.com/documentation/embeds/references/iframe-api)
+- [Spotify Embed troubleshooting](https://developer.spotify.com/documentation/embeds/tutorials/troubleshooting)
+- [Spotify Widget Terms of Use](https://developer.spotify.com/documentation/embeds/terms)
+
+### Spotify metadata plus YouTube audio
+
+This pattern is not an official Spotify playback option. It uses Spotify catalog data to find or display tracks and then plays a matching YouTube video or audio stream.
+
+Spotify's Developer Policy prohibits products or services integrated with streams or content from another service. The same policy also says products must not mimic, replicate, or attempt to replace a core Spotify user experience without prior written permission. Spotify's Widget Terms separately prohibit integrating Spotify Platform, Spotify Service, or Spotify Content with streams from another service.
+
+YouTube policy creates another set of constraints. YouTube actions must be clearly identifiable as YouTube actions, YouTube search results must not be mixed with non-YouTube sources and presented as YouTube results, and embedded playback must not be gated by unrelated actions. The YouTube API Terms also require compliance with law and prohibit deceptive or unethical API use.
+
+Primary sources:
+
+- [Spotify Developer Policy](https://developer.spotify.com/policy)
+- [Spotify Developer Terms](https://developer.spotify.com/terms)
+- [Spotify Widget Terms of Use](https://developer.spotify.com/documentation/embeds/terms)
+- [YouTube API Services Developer Policies](https://developers.google.com/youtube/terms/developer-policies)
+- [YouTube API Services Terms of Service](https://developers.google.com/youtube/terms/api-services-terms-of-service)
+
+## Proof of concept result
+
+The WebView check this page asked for has been run. MiniFy now probes it at startup (`src/lib/drmSupport.ts`) and reports the result through the backend, so it can be re-run on any machine.
+
+Measured on Windows 11 with WebView2 Runtime 152.0.4191.66:
+
+```
+secureContext=true | ua=... Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0
+com.widevine.alpha: ok
+com.microsoft.playready.recommendation: ok
+org.w3.clearkey: ok
+```
+
+`com.widevine.alpha` resolves *and* `createMediaKeys()` succeeds, so the Evergreen WebView2 runtime ships a usable Widevine CDM (`Application/<version>/WidevineCdm/_platform_specific/win_x64/widevinecdm.dll`). The Web Playback SDK is therefore viable inside Tauri on Windows.
+
+macOS (WKWebView) and Linux (WebKitGTK) are **not** verified. Both are known to lack Widevine in the general case, and a Tauri issue reports DRM working on Windows while failing on macOS. MiniFy handles this by probing at runtime rather than assuming: when the CDM is missing it refuses to register the SDK device and falls back to Spotify Connect control, instead of registering a device that plays a few seconds and then stalls.
+
+That stall is the specific failure this probe exists to prevent. Spotify streams a short unencrypted lead-in before the encrypted payload, so a missing or outdated CDM does not fail at `connect()` — it fails roughly ten seconds into the first track, which is indistinguishable from a network or account problem from the outside.
+
+Primary sources:
+
+- [Encrypted Media Extensions](https://www.w3.org/TR/encrypted-media/)
+- [WebView2 Widevine feature request](https://github.com/MicrosoftEdge/WebView2Feedback/issues/4828)
+- [Tauri DRM playback issue](https://github.com/tauri-apps/tauri/issues/7400)
+
+## Implementation order
+
+1. Keep the Web API device-control path stable. It remains useful for users who already have a Spotify Connect target.
+2. ~~Build a Web Playback SDK proof of concept in Tauri.~~ Done on Windows; see "Proof of concept result". Still to verify on macOS and Linux.
+3. ~~Make the SDK-created device MiniFy's first app-free playback backend.~~ Done. The device registers as `MiniFy` and playback is transferred to it on `ready`, so Web API player calls land locally instead of on the official client.
+4. Add an Embed fallback only for simple preview or recovery states where a Spotify-hosted widget is acceptable.
+5. Exclude Spotify metadata plus YouTube audio from the product plan unless Spotify and YouTube grant explicit written permission for that design.

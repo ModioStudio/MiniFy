@@ -14,6 +14,7 @@ import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/you
 import AppUpdater from "./components/AppUpdater";
 import MusicVisualizer from "./components/MusicVisualizer";
 import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
+import DesktopShell from "./DesktopShell";
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
 import LayoutC from "./layouts/LayoutC";
@@ -38,7 +39,7 @@ type AddToPlaylistTrack = {
 
 type BootInitialStep = "provider" | "spotify-setup" | "youtube-setup";
 
-export default function App() {
+function MiniPlayerApp() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
   const [isReconnect, setIsReconnect] = useState<boolean>(false);
   const [bootStep, setBootStep] = useState<BootInitialStep>("provider");
@@ -416,7 +417,151 @@ export default function App() {
         onVideoChange={handleYouTubeVideoChange}
         onVideoEnded={handleYouTubeVideoEnded}
       />
+    </div>
+  );
+}
+
+function DesktopApp() {
+  const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
+  const [isReconnect, setIsReconnect] = useState(false);
+  const [bootStep, setBootStep] = useState<BootInitialStep>("provider");
+  const [theme, setTheme] = useState("dark");
+  const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
+
+  useEffect(() => {
+    document.body.classList.add("desktop-window");
+    document.body.classList.remove("mini-window");
+    return () => {
+      document.body.classList.remove("desktop-window");
+    };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const settings = await readSettings();
+      setTheme(settings.theme ?? "dark");
+
+      if (settings.first_boot_done) {
+        try {
+          const provider = await getActiveProvider();
+          const isAuth = await provider.isAuthenticated();
+          setFirstBootDone(isAuth);
+          return;
+        } catch (err) {
+          console.error("Error checking auth:", err);
+          setFirstBootDone(false);
+          return;
+        }
+      }
+
+      setFirstBootDone(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const applyTheme = async () => {
+      if (theme.startsWith("custom:")) {
+        const themeName = theme.replace("custom:", "");
+        const customThemes = await loadCustomThemes();
+        const customTheme = customThemes.find((t) => t.name === themeName);
+        if (customTheme) {
+          applyCustomThemeFromJson(JSON.stringify(customTheme));
+          return;
+        }
+      }
+      applyThemeByName(theme);
+    };
+
+    applyTheme();
+  }, [theme]);
+
+  const handleComplete = async () => {
+    const providerType = await getActiveProviderType();
+    await writeSettings({
+      first_boot_done: true,
+      active_music_provider: providerType,
+      theme,
+    });
+    setFirstBootDone(true);
+    setIsReconnect(false);
+    setBootStep("provider");
+  };
+
+  const handleResetAuth = (provider?: "spotify" | "youtube") => {
+    setIsReconnect(true);
+    if (provider === "youtube") {
+      setBootStep("youtube-setup");
+    } else if (provider === "spotify") {
+      setBootStep("spotify-setup");
+    } else {
+      setBootStep("provider");
+    }
+    setFirstBootDone(false);
+  };
+
+  const handleYouTubeReady = async () => {
+    if (!youtubePlayerRef.current) return;
+    setYouTubePlayerRef(youtubePlayerRef.current);
+
+    const settings = await readSettings();
+    youtubePlayerRef.current.setVolume(settings.youtube_volume ?? 50);
+  };
+
+  const handleYouTubeVideoChange = (data: {
+    videoId: string;
+    title: string;
+    author: string;
+    duration: number;
+  }) => {
+    updateCurrentYouTubeTrack(data);
+  };
+
+  const handleYouTubeVideoEnded = async () => {
+    const { usePlaybackQueueStore } = await import("../lib/playback/playbackQueueStore");
+    const { getActiveProvider } = await import("../providers");
+
+    const store = usePlaybackQueueStore.getState();
+    const nextTrack = store.advanceToNext();
+
+    if (nextTrack) {
+      const provider = await getActiveProvider();
+      await provider.playTrack(nextTrack.uri);
+    }
+  };
+
+  if (firstBootDone === null) {
+    return <div className="desktop-shell desktop-loading font-circular" />;
+  }
+
+  if (!firstBootDone) {
+    return (
+      <div className="h-full w-full theme-scope">
+        <Boot initialStep={bootStep} skipAuthCheck={isReconnect} onComplete={handleComplete} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full theme-scope">
+      <DesktopShell onResetAuth={handleResetAuth} onUpdateTheme={setTheme} />
+      <YouTubePlayer
+        playerRef={youtubePlayerRef}
+        onReady={handleYouTubeReady}
+        onVideoChange={handleYouTubeVideoChange}
+        onVideoEnded={handleYouTubeVideoEnded}
+      />
       <AppUpdater />
     </div>
   );
+}
+
+export default function App() {
+  const isMiniWindow = new URLSearchParams(window.location.search).get("window") === "mini";
+
+  useEffect(() => {
+    document.body.classList.toggle("mini-window", isMiniWindow);
+    document.body.classList.toggle("desktop-window", !isMiniWindow);
+  }, [isMiniWindow]);
+
+  return isMiniWindow ? <MiniPlayerApp /> : <DesktopApp />;
 }

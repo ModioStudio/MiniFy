@@ -1,4 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
+import { ensureActiveDevice } from "../../lib/playback/spotifyKeepAlive";
+import {
+  activateSpotifyWebPlayback,
+  getSpotifyLocalPlayback,
+  isSpotifyWebPlaybackReady,
+  nextSpotifyWebPlaybackTrack,
+  pauseSpotifyWebPlayback,
+  previousSpotifyWebPlaybackTrack,
+  resumeSpotifyWebPlayback,
+  seekSpotifyWebPlayback,
+  setSpotifyWebPlaybackVolume,
+} from "../../lib/spotifyWebPlayback";
 import type {
   MusicProvider,
   PlaybackState,
@@ -6,6 +18,7 @@ import type {
   PlaylistTracksResult,
   ProviderCapabilities,
   UnifiedTrack,
+  UnifiedUserProfile,
 } from "../types";
 import {
   addTrackToPlaylist,
@@ -56,7 +69,7 @@ class SpotifyProviderImpl implements MusicProvider {
   }
 
   async connect(): Promise<void> {
-    await invoke("start_spotify_auth");
+    await invoke("start_oauth_flow");
   }
 
   async disconnect(): Promise<void> {
@@ -74,6 +87,18 @@ class SpotifyProviderImpl implements MusicProvider {
   }
 
   async getPlaybackState(): Promise<PlaybackState | null> {
+    // When MiniFy is the playing device the SDK already pushes state to us, so
+    // prefer it: it is exact, free, and does not burn a Web API call every poll.
+    const local = getSpotifyLocalPlayback();
+    if (isSpotifyWebPlaybackReady() && local?.track) {
+      const drift = local.paused ? 0 : Date.now() - local.sampledAt;
+      return {
+        isPlaying: !local.paused,
+        progressMs: Math.min(local.durationMs, local.positionMs + drift),
+        track: convertToUnifiedTrack(local.track),
+      };
+    }
+
     try {
       const data = await fetchCurrentlyPlaying();
       if (!data) return null;
@@ -87,27 +112,65 @@ class SpotifyProviderImpl implements MusicProvider {
     }
   }
 
+  async getUserProfile(): Promise<UnifiedUserProfile> {
+    const profile = await fetchUserProfile();
+    return {
+      id: profile.id,
+      name: profile.display_name || profile.id,
+      imageUrl: profile.images?.[0]?.url ?? null,
+      provider: "spotify",
+      subtitle: profile.product ? `${profile.product} account` : "Spotify account",
+    };
+  }
+
   play(): void {
+    if (isSpotifyWebPlaybackReady()) {
+      // activateElement has to run while the user gesture is still on the
+      // stack, so it is called first and not awaited before resume.
+      void activateSpotifyWebPlayback();
+      void resumeSpotifyWebPlayback();
+      return;
+    }
     spotifyPlay();
   }
 
   pause(): void {
+    if (isSpotifyWebPlaybackReady()) {
+      void pauseSpotifyWebPlayback();
+      return;
+    }
     spotifyPause();
   }
 
   nextTrack(): void {
+    if (isSpotifyWebPlaybackReady()) {
+      void nextSpotifyWebPlaybackTrack();
+      return;
+    }
     spotifyNextTrack();
   }
 
   previousTrack(): void {
+    if (isSpotifyWebPlaybackReady()) {
+      void previousSpotifyWebPlaybackTrack();
+      return;
+    }
     spotifyPreviousTrack();
   }
 
   seek(positionMs: number): void {
+    if (isSpotifyWebPlaybackReady()) {
+      void seekSpotifyWebPlayback(positionMs);
+      return;
+    }
     spotifySeek(positionMs);
   }
 
   setVolume(volumePercent: number): void {
+    if (isSpotifyWebPlaybackReady()) {
+      void setSpotifyWebPlaybackVolume(volumePercent);
+      return;
+    }
     spotifySetVolume(volumePercent);
   }
 
@@ -117,6 +180,12 @@ class SpotifyProviderImpl implements MusicProvider {
   }
 
   async playTrack(uri: string, startPositionMs?: number): Promise<void> {
+    void activateSpotifyWebPlayback().catch(() => {});
+    if (!isSpotifyWebPlaybackReady()) {
+      // Nothing local to play on: make sure some Connect device is awake,
+      // otherwise Spotify answers 404 and the track silently never starts.
+      await ensureActiveDevice();
+    }
     await spotifyPlayTrack(uri, startPositionMs);
   }
 
@@ -133,7 +202,8 @@ class SpotifyProviderImpl implements MusicProvider {
     return {
       hasPlaylists: true,
       hasQueue: true,
-      hasExternalPlayback: true,
+      hasExternalPlayback: false,
+      hasConnectDevices: true,
       hasLikedSongs: true,
     };
   }

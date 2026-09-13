@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getSpotifyWebPlaybackDeviceId } from "../lib/spotifyWebPlaybackDevice";
 
 type FetchOptions = Omit<RequestInit, "headers"> & {
   headers?: Record<string, string>;
@@ -30,38 +31,71 @@ export interface CurrentlyPlaying {
 }
 
 // Token cache to avoid repeated Tauri invocations
+type StoredTokens = {
+  access_token: string;
+  refresh_token: string;
+  /** Unix seconds, as persisted by the Rust credential store. */
+  expires_at: number;
+};
+
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
-const TOKEN_BUFFER_MS = 60_000; // Refresh 1 min before expiry
+/** Refresh this far ahead of expiry so an in-flight request never races it. */
+const TOKEN_BUFFER_MS = 120_000;
 
 // Request deduplication for concurrent identical requests
 const pendingRequests = new Map<string, Promise<unknown>>();
+let inFlightRefresh: Promise<string> | null = null;
 
 export function clearSpotifyTokenCache(): void {
   cachedToken = null;
   tokenExpiresAt = 0;
+  inFlightRefresh = null;
   pendingRequests.clear();
 }
 
-async function getAccessToken(): Promise<string> {
-  const now = Date.now();
-  if (cachedToken && now < tokenExpiresAt - TOKEN_BUFFER_MS) {
-    return cachedToken;
-  }
-
-  const tokens = await invoke<{ access_token: string; expires_in?: number }>("get_tokens");
+function adoptTokens(tokens: StoredTokens): string {
   cachedToken = tokens.access_token;
-  tokenExpiresAt = now + (tokens.expires_in ?? 3600) * 1000;
+  // The backend stores an absolute unix timestamp. Treating it as a relative
+  // lifetime (the old behaviour) handed the Web Playback SDK tokens that were
+  // already dead, which killed playback mid-track.
+  tokenExpiresAt = tokens.expires_at * 1000;
   return cachedToken;
 }
 
-async function refreshToken(): Promise<string> {
-  const tokens = await invoke<{ access_token: string; expires_in?: number }>(
-    "refresh_access_token"
-  );
-  cachedToken = tokens.access_token;
-  tokenExpiresAt = Date.now() + (tokens.expires_in ?? 3600) * 1000;
-  return cachedToken;
+export async function getSpotifyAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiresAt - TOKEN_BUFFER_MS) {
+    return cachedToken;
+  }
+
+  if (!cachedToken) {
+    const tokens = await invoke<StoredTokens>("get_tokens");
+    adoptTokens(tokens);
+    if (Date.now() < tokenExpiresAt - TOKEN_BUFFER_MS) {
+      return cachedToken as string;
+    }
+  }
+
+  return refreshToken();
+}
+
+export function refreshToken(): Promise<string> {
+  if (inFlightRefresh) return inFlightRefresh;
+
+  inFlightRefresh = invoke<StoredTokens>("refresh_access_token")
+    .then(adoptTokens)
+    .finally(() => {
+      inFlightRefresh = null;
+    });
+
+  return inFlightRefresh;
+}
+
+/** Drops the cached token and mints a new one. Used when Spotify rejects a token. */
+export function forceRefreshSpotifyAccessToken(): Promise<string> {
+  cachedToken = null;
+  tokenExpiresAt = 0;
+  return refreshToken();
 }
 
 async function request<T>(url: string, init?: FetchOptions): Promise<T> {
@@ -76,7 +110,7 @@ async function request<T>(url: string, init?: FetchOptions): Promise<T> {
   }
 
   const doRequest = async (): Promise<T> => {
-    let token = await getAccessToken();
+    let token = await getSpotifyAccessToken();
     let res = await fetch(url, {
       ...init,
       headers: {
@@ -128,6 +162,19 @@ function fireAndForget(url: string, init?: FetchOptions): void {
   });
 }
 
+/**
+ * Pins a player command to MiniFy's own Connect device when it is registered.
+ * Without this the command lands on whatever device Spotify last considered
+ * active — usually the official desktop client.
+ */
+function withMinifyDevice(url: string): string {
+  const deviceId = getSpotifyWebPlaybackDeviceId();
+  if (!deviceId) return url;
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}device_id=${encodeURIComponent(deviceId)}`;
+}
+
 export async function fetchCurrentlyPlaying(): Promise<CurrentlyPlaying> {
   const data = await request<CurrentlyPlaying>(
     "https://api.spotify.com/v1/me/player/currently-playing?additional_types=track"
@@ -136,19 +183,23 @@ export async function fetchCurrentlyPlaying(): Promise<CurrentlyPlaying> {
 }
 
 export function play(): void {
-  fireAndForget("https://api.spotify.com/v1/me/player/play", { method: "PUT" });
+  fireAndForget(withMinifyDevice("https://api.spotify.com/v1/me/player/play"), { method: "PUT" });
 }
 
 export function pause(): void {
-  fireAndForget("https://api.spotify.com/v1/me/player/pause", { method: "PUT" });
+  fireAndForget(withMinifyDevice("https://api.spotify.com/v1/me/player/pause"), {
+    method: "PUT",
+  });
 }
 
 export function nextTrack(): void {
-  fireAndForget("https://api.spotify.com/v1/me/player/next", { method: "POST" });
+  fireAndForget(withMinifyDevice("https://api.spotify.com/v1/me/player/next"), { method: "POST" });
 }
 
 export function previousTrack(): void {
-  fireAndForget("https://api.spotify.com/v1/me/player/previous", { method: "POST" });
+  fireAndForget(withMinifyDevice("https://api.spotify.com/v1/me/player/previous"), {
+    method: "POST",
+  });
 }
 
 // Debounced seek to avoid flooding API during scrubbing
@@ -191,9 +242,14 @@ export function setVolume(volumePercent: number): void {
   }
 
   volumeTimeout = setTimeout(() => {
-    fireAndForget(`https://api.spotify.com/v1/me/player/volume?volume_percent=${lastVolumeValue}`, {
-      method: "PUT",
-    });
+    fireAndForget(
+      withMinifyDevice(
+        `https://api.spotify.com/v1/me/player/volume?volume_percent=${lastVolumeValue}`
+      ),
+      {
+        method: "PUT",
+      }
+    );
     volumeTimeout = null;
   }, 50);
 }
@@ -207,7 +263,7 @@ export function seek(positionMs: number): void {
 
   seekTimeout = setTimeout(() => {
     const url = `https://api.spotify.com/v1/me/player/seek?position_ms=${lastSeekPosition}`;
-    fireAndForget(url, { method: "PUT" });
+    fireAndForget(withMinifyDevice(url), { method: "PUT" });
     seekTimeout = null;
   }, 100);
 }
@@ -243,7 +299,7 @@ export async function playTrack(trackUri: string, positionMs?: number): Promise<
   if (positionMs !== undefined && positionMs > 0) {
     body.position_ms = positionMs;
   }
-  await request<void>("https://api.spotify.com/v1/me/player/play", {
+  await request<void>(withMinifyDevice("https://api.spotify.com/v1/me/player/play"), {
     method: "PUT",
     body: JSON.stringify(body),
   });
@@ -430,6 +486,7 @@ export interface UserProfile {
   country: string;
   product: string;
   followers: { total: number };
+  images: Array<{ url: string; height: number | null; width: number | null }>;
 }
 
 export async function fetchUserProfile(): Promise<UserProfile> {
@@ -450,11 +507,11 @@ export async function fetchSavedTracksCount(): Promise<number> {
 
 export async function addToQueue(trackUri: string): Promise<void> {
   const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(trackUri)}`;
-  await request<void>(url, { method: "POST" });
+  await request<void>(withMinifyDevice(url), { method: "POST" });
 }
 
 export async function playTracks(trackUris: string[]): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/play", {
+  await request<void>(withMinifyDevice("https://api.spotify.com/v1/me/player/play"), {
     method: "PUT",
     body: JSON.stringify({ uris: trackUris }),
   });
@@ -526,7 +583,7 @@ export async function playPlaylistContext(
   offset: number,
   trackUri?: string
 ): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/play", {
+  await request<void>(withMinifyDevice("https://api.spotify.com/v1/me/player/play"), {
     method: "PUT",
     body: JSON.stringify({
       context_uri: `spotify:playlist:${playlistId}`,
@@ -536,7 +593,7 @@ export async function playPlaylistContext(
 }
 
 export async function playAlbumContext(albumId: string, offset: number): Promise<void> {
-  await request<void>("https://api.spotify.com/v1/me/player/play", {
+  await request<void>(withMinifyDevice("https://api.spotify.com/v1/me/player/play"), {
     method: "PUT",
     body: JSON.stringify({
       context_uri: `spotify:album:${albumId}`,
@@ -561,9 +618,13 @@ export async function transferPlayback(deviceId: string, play: boolean): Promise
   });
 }
 
-export async function getQueue(): Promise<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }> {
-  const data = await request<{ currently_playing: SimplifiedTrack | null; queue: SimplifiedTrack[] }>(
-    "https://api.spotify.com/v1/me/player/queue"
-  );
+export async function getQueue(): Promise<{
+  currently_playing: SimplifiedTrack | null;
+  queue: SimplifiedTrack[];
+}> {
+  const data = await request<{
+    currently_playing: SimplifiedTrack | null;
+    queue: SimplifiedTrack[];
+  }>("https://api.spotify.com/v1/me/player/queue");
   return data;
 }
