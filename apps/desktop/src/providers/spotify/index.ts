@@ -223,10 +223,10 @@ class SpotifyProviderImpl implements MusicProvider {
           width: img.width ?? 300,
           height: img.height ?? 300,
         })),
-        trackCount: p.tracks.total,
+        trackCount: p.tracks?.total ?? 0,
         owner: {
-          id: p.owner.id,
-          name: p.owner.display_name,
+          id: p.owner?.id ?? "",
+          name: p.owner?.display_name || p.owner?.id || "Spotify",
         },
       })),
       total: response.total,

@@ -524,9 +524,9 @@ export interface SimplifiedPlaylist {
   images: Array<{ url: string; height: number | null; width: number | null }>;
   owner: {
     id: string;
-    display_name: string;
+    display_name?: string | null;
   };
-  tracks: {
+  tracks?: {
     total: number;
   };
 }
@@ -544,7 +544,8 @@ export async function fetchUserPlaylists(
 ): Promise<{ playlists: SimplifiedPlaylist[]; total: number }> {
   const url = `https://api.spotify.com/v1/me/playlists?limit=${limit}&offset=${offset}`;
   const data = await request<UserPlaylistsResponse>(url);
-  return { playlists: data.items, total: data.total };
+  const playlists = Array.isArray(data.items) ? data.items : [];
+  return { playlists, total: data.total ?? playlists.length };
 }
 
 interface PlaylistTracksResponse {

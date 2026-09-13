@@ -164,7 +164,7 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
                           className="text-xs truncate"
                           style={{ color: "var(--settings-text-muted)" }}
                         >
-                          {playlist.tracks.total} tracks
+                          {playlist.tracks?.total ?? 0} tracks
                         </p>
                       </div>
 

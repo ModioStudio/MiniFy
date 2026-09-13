@@ -8,12 +8,23 @@ import {
   SpinnerGap,
   Television,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { setPreferredSpotifyDevice } from "../../../lib/playback/spotifyKeepAlive";
 import { subscribeSpotifyWebPlaybackDeviceId } from "../../../lib/spotifyWebPlaybackDevice";
 import { getDevices, type PlayerDevice, transferPlayback } from "../../spotifyClient";
 
 const REFRESH_MS = 15_000;
+const PANEL_WIDTH = 288;
+const PANEL_GAP = 12;
 
 function deviceIcon(type: string): Icon {
   switch (type.toLowerCase()) {
@@ -39,7 +50,9 @@ export default function DeviceMenu() {
   const [error, setError] = useState<string | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [localDeviceId, setLocalDeviceId] = useState<string | null>(null);
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
   useEffect(() => subscribeSpotifyWebPlaybackDeviceId(setLocalDeviceId), []);
@@ -67,7 +80,9 @@ export default function DeviceMenu() {
     if (!open) return;
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -80,6 +95,39 @@ export default function DeviceMenu() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  const updatePanelPosition = useCallback(() => {
+    const trigger = containerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(PANEL_WIDTH, Math.max(220, window.innerWidth - PANEL_GAP * 2));
+    const left = Math.min(
+      window.innerWidth - width - PANEL_GAP,
+      Math.max(PANEL_GAP, rect.right - width)
+    );
+    const bottom = Math.max(PANEL_GAP, window.innerHeight - rect.top + PANEL_GAP);
+    const maxHeight = Math.max(180, rect.top - PANEL_GAP * 2);
+
+    setPanelStyle({
+      left,
+      bottom,
+      width,
+      maxHeight,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    updatePanelPosition();
+    window.addEventListener("resize", updatePanelPosition);
+    window.addEventListener("scroll", updatePanelPosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePanelPosition);
+      window.removeEventListener("scroll", updatePanelPosition, true);
+    };
+  }, [open, updatePanelPosition]);
 
   const selectDevice = useCallback(
     async (device: PlayerDevice) => {
@@ -119,53 +167,61 @@ export default function DeviceMenu() {
         <Devices size={20} weight={playingHere ? "fill" : "bold"} />
       </button>
 
-      {open && (
-        <div className="device-menu-panel" id={menuId} role="menu">
-          <header>
-            <strong>Connect to a device</strong>
-            {loading && <SpinnerGap size={14} weight="bold" className="animate-spin" />}
-          </header>
+      {open &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="device-menu-panel"
+            id={menuId}
+            role="menu"
+            style={panelStyle}
+          >
+            <header>
+              <strong>Connect to a device</strong>
+              {loading && <SpinnerGap size={14} weight="bold" className="animate-spin" />}
+            </header>
 
-          {error && <p className="device-menu-error">{error}</p>}
+            {error && <p className="device-menu-error">{error}</p>}
 
-          {devices.length === 0 && !loading && !error && (
-            <p className="device-menu-empty">
-              No Spotify devices found. Open MiniFy playback or start the Spotify app somewhere.
-            </p>
-          )}
+            {devices.length === 0 && !loading && !error && (
+              <p className="device-menu-empty">
+                No Spotify devices found. Open MiniFy playback or start the Spotify app somewhere.
+              </p>
+            )}
 
-          <ul>
-            {devices.map((device) => {
-              const DeviceIcon = deviceIcon(device.type);
-              const isLocal = device.id === localDeviceId;
-              return (
-                <li key={device.id}>
-                  <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={device.is_active}
-                    className={device.is_active ? "is-active" : ""}
-                    disabled={switchingId !== null}
-                    onClick={() => void selectDevice(device)}
-                  >
-                    <DeviceIcon size={20} weight={device.is_active ? "fill" : "regular"} />
-                    <span>
-                      <strong>
-                        {device.name}
-                        {isLocal ? " (this app)" : ""}
-                      </strong>
-                      <small>{device.is_active ? "Playing here" : device.type}</small>
-                    </span>
-                    {switchingId === device.id && (
-                      <SpinnerGap size={16} weight="bold" className="animate-spin" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+            <ul>
+              {devices.map((device) => {
+                const DeviceIcon = deviceIcon(device.type);
+                const isLocal = device.id === localDeviceId;
+                return (
+                  <li key={device.id}>
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={device.is_active}
+                      className={device.is_active ? "is-active" : ""}
+                      disabled={switchingId !== null}
+                      onClick={() => void selectDevice(device)}
+                    >
+                      <DeviceIcon size={20} weight={device.is_active ? "fill" : "regular"} />
+                      <span>
+                        <strong>
+                          {device.name}
+                          {isLocal ? " (this app)" : ""}
+                        </strong>
+                        <small>{device.is_active ? "Playing here" : device.type}</small>
+                      </span>
+                      {switchingId === device.id && (
+                        <SpinnerGap size={16} weight="bold" className="animate-spin" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

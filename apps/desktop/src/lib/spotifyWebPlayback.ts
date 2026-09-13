@@ -238,6 +238,12 @@ export function getSpotifyWebPlaybackStatus(): SpotifyWebPlaybackStatus {
   return status;
 }
 
+export function clearSpotifyWebPlaybackAuthFailure(): void {
+  if (status.failure === "auth") {
+    publishStatus({ failure: "none", error: null, connecting: false });
+  }
+}
+
 export function getSpotifyLocalPlayback(): SpotifyLocalPlayback | null {
   return localPlayback;
 }

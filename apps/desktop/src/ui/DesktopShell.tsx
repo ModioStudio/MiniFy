@@ -12,14 +12,15 @@ import {
   SidebarSimple,
   SpinnerGap,
   UserCircle,
-  Waveform,
   WarningCircle,
+  Waveform,
 } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
 import { readSettings } from "../lib/settingLib";
 import {
+  clearSpotifyWebPlaybackAuthFailure,
   disconnectSpotifyWebPlayback,
   getSpotifyWebPlaybackStatus,
   initializeSpotifyWebPlayback,
@@ -189,11 +190,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const setCurrentState = current.setState;
   const artistText = currentTrack?.artists.map((artist) => artist.name).join(", ") ?? "MiniFy";
   const artwork = getArtwork(currentTrack);
-  const shellStyle =
-    {
-      "--desktop-sidebar-width": `${sidebarWidth}px`,
-      "--desktop-player-height": `${playerHeight}px`,
-    } as CSSProperties;
+  const shellStyle = {
+    "--desktop-sidebar-width": `${sidebarWidth}px`,
+    "--desktop-player-height": `${playerHeight}px`,
+  } as CSSProperties;
 
   useEffect(() => {
     getActiveProviderType()
@@ -301,6 +301,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         const musicProvider = await getActiveProvider();
         const profile = await musicProvider.getUserProfile();
         if (mounted) {
+          if (provider === "spotify") clearSpotifyWebPlaybackAuthFailure();
           setAccount(profile);
         }
       } catch (error) {
@@ -491,10 +492,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             <span>Mini player</span>
           </button>
 
-          <DesktopAccount
-            account={account}
-            provider={provider}
-          />
+          <DesktopAccount account={account} provider={provider} />
         </div>
       </aside>
 
@@ -513,6 +511,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       <main className="desktop-main">
         <PlaybackNotice
           provider={provider}
+          authenticated={account !== null}
           status={spotifyPlaybackStatus}
           scopesStale={scopesStale}
           onReauthenticate={() => onResetAuth("spotify")}
@@ -780,6 +779,7 @@ function DesktopAccount({ account, provider }: DesktopAccountProps) {
 
 type PlaybackNoticeProps = {
   provider: MusicProviderType | null;
+  authenticated: boolean;
   status: SpotifyWebPlaybackStatus;
   scopesStale: boolean;
   onReauthenticate: () => void;
@@ -790,7 +790,13 @@ type PlaybackNoticeProps = {
  * used to fail silently — playback simply never started, or stopped a few
  * seconds in — which is impossible to debug from the outside.
  */
-function PlaybackNotice({ provider, status, scopesStale, onReauthenticate }: PlaybackNoticeProps) {
+function PlaybackNotice({
+  provider,
+  authenticated,
+  status,
+  scopesStale,
+  onReauthenticate,
+}: PlaybackNoticeProps) {
   if (provider !== "spotify") return null;
 
   if (scopesStale) {
@@ -809,6 +815,7 @@ function PlaybackNotice({ provider, status, scopesStale, onReauthenticate }: Pla
   }
 
   if (status.failure === "none" || status.connecting) return null;
+  if (status.failure === "auth" && authenticated) return null;
 
   const copy: Record<string, string> = {
     "premium-required":
