@@ -4,6 +4,7 @@ import { getRelatedVideos, videoItemToTrackData } from "../../providers/youtube/
 import {
   addToQueue as spotifyAddToQueue,
   getQueue as spotifyGetQueue,
+  playTrack as spotifyPlayTrack,
 } from "../../ui/spotifyClient";
 import { useAIQueueStore } from "../aiQueueStore";
 import { fetchRelatedTracks } from "../relatedTracks";
@@ -74,13 +75,15 @@ async function checkAndTriggerAutoplay(): Promise<void> {
 
   if (track.id === state.lastProcessedTrackId) return;
 
-  const isNearEnd = durationMs > 0 && progressMs >= durationMs - 10000;
-
-  if (!isNearEnd) return;
-
   if (providerType === "spotify") {
-    await handleSpotifyAutoplay(track);
+    // Topping up as soon as a track starts, rather than ten seconds before it
+    // ends, is what makes a single track from search behave like a playlist:
+    // Spotify needs something in the queue *while* it is still playing, or it
+    // simply stops and an empty queue has nothing to continue into.
+    await handleSpotifyAutoplay(track, isPlaying, progressMs, durationMs);
   } else if (providerType === "youtube") {
+    const isNearEnd = durationMs > 0 && progressMs >= durationMs - 10000;
+    if (!isNearEnd) return;
     await handleYouTubeAutoplay(track, isPlaying, progressMs, durationMs);
   }
 
@@ -91,7 +94,12 @@ const AUTOPLAY_BATCH = 5;
 /** Enough history that a refill does not replay what autoplay just queued. */
 const AUTOPLAY_MEMORY = 200;
 
-async function handleSpotifyAutoplay(currentTrack: UnifiedTrack): Promise<void> {
+async function handleSpotifyAutoplay(
+  currentTrack: UnifiedTrack,
+  isPlaying: boolean,
+  progressMs: number,
+  durationMs: number
+): Promise<void> {
   try {
     const queue = await spotifyGetQueue();
 
@@ -120,6 +128,15 @@ async function handleSpotifyAutoplay(currentTrack: UnifiedTrack): Promise<void> 
 
     if (state.pendingAutoplayTracks.length > AUTOPLAY_MEMORY) {
       state.pendingAutoplayTracks = state.pendingAutoplayTracks.slice(-AUTOPLAY_MEMORY);
+    }
+
+    // If the track already ran out while the queue was empty, Spotify has
+    // stopped and will not pick the queue up on its own. Start the first
+    // suggestion by hand.
+    const stoppedAtEnd = !isPlaying && durationMs > 0 && progressMs >= durationMs - 3000;
+    const first = related[0];
+    if (stoppedAtEnd && first) {
+      await spotifyPlayTrack(`spotify:track:${first.id}`);
     }
   } catch (err) {
     console.error("Spotify autoplay failed:", err);

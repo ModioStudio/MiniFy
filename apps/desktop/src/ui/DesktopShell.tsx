@@ -20,8 +20,9 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
+import { fetchListeningStats, type ListeningStats } from "../lib/listeningStats";
 import { loadAllPlaylistTracks } from "../lib/playlistTracks";
 import {
   type Settings as AppSettings,
@@ -205,6 +206,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const [playlistError, setPlaylistError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory());
+  const [listening, setListening] = useState<ListeningStats>({ artists: [], totalPlays: 0 });
   const playlistRunId = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [hasConnectDevices, setHasConnectDevices] = useState(false);
@@ -383,6 +385,26 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     };
   }, [provider]);
 
+  // Spotify-only: the chart counts plays, and the YouTube provider has no
+  // equivalent history to count.
+  useEffect(() => {
+    if (provider !== "spotify") {
+      setListening({ artists: [], totalPlays: 0 });
+      return;
+    }
+
+    let mounted = true;
+    fetchListeningStats()
+      .then((stats) => {
+        if (mounted) setListening(stats);
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [provider]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -480,6 +502,17 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       return next;
     });
   }, []);
+
+  // Their own searches first, then their most played artists; the canned terms
+  // only show up on a fresh install when there is nothing personal to offer.
+  const quickSearches = useMemo(() => {
+    const terms = [
+      ...searchHistory.slice(0, 4),
+      ...listening.artists.map((artist) => artist.name),
+      ...featuredSearches,
+    ];
+    return [...new Set(terms)].slice(0, 6);
+  }, [searchHistory, listening]);
 
   const openMiniPlayer = useCallback(async () => {
     await invoke("open_mini_player").catch((error) => {
@@ -647,13 +680,6 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                       : "Pick up where you left off."}
                   </p>
                 </div>
-                <div className="desktop-hero-art">
-                  {artwork ? (
-                    <img src={artwork} alt="" />
-                  ) : (
-                    <MusicNotes size={34} weight="duotone" />
-                  )}
-                </div>
               </section>
             )}
 
@@ -677,12 +703,13 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                     <h2>Quick search</h2>
                   </div>
                   <div className="desktop-chip-list">
-                    {featuredSearches.map((term) => (
+                    {quickSearches.map((term) => (
                       <button
                         key={term}
                         type="button"
                         onClick={() => {
                           setQuery(term);
+                          rememberSearch(term);
                           setView("search");
                         }}
                       >

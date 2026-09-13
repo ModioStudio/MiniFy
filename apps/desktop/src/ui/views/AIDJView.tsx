@@ -330,8 +330,13 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               aiQueueActive
                 ? "bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
-                : "bg-white/10 hover:bg-white/20 border border-white/20"
+                : "border hover:opacity-90"
             }`}
+            style={
+              aiQueueActive
+                ? undefined
+                : { background: "var(--aidj-bubble)", borderColor: "var(--aidj-input-border)" }
+            }
             title={aiQueueActive ? "Stop AI Queue" : "Start AI Queue (auto-generates playlist)"}
           >
             {aiQueueLoading ? (
@@ -355,12 +360,18 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
         </div>
       </div>
 
+      {/* The mini player floats, so it needs its own panel. On the desktop that
+          panel is a box drawn inside another box, so drop it there. */}
       <div
-        className="flex-1 rounded-xl border overflow-hidden flex flex-col"
-        style={{
-          background: "var(--settings-panel-bg)",
-          borderColor: "var(--settings-panel-border)",
-        }}
+        className={`flex-1 overflow-hidden flex flex-col ${isDesktop ? "" : "rounded-xl border"}`}
+        style={
+          isDesktop
+            ? undefined
+            : {
+                background: "var(--settings-panel-bg)",
+                borderColor: "var(--settings-panel-border)",
+              }
+        }
       >
         <div
           ref={messagesContainerRef}
@@ -376,9 +387,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   background:
-                    message.role === "assistant"
-                      ? "var(--settings-accent)"
-                      : "rgba(255, 255, 255, 0.1)",
+                    message.role === "assistant" ? "var(--settings-accent)" : "var(--aidj-avatar)",
                 }}
               >
                 {message.role === "assistant" ? (
@@ -394,7 +403,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
                   style={{
                     background:
                       message.role === "assistant"
-                        ? "rgba(255, 255, 255, 0.08)"
+                        ? "var(--aidj-bubble)"
                         : "var(--settings-accent)",
                     color: message.role === "assistant" ? "var(--settings-text)" : "#000",
                     borderRadius:
@@ -411,7 +420,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
                         key={`${message.id}-${tr.toolName}`}
                         className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg inline-flex"
                         style={{
-                          background: "rgba(255, 255, 255, 0.05)",
+                          background: "var(--aidj-chip)",
                           color: "var(--settings-text-muted)",
                         }}
                       >
@@ -451,7 +460,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
               <div
                 className="px-4 py-3 rounded-2xl"
                 style={{
-                  background: "rgba(255, 255, 255, 0.08)",
+                  background: "var(--aidj-bubble)",
                   borderRadius: "4px 18px 18px 18px",
                 }}
               >
@@ -528,7 +537,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
           </div>
         )}
 
-        <div className="p-3 border-t" style={{ borderColor: "var(--settings-panel-border)" }}>
+        <div className="p-3 border-t" style={{ borderColor: "var(--aidj-divider)" }}>
           <div className="flex gap-2">
             <input
               type="text"
@@ -538,8 +547,8 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
               placeholder="Ask for music recommendations..."
               className="flex-1 px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors"
               style={{
-                background: "rgba(0, 0, 0, 0.2)",
-                borderColor: "rgba(255, 255, 255, 0.1)",
+                background: "var(--aidj-input-bg)",
+                borderColor: "var(--aidj-input-border)",
                 color: "var(--settings-text)",
               }}
               disabled={isLoading}
@@ -570,7 +579,7 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
                 onClick={() => setInput(suggestion)}
                 className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:bg-white/10"
                 style={{
-                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  borderColor: "var(--aidj-input-border)",
                   color: "var(--settings-text-muted)",
                 }}
                 disabled={isLoading}

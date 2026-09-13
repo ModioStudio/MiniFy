@@ -199,6 +199,16 @@ textarea {
     "Segoe UI Emoji";
 }
 
+/* AI DJ chat tones, overridden by the desktop shell. */
+:root {
+  --aidj-bubble: rgba(255, 255, 255, 0.08);
+  --aidj-avatar: rgba(255, 255, 255, 0.1);
+  --aidj-chip: rgba(255, 255, 255, 0.05);
+  --aidj-input-bg: rgba(0, 0, 0, 0.2);
+  --aidj-input-border: rgba(255, 255, 255, 0.1);
+  --aidj-divider: var(--settings-panel-border);
+}
+
 /*
  * Defaults only. themeLoader writes the real values onto the document element
  * as inline custom properties, which win over these, so every MiniFy theme —
@@ -498,7 +508,7 @@ textarea {
    below the fold. */
 .desktop-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 84px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 20px;
   margin-bottom: 28px;
@@ -536,21 +546,6 @@ textarea {
   white-space: nowrap;
 }
 
-.desktop-hero-art {
-  aspect-ratio: 1;
-  width: 84px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: end;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--desktop-surface);
-  color: var(--desktop-dim);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.desktop-hero-art img,
 .desktop-track-art img,
 .desktop-row-art img,
 .desktop-now-art img,
@@ -586,6 +581,16 @@ textarea {
 .desktop-ai-chat-section {
   height: calc(100vh - var(--desktop-player-height) - 80px);
   min-height: 520px;
+
+  /* The chat is shared with the mini player, which floats on its own panel and
+     therefore paints its own greys. Inside the shell those greys belong to a
+     different palette, so hand it theme-derived surfaces instead. */
+  --aidj-bubble: var(--desktop-surface);
+  --aidj-avatar: var(--desktop-surface-strong);
+  --aidj-chip: transparent;
+  --aidj-input-bg: transparent;
+  --aidj-input-border: var(--desktop-border);
+  --aidj-divider: transparent;
 }
 
 .desktop-section-heading {
