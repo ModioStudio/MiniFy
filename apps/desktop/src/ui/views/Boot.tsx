@@ -15,6 +15,13 @@ type BootProps = {
 };
 
 const SPOTIFY_CLIENT_ID_PATTERN = /^[0-9a-f]{32}$/i;
+const DEFAULT_SPOTIFY_REDIRECT_URIS = [
+  "http://127.0.0.1:3000/callback",
+  "http://127.0.0.1:3001/callback",
+  "http://127.0.0.1:3002/callback",
+  "http://127.0.0.1:3003/callback",
+  "http://127.0.0.1:3004/callback",
+];
 
 export default function Boot({
   onComplete,
@@ -30,20 +37,22 @@ export default function Boot({
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [redirectUri, setRedirectUri] = useState("http://127.0.0.1:3000/callback");
+  const [redirectUris, setRedirectUris] = useState(DEFAULT_SPOTIFY_REDIRECT_URIS);
   const [copied, setCopied] = useState(false);
 
-  // Fetch the exact redirect URI from the backend so the setup instructions
+  // Fetch the exact redirect URIs from the backend so the setup instructions
   // always match what MiniFy actually sends to Spotify.
   useEffect(() => {
-    invoke<string>("get_spotify_redirect_uri")
-      .then(setRedirectUri)
+    invoke<string[]>("get_spotify_redirect_uris")
+      .then((uris) => {
+        if (uris.length > 0) setRedirectUris(uris);
+      })
       .catch(() => {});
   }, []);
 
-  const copyRedirectUri = async () => {
+  const copyRedirectUris = async () => {
     try {
-      await navigator.clipboard.writeText(redirectUri);
+      await navigator.clipboard.writeText(redirectUris.join("\n"));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -375,24 +384,28 @@ export default function Boot({
                 </span>
                 <div className="flex-1">
                   <span>
-                    In the app settings, add this exact{" "}
-                    <span className="text-white">Redirect URI</span> and save:
+                    In the app settings, add these exact{" "}
+                    <span className="text-white">Redirect URIs</span> and save:
                   </span>
-                  <div className="mt-2 flex items-stretch gap-2">
-                    <code className="flex-1 min-w-0 truncate bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/90 font-mono">
-                      {redirectUri}
-                    </code>
+                  <div className="mt-2 flex items-start gap-2">
+                    <div className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/90 font-mono space-y-1">
+                      {redirectUris.map((uri) => (
+                        <code key={uri} className="block truncate">
+                          {uri}
+                        </code>
+                      ))}
+                    </div>
                     <button
                       type="button"
-                      onClick={copyRedirectUri}
-                      className="flex-none px-3 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/10 transition-colors"
+                      onClick={copyRedirectUris}
+                      className="flex-none px-3 py-2 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/10 transition-colors"
                     >
                       {copied ? "Copied!" : "Copy"}
                     </button>
                   </div>
                   <p className="mt-1 text-xs text-white/40">
-                    It must match character for character, or Spotify shows a "redirect_uri not
-                    matching" error.
+                    Add all of them. MiniFy uses the first free port, so old login attempts cannot
+                    block Spotify auth.
                   </p>
                 </div>
               </li>

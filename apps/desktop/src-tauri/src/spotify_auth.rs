@@ -11,18 +11,14 @@ use std::sync::{Arc, Mutex};
 use tauri::async_runtime as rt;
 use tauri::AppHandle;
 use tauri::Emitter;
-use tokio::time::sleep;
+use tokio::time::{sleep, Duration};
 
-/// Port for the local OAuth callback server. Must match the port registered in
-/// the Spotify app's Redirect URI.
-const CALLBACK_PORT: u16 = 3000;
-/// The one and only redirect URI used for the OAuth flow. This exact string
-/// must be added to the Spotify app's "Redirect URIs" in the developer
-/// dashboard, otherwise Spotify rejects the login with
-/// "redirect_uri: Not matching configuration". Keep this as the single source
-/// of truth — the frontend fetches it via `get_spotify_redirect_uri` so the two
-/// can never drift apart.
-const REDIRECT_URI: &str = "http://127.0.0.1:3000/callback";
+/// Local OAuth callback ports. These exact redirect URIs must be registered in
+/// the user's Spotify app so MiniFy can fall back when one port is still held by
+/// an old login attempt or another local process.
+const CALLBACK_PORTS: &[u16] = &[3000, 3001, 3002, 3003, 3004];
+const CALLBACK_BIND_ATTEMPTS: usize = 20;
+const CALLBACK_BIND_RETRY_MS: u64 = 100;
 const ACCESS_TOKEN_KEY: &str = "access_token";
 const REFRESH_TOKEN_KEY: &str = "refresh_token";
 const TOKEN_EXPIRY_KEY: &str = "token_expiry";
@@ -116,6 +112,75 @@ fn clear_cached_client_id() {
     }
 }
 
+fn redirect_uri_for_port(port: u16) -> String {
+    format!("http://127.0.0.1:{port}/callback")
+}
+
+fn callback_addr(port: u16) -> SocketAddr {
+    SocketAddr::from(([127, 0, 0, 1], port))
+}
+
+async fn stop_existing_oauth_server() {
+    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
+        if let Some(tx) = shutdown.take() {
+            let _ = tx.send(());
+        }
+    }
+}
+
+async fn bind_callback_listener(ports: &[u16]) -> Result<(tokio::net::TcpListener, u16), String> {
+    let Some((preferred_port, fallback_ports)) = ports.split_first() else {
+        return Err("MiniFy has no Spotify callback ports configured".to_string());
+    };
+    let port_list = ports
+        .iter()
+        .map(u16::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let mut last_error = None;
+
+    for attempt in 0..CALLBACK_BIND_ATTEMPTS {
+        match tokio::net::TcpListener::bind(callback_addr(*preferred_port)).await {
+            Ok(listener) => {
+                let bound_port = listener.local_addr().map(|addr| addr.port()).unwrap_or(*preferred_port);
+                return Ok((listener, bound_port));
+            }
+            Err(e) => {
+                last_error = Some(e);
+            }
+        }
+
+        if attempt + 1 < CALLBACK_BIND_ATTEMPTS {
+            sleep(Duration::from_millis(CALLBACK_BIND_RETRY_MS)).await;
+        }
+    }
+
+    for attempt in 0..CALLBACK_BIND_ATTEMPTS {
+        for port in fallback_ports {
+            match tokio::net::TcpListener::bind(callback_addr(*port)).await {
+                Ok(listener) => {
+                    let bound_port = listener.local_addr().map(|addr| addr.port()).unwrap_or(*port);
+                    return Ok((listener, bound_port));
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                }
+            }
+        }
+
+        if attempt + 1 < CALLBACK_BIND_ATTEMPTS {
+            sleep(Duration::from_millis(CALLBACK_BIND_RETRY_MS)).await;
+        }
+    }
+
+    let reason = last_error
+        .map(|e| e.to_string())
+        .unwrap_or_else(|| "unknown error".to_string());
+    Err(format!(
+        "MiniFy could not open a local Spotify login callback port. Tried ports {port_list}. Close old MiniFy windows or the app using those ports and try again. ({reason})"
+    ))
+}
+
 async fn get_stored_spotify_client_id() -> Option<String> {
     if let Some(cached) = get_cached_client_id() {
         if normalize_spotify_client_id(&cached).is_some() {
@@ -168,12 +233,19 @@ pub async fn needs_spotify_setup() -> bool {
     !has_spotify_client_id().await
 }
 
-/// The exact redirect URI the user must register in their Spotify app.
-/// Exposed to the frontend so the setup screen can show a copy-paste value that
-/// always matches what the backend sends to Spotify.
+/// The primary redirect URI kept for older frontend callers.
 #[tauri::command]
 pub fn get_spotify_redirect_uri() -> String {
-    REDIRECT_URI.to_string()
+    redirect_uri_for_port(CALLBACK_PORTS[0])
+}
+
+/// All redirect URIs MiniFy may use for Spotify login.
+#[tauri::command]
+pub fn get_spotify_redirect_uris() -> Vec<String> {
+    CALLBACK_PORTS
+        .iter()
+        .map(|port| redirect_uri_for_port(*port))
+        .collect()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,6 +259,7 @@ pub struct SpotifyTokens {
 struct AuthState {
     code_verifier: String,
     client_id: String,
+    redirect_uri: String,
     state_nonce: String,
 }
 
@@ -361,11 +434,7 @@ pub async fn clear_credentials() -> Result<(), String> {
     if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
-        if let Some(tx) = shutdown.take() {
-            let _ = tx.send(());
-        }
-    }
+    stop_existing_oauth_server().await;
     clear_cached_client_id();
     clear_cached_tokens();
     clear_cached_music_provider();
@@ -387,9 +456,9 @@ async fn exchange_code_for_tokens(state: &AuthState, code: &str) -> Result<Spoti
     let form = [
         ("grant_type", "authorization_code"),
         ("code", code),
-        ("redirect_uri", REDIRECT_URI),
-        ("client_id", &state.client_id),
-        ("code_verifier", &state.code_verifier),
+        ("redirect_uri", state.redirect_uri.as_str()),
+        ("client_id", state.client_id.as_str()),
+        ("code_verifier", state.code_verifier.as_str()),
     ];
 
     let client = reqwest::Client::new();
@@ -438,27 +507,20 @@ pub async fn cancel_oauth_flow() -> Result<(), String> {
     if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
     }
-    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
-        if let Some(tx) = shutdown.take() {
-            let _ = tx.send(());
-        }
-    }
+    stop_existing_oauth_server().await;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
-    if let Ok(mut shutdown) = OAUTH_SHUTDOWN.lock() {
-        if let Some(tx) = shutdown.take() {
-            let _ = tx.send(());
-        }
-    }
-    
-    sleep(std::time::Duration::from_millis(100)).await;
+    stop_existing_oauth_server().await;
 
     let client_id = get_stored_spotify_client_id()
         .await
         .ok_or_else(|| "No Spotify Client ID configured. Please set up your Client ID first.".to_string())?;
+
+    let (listener, callback_port) = bind_callback_listener(CALLBACK_PORTS).await?;
+    let redirect_uri = redirect_uri_for_port(callback_port);
 
     if let Ok(mut s) = AUTH_STATE.lock() {
         *s = None;
@@ -474,6 +536,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
         *s = Some(AuthState { 
             code_verifier, 
             client_id: client_id.clone(),
+            redirect_uri: redirect_uri.clone(),
             state_nonce: state_nonce.clone(),
         });
     }
@@ -509,19 +572,6 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
             }),
         );
 
-        let addr = SocketAddr::from(([127, 0, 0, 1], CALLBACK_PORT));
-        let listener = match tokio::net::TcpListener::bind(addr).await {
-            Ok(l) => l,
-            Err(e) => {
-                let msg = format!(
-                    "Port {} is already in use, so MiniFy can't receive the Spotify login. Close the app that is using it (or restart your computer) and try again. ({})",
-                    CALLBACK_PORT, e
-                );
-                let _ = app_handle.emit("oauth-failed", json!({ "error": msg }));
-                let _ = ready_tx.send(Err(msg));
-                return;
-            }
-        };
         let _ = ready_tx.send(Ok(()));
 
         let server = axum::serve(listener, router);
@@ -544,7 +594,7 @@ pub async fn start_oauth_flow(app: AppHandle) -> Result<(), String> {
 
     let _ = ready_rx.await.map_err(|_| "server_not_ready".to_string())??;
 
-    let redirect_uri = urlencoding::encode(REDIRECT_URI);
+    let redirect_uri = urlencoding::encode(&redirect_uri);
     let scopes = REQUIRED_SCOPES.join(" ");
     let auth_url = format!(
         "https://accounts.spotify.com/authorize?client_id={}&response_type=code&redirect_uri={}&scope={}&code_challenge_method=S256&code_challenge={}&state={}",
@@ -660,7 +710,7 @@ fn error_page(message: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_spotify_client_id;
+    use super::{bind_callback_listener, normalize_spotify_client_id};
 
     #[test]
     fn spotify_client_id_must_be_32_hex_chars() {
@@ -676,6 +726,18 @@ mod tests {
             ),
             None
         );
+    }
+
+    #[tokio::test]
+    async fn callback_listener_falls_back_when_first_port_is_busy() {
+        let blocker = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let blocked_port = blocker.local_addr().unwrap().port();
+
+        let (listener, bound_port) = bind_callback_listener(&[blocked_port, 0]).await.unwrap();
+
+        assert_ne!(bound_port, blocked_port);
+        drop(listener);
+        drop(blocker);
     }
 }
 
