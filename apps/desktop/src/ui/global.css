@@ -834,6 +834,59 @@ textarea {
   color: var(--desktop-dim);
 }
 
+.desktop-search-history ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.desktop-search-history li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.desktop-search-history li:hover {
+  background: var(--desktop-surface);
+}
+
+.desktop-search-history li > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--desktop-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.desktop-search-history li > button:first-child > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-search-history-remove {
+  justify-content: center;
+  color: var(--desktop-muted) !important;
+  opacity: 0;
+}
+
+.desktop-search-history li:hover .desktop-search-history-remove,
+.desktop-search-history-remove:focus-visible {
+  opacity: 1;
+}
+
 .desktop-track-table {
   display: flex;
   flex-direction: column;

@@ -288,7 +288,9 @@ jobs:
               if [ -f "$file" ] && [ "$(basename $file)" != "README.md" ]; then
                 content=$(cat "$file")
                 # Extract title (first non-empty line after frontmatter, line 5)
-                title=$(echo "$content" | sed -n '5p' | xargs)
+                # Trim with sed, not xargs: xargs treats quotes as syntax and
+                # dies on an apostrophe in a changeset title.
+                title=$(sed -n '5p' "$file" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
                 # Extract details (lines 7+, the bullet points)
                 details=$(echo "$content" | tail -n +7 | grep -v "^$" || true)
                 

@@ -81,7 +81,7 @@ async function buildUserContext(): Promise<string> {
 export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: AIDJViewProps) {
   const { setLayout } = useWindowLayout();
   const isDesktop = surface === "desktop";
-  const title = isDesktop ? "AI Chat" : "AI DJ";
+  const title = "AI DJ";
   const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");

@@ -1,6 +1,7 @@
 import {
   ArrowClockwise,
   ArrowsOutSimple,
+  ClockCounterClockwise,
   DownloadSimple,
   GearSix,
   House,
@@ -14,9 +15,11 @@ import {
   UserCircle,
   WarningCircle,
   Waveform,
+  X,
 } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
 import { loadAllPlaylistTracks } from "../lib/playlistTracks";
@@ -72,6 +75,30 @@ const MAX_DESKTOP_SIDEBAR_WIDTH = 420;
 const MIN_DESKTOP_PLAYER_HEIGHT = 100;
 const MAX_DESKTOP_PLAYER_HEIGHT = 180;
 
+const SEARCH_HISTORY_KEY = "minify.desktop.searchHistory";
+const SEARCH_HISTORY_SIZE = 8;
+
+function readSearchHistory(): string[] {
+  try {
+    const raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((entry): entry is string => typeof entry === "string")
+      .slice(0, SEARCH_HISTORY_SIZE);
+  } catch {
+    return [];
+  }
+}
+
+function storeSearchHistory(entries: string[]): void {
+  try {
+    window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(entries));
+  } catch {
+    // A full or blocked storage must not take the search view down.
+  }
+}
+
 function readStoredDimension(key: string, fallback: number, min: number, max: number): number {
   const raw = window.localStorage.getItem(key);
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
@@ -110,7 +137,9 @@ async function fetchAllUserPlaylists(musicProvider: MusicProvider): Promise<Play
 /** Spotify answers 403 for playlists it will not expose to third-party apps. */
 function describeError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (message.startsWith("403")) return "Spotify blocked this request (403).";
+  if (message.startsWith("403")) {
+    return "Spotify will not share this playlist's tracks with third-party apps. The block is per playlist and only Spotify can lift it.";
+  }
   if (message.startsWith("404")) return "Spotify no longer serves this endpoint (404).";
   return message;
 }
@@ -175,6 +204,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   });
   const [playlistError, setPlaylistError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory());
   const playlistRunId = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [hasConnectDevices, setHasConnectDevices] = useState(false);
@@ -427,6 +457,30 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     return () => window.clearTimeout(id);
   }, [query, view]);
 
+  // Recorded on submit and on play rather than on every keystroke, so the list
+  // holds searches the user meant instead of every prefix they typed.
+  const rememberSearch = useCallback((term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    setSearchHistory((current) => {
+      const next = [trimmed, ...current.filter((entry) => entry !== trimmed)].slice(
+        0,
+        SEARCH_HISTORY_SIZE
+      );
+      storeSearchHistory(next);
+      return next;
+    });
+  }, []);
+
+  const forgetSearch = useCallback((term: string) => {
+    setSearchHistory((current) => {
+      const next = current.filter((entry) => entry !== term);
+      storeSearchHistory(next);
+      return next;
+    });
+  }, []);
+
   const openMiniPlayer = useCallback(async () => {
     await invoke("open_mini_player").catch((error) => {
       console.error("Failed to open mini player:", error);
@@ -484,7 +538,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     { id: "home" as const, label: "Home", icon: House },
     { id: "search" as const, label: "Search", icon: MagnifyingGlass },
     { id: "playlists" as const, label: "Playlists", icon: Playlist },
-    { id: "aidj" as const, label: "AI Chat", icon: Waveform },
+    { id: "aidj" as const, label: "AI DJ", icon: Waveform },
     { id: "settings" as const, label: "Settings", icon: GearSix },
   ];
 
@@ -654,25 +708,60 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") rememberSearch(query);
+                    }}
                     placeholder="What do you want to listen to?"
                   />
                   {loadingSearch && <SpinnerGap size={20} weight="bold" className="animate-spin" />}
                 </div>
                 {searchError && (
-                  <output className="desktop-notice is-warning">{searchError}</output>
+                  <output className="desktop-notice is-warning">
+                    <WarningCircle size={18} weight="bold" />
+                    <p>{searchError}</p>
+                  </output>
                 )}
-                <TrackTable
-                  tracks={searchResults}
-                  playingId={playingId}
-                  emptyLabel={
-                    searchError
-                      ? "Search failed"
-                      : query.trim()
-                        ? "No results found"
-                        : "Start typing to search"
-                  }
-                  onPlay={playTrack}
-                />
+                {!query.trim() && searchHistory.length > 0 ? (
+                  <div className="desktop-search-history">
+                    <div className="desktop-section-heading">
+                      <h2>Recent searches</h2>
+                    </div>
+                    <ul>
+                      {searchHistory.map((term) => (
+                        <li key={term}>
+                          <button type="button" onClick={() => setQuery(term)}>
+                            <ClockCounterClockwise size={16} weight="bold" />
+                            <span>{term}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="desktop-search-history-remove"
+                            onClick={() => forgetSearch(term)}
+                            aria-label={`Remove ${term} from recent searches`}
+                          >
+                            <X size={14} weight="bold" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <TrackTable
+                    tracks={searchResults}
+                    playingId={playingId}
+                    emptyLabel={
+                      searchError
+                        ? "Search failed"
+                        : query.trim()
+                          ? "No results found"
+                          : "Start typing to search"
+                    }
+                    onPlay={(track, index) => {
+                      rememberSearch(query);
+                      playTrack(track, index);
+                    }}
+                  />
+                )}
               </section>
             )}
 
@@ -695,7 +784,20 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                       </div>
                     )}
                     {playlistError && (
-                      <output className="desktop-notice is-warning">{playlistError}</output>
+                      <output className="desktop-notice is-warning">
+                        <WarningCircle size={18} weight="bold" />
+                        <p>{playlistError}</p>
+                        {selectedPlaylist && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openUrl(`https://open.spotify.com/playlist/${selectedPlaylist.id}`)
+                            }
+                          >
+                            Open in Spotify
+                          </button>
+                        )}
+                      </output>
                     )}
                     <TrackTable
                       tracks={playlistTracks}
