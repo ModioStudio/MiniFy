@@ -93,8 +93,16 @@ fn clear_cached_music_provider() {
 
 fn get_embedded_spotify_client_id() -> Option<String> {
     option_env!("SPOTIFY_CLIENT_ID")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+        .and_then(normalize_spotify_client_id)
+}
+
+fn normalize_spotify_client_id(client_id: &str) -> Option<String> {
+    let trimmed = client_id.trim();
+    if trimmed.len() == 32 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+        Some(trimmed.to_string())
+    } else {
+        None
+    }
 }
 
 fn get_cached_client_id() -> Option<String> {
@@ -115,7 +123,10 @@ fn clear_cached_client_id() {
 
 async fn get_stored_spotify_client_id() -> Option<String> {
     if let Some(cached) = get_cached_client_id() {
-        return Some(cached);
+        if normalize_spotify_client_id(&cached).is_some() {
+            return Some(cached);
+        }
+        clear_cached_client_id();
     }
     
     let result = tokio::task::spawn_blocking(|| {
@@ -125,11 +136,13 @@ async fn get_stored_spotify_client_id() -> Option<String> {
     .ok()
     .flatten();
     
-    if let Some(ref id) = result {
+    let id = result.and_then(|id| normalize_spotify_client_id(&id));
+
+    if let Some(ref id) = id {
         set_cached_client_id(id);
     }
     
-    result
+    id
 }
 
 #[tauri::command]
@@ -139,10 +152,10 @@ pub async fn has_spotify_client_id() -> bool {
 
 #[tauri::command]
 pub async fn save_spotify_client_id(client_id: String) -> Result<(), String> {
-    if client_id.trim().is_empty() {
-        return Err("Client ID is empty".to_string());
-    }
-    let client_id_trimmed = client_id.trim().to_string();
+    let client_id_trimmed = normalize_spotify_client_id(&client_id).ok_or_else(|| {
+        "Spotify Client ID must be the 32-character ID from the Spotify Developer Dashboard"
+            .to_string()
+    })?;
     
     set_cached_client_id(&client_id_trimmed);
     
@@ -648,6 +661,27 @@ fn error_page(message: &str) -> String {
 <p style="color:rgba(255,255,255,0.6);margin:0;font-size:0.9rem">{}</p>
 <p style="color:rgba(255,255,255,0.4);margin:1rem 0 0;font-size:0.8rem">Please close this window and try again in the app</p>
 </div></body></html>"##, escaped_message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_spotify_client_id;
+
+    #[test]
+    fn spotify_client_id_must_be_32_hex_chars() {
+        assert_eq!(
+            normalize_spotify_client_id(" 0123456789abcdef0123456789ABCDEF "),
+            Some("0123456789abcdef0123456789ABCDEF".to_string())
+        );
+        assert_eq!(normalize_spotify_client_id(""), None);
+        assert_eq!(normalize_spotify_client_id("0123456789abcdef"), None);
+        assert_eq!(
+            normalize_spotify_client_id(
+                "AQAIrCE5Cx1d_Ms-3SFG6A25wYISkwXCD-rAns4oOTTMvtO18uPymfVpp1_NtZpCUk"
+            ),
+            None
+        );
+    }
 }
 
 #[tauri::command]

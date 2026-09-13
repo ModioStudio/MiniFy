@@ -14,6 +14,8 @@ type BootProps = {
   skipAuthCheck?: boolean;
 };
 
+const SPOTIFY_CLIENT_ID_PATTERN = /^[0-9a-f]{32}$/i;
+
 export default function Boot({
   onComplete,
   initialStep = "provider",
@@ -186,8 +188,8 @@ export default function Boot({
   };
 
   const handleSpotifyClientIdSubmit = async () => {
-    if (clientId.trim().length < 20) {
-      setError("Please enter a valid Spotify Client ID");
+    if (!SPOTIFY_CLIENT_ID_PATTERN.test(clientId.trim())) {
+      setError("Please enter the 32-character Client ID from your Spotify Developer Dashboard");
       return;
     }
 
