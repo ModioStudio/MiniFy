@@ -461,6 +461,20 @@ export async function fetchAudioAnalysis(trackIdOrUri: string): Promise<SpotifyA
   return request<SpotifyAudioAnalysis>(url);
 }
 
+export interface FullAlbum {
+  id: string;
+  name: string;
+  release_date?: string;
+  total_tracks?: number;
+  label?: string;
+  external_urls?: { spotify?: string };
+  copyrights?: Array<{ text: string }>;
+}
+
+export async function fetchAlbum(albumId: string): Promise<FullAlbum> {
+  return request<FullAlbum>(`https://api.spotify.com/v1/albums/${albumId}`);
+}
+
 /** Single-artist lookup still works; the batch `/v1/artists?ids=` form is 403. */
 export async function fetchArtist(artistId: string): Promise<FullArtist> {
   return request<FullArtist>(`https://api.spotify.com/v1/artists/${artistId}`);

@@ -1,6 +1,7 @@
 import {
   ArrowClockwise,
   ArrowsOutSimple,
+  Article,
   ClockCounterClockwise,
   DownloadSimple,
   GearSix,
@@ -51,6 +52,7 @@ import type {
 } from "../providers/types";
 import DeviceMenu from "./components/DeviceMenu/DeviceMenu";
 import MusicVisualizer from "./components/MusicVisualizer";
+import NowPlayingPanel from "./components/NowPlayingPanel";
 import ResizeHandle from "./components/ResizeHandle/ResizeHandle";
 import PlaybackBar from "./components/TrackControls/PlaybackBar";
 import TrackControls from "./components/TrackControls/TrackControls";
@@ -75,6 +77,12 @@ const MAX_DESKTOP_SIDEBAR_WIDTH = 420;
 /** Floor raised so the 72px artwork in the player bar never gets clipped. */
 const MIN_DESKTOP_PLAYER_HEIGHT = 100;
 const MAX_DESKTOP_PLAYER_HEIGHT = 180;
+
+const DESKTOP_NOW_PANEL_KEY = "minify.desktop.nowPanelOpen";
+const DESKTOP_NOW_PANEL_WIDTH_KEY = "minify.desktop.nowPanelWidth";
+const DEFAULT_NOW_PANEL_WIDTH = 340;
+const MIN_NOW_PANEL_WIDTH = 280;
+const MAX_NOW_PANEL_WIDTH = 520;
 
 const SEARCH_HISTORY_KEY = "minify.desktop.searchHistory";
 const SEARCH_HISTORY_SIZE = 8;
@@ -207,6 +215,17 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory());
   const [listening, setListening] = useState<ListeningStats>({ artists: [], totalPlays: 0 });
+  const [nowPanelOpen, setNowPanelOpen] = useState(
+    () => window.localStorage.getItem(DESKTOP_NOW_PANEL_KEY) === "true"
+  );
+  const [nowPanelWidth, setNowPanelWidth] = useState(() =>
+    readStoredDimension(
+      DESKTOP_NOW_PANEL_WIDTH_KEY,
+      DEFAULT_NOW_PANEL_WIDTH,
+      MIN_NOW_PANEL_WIDTH,
+      MAX_NOW_PANEL_WIDTH
+    )
+  );
   const playlistRunId = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [hasConnectDevices, setHasConnectDevices] = useState(false);
@@ -247,7 +266,15 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const shellStyle = {
     "--desktop-sidebar-width": `${sidebarWidth}px`,
     "--desktop-player-height": `${playerHeight}px`,
+    "--desktop-now-panel-width": `${nowPanelWidth}px`,
   } as CSSProperties;
+
+  const toggleNowPanel = useCallback(() => {
+    setNowPanelOpen((open) => {
+      window.localStorage.setItem(DESKTOP_NOW_PANEL_KEY, String(!open));
+      return !open;
+    });
+  }, []);
 
   useEffect(() => {
     getActiveProviderType()
@@ -576,7 +603,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   ];
 
   return (
-    <div className="desktop-shell font-circular" style={shellStyle}>
+    <div
+      className={`desktop-shell font-circular ${nowPanelOpen ? "has-now-panel" : ""}`}
+      style={shellStyle}
+    >
       <aside className="desktop-sidebar">
         <div className="desktop-brand">
           <img src="/logo.png" alt="" className="desktop-brand-mark" />
@@ -875,6 +905,28 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         )}
       </main>
 
+      {nowPanelOpen && (
+        <>
+          <ResizeHandle
+            axis="x"
+            value={nowPanelWidth}
+            min={MIN_NOW_PANEL_WIDTH}
+            max={MAX_NOW_PANEL_WIDTH}
+            direction={-1}
+            defaultValue={DEFAULT_NOW_PANEL_WIDTH}
+            className="desktop-now-panel-resize-handle"
+            label="Resize now playing panel"
+            onChange={setNowPanelWidth}
+            onCommit={(next) => storeDimension(DESKTOP_NOW_PANEL_WIDTH_KEY, next)}
+          />
+          <NowPlayingPanel
+            track={currentTrack}
+            progressMs={currentProgress}
+            onClose={toggleNowPanel}
+          />
+        </>
+      )}
+
       <footer className="desktop-player">
         <ResizeHandle
           axis="y"
@@ -930,6 +982,16 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         </div>
 
         <div className="desktop-player-actions">
+          <button
+            type="button"
+            className={`desktop-player-pop ${nowPanelOpen ? "is-on" : ""}`}
+            onClick={toggleNowPanel}
+            aria-pressed={nowPanelOpen}
+            aria-label="Toggle now playing panel"
+            title="Now playing: video, lyrics and track info"
+          >
+            <Article size={20} weight="bold" />
+          </button>
           {hasConnectDevices && <DeviceMenu />}
           <VolumeControl />
           <button
