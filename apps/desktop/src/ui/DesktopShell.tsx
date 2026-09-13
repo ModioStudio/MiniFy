@@ -16,9 +16,15 @@ import {
   Waveform,
 } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
-import { readSettings } from "../lib/settingLib";
+import { loadAllPlaylistTracks } from "../lib/playlistTracks";
+import {
+  type Settings as AppSettings,
+  readSettings,
+  SETTINGS_CHANGED_EVENT,
+} from "../lib/settingLib";
 import {
   clearSpotifyWebPlaybackAuthFailure,
   disconnectSpotifyWebPlayback,
@@ -60,9 +66,10 @@ const DESKTOP_SIDEBAR_WIDTH_KEY = "minify.desktop.sidebarWidth";
 const DESKTOP_PLAYER_HEIGHT_KEY = "minify.desktop.playerHeight";
 const DEFAULT_DESKTOP_SIDEBAR_WIDTH = 248;
 const DEFAULT_DESKTOP_PLAYER_HEIGHT = 112;
-const MIN_DESKTOP_SIDEBAR_WIDTH = 180;
-const MAX_DESKTOP_SIDEBAR_WIDTH = 360;
-const MIN_DESKTOP_PLAYER_HEIGHT = 88;
+const MIN_DESKTOP_SIDEBAR_WIDTH = 160;
+const MAX_DESKTOP_SIDEBAR_WIDTH = 420;
+/** Floor raised so the 72px artwork in the player bar never gets clipped. */
+const MIN_DESKTOP_PLAYER_HEIGHT = 100;
 const MAX_DESKTOP_PLAYER_HEIGHT = 180;
 
 function readStoredDimension(key: string, fallback: number, min: number, max: number): number {
@@ -98,6 +105,14 @@ async function fetchAllUserPlaylists(musicProvider: MusicProvider): Promise<Play
     total: Number.isFinite(total) ? total : playlists.length,
     currentUserId,
   };
+}
+
+/** Spotify answers 403 for playlists it will not expose to third-party apps. */
+function describeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.startsWith("403")) return "Spotify blocked this request (403).";
+  if (message.startsWith("404")) return "Spotify no longer serves this endpoint (404).";
+  return message;
 }
 
 function getArtwork(track: UnifiedTrack | null): string | null {
@@ -154,6 +169,13 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const [loadingHome, setLoadingHome] = useState(true);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
   const [loadingPlaylistTracks, setLoadingPlaylistTracks] = useState(false);
+  const [playlistProgress, setPlaylistProgress] = useState<{ loaded: number; total: number }>({
+    loaded: 0,
+    total: 0,
+  });
+  const [playlistError, setPlaylistError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const playlistRunId = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [hasConnectDevices, setHasConnectDevices] = useState(false);
   const [showVisualizer, setShowVisualizer] = useState(false);
@@ -239,13 +261,25 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   }, [allPlaylistsLoaded, loadAllPlaylists, selectedPlaylist, view]);
 
   useEffect(() => {
+    const applyVisualizer = (settings: AppSettings) => {
+      setShowVisualizer(settings.show_music_visualizer ?? false);
+      setVisualizerColor(settings.music_visualizer_color ?? "theme");
+      setVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
+    };
+
     readSettings()
-      .then((settings) => {
-        setShowVisualizer(settings.show_music_visualizer ?? false);
-        setVisualizerColor(settings.music_visualizer_color ?? "theme");
-        setVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
-      })
+      .then(applyVisualizer)
       .catch(() => {});
+
+    // The mini player writes the same settings file; without this the shell
+    // keeps rendering the old visualizer state until it is restarted.
+    const unlisten = listen<AppSettings>(SETTINGS_CHANGED_EVENT, (event) => {
+      if (event.payload) applyVisualizer(event.payload);
+    });
+
+    return () => {
+      unlisten.then((off) => off());
+    };
   }, []);
 
   useEffect(() => subscribeSpotifyWebPlaybackStatus(setSpotifyPlaybackStatus), []);
@@ -376,6 +410,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
 
     const id = window.setTimeout(async () => {
       setLoadingSearch(true);
+      setSearchError(null);
       try {
         const musicProvider = await getActiveProvider();
         const tracks = await musicProvider.searchTracks(trimmed, 30);
@@ -383,6 +418,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       } catch (error) {
         console.error("Desktop search failed:", error);
         setSearchResults([]);
+        setSearchError(describeError(error));
       } finally {
         setLoadingSearch(false);
       }
@@ -415,19 +451,32 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   );
 
   const selectPlaylist = useCallback(async (playlist: UnifiedPlaylist) => {
+    const runId = playlistRunId.current + 1;
+    playlistRunId.current = runId;
+    const cancelled = () => playlistRunId.current !== runId;
+
     setSelectedPlaylist(playlist);
     setView("playlists");
     setLoadingPlaylistTracks(true);
     setPlaylistTracks([]);
+    setPlaylistError(null);
+    setPlaylistProgress({ loaded: 0, total: playlist.trackCount });
     try {
       const musicProvider = await getActiveProvider();
-      const response = await musicProvider.getPlaylistTracks(playlist.id, 50, 0);
-      setPlaylistTracks(response.tracks);
+      await loadAllPlaylistTracks(
+        musicProvider,
+        playlist.id,
+        ({ tracks, loaded, total }) => {
+          setPlaylistTracks((current) => [...current, ...tracks]);
+          setPlaylistProgress({ loaded, total });
+        },
+        cancelled
+      );
     } catch (error) {
       console.error("Failed to load playlist tracks:", error);
-      setPlaylistTracks([]);
+      if (!cancelled()) setPlaylistError(describeError(error));
     } finally {
-      setLoadingPlaylistTracks(false);
+      if (!cancelled()) setLoadingPlaylistTracks(false);
     }
   }, []);
 
@@ -609,10 +658,19 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                   />
                   {loadingSearch && <SpinnerGap size={20} weight="bold" className="animate-spin" />}
                 </div>
+                {searchError && (
+                  <output className="desktop-notice is-warning">{searchError}</output>
+                )}
                 <TrackTable
                   tracks={searchResults}
                   playingId={playingId}
-                  emptyLabel={query.trim() ? "No results found" : "Start typing to search"}
+                  emptyLabel={
+                    searchError
+                      ? "Search failed"
+                      : query.trim()
+                        ? "No results found"
+                        : "Start typing to search"
+                  }
                   onPlay={playTrack}
                 />
               </section>
@@ -627,12 +685,27 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                   )}
                 </div>
                 {selectedPlaylist ? (
-                  <TrackTable
-                    tracks={playlistTracks}
-                    playingId={playingId}
-                    emptyLabel="No tracks in this playlist"
-                    onPlay={playTrack}
-                  />
+                  <>
+                    {loadingPlaylistTracks && playlistProgress.total > 0 && (
+                      <div className="desktop-playlist-progress">
+                        <SpinnerGap size={16} weight="bold" className="animate-spin" />
+                        <span>
+                          Loading {playlistProgress.loaded} of {playlistProgress.total} tracks
+                        </span>
+                      </div>
+                    )}
+                    {playlistError && (
+                      <output className="desktop-notice is-warning">{playlistError}</output>
+                    )}
+                    <TrackTable
+                      tracks={playlistTracks}
+                      playingId={playingId}
+                      emptyLabel={
+                        loadingPlaylistTracks ? "Loading tracks…" : "No tracks in this playlist"
+                      }
+                      onPlay={playTrack}
+                    />
+                  </>
                 ) : (
                   <>
                     {provider === "spotify" && (

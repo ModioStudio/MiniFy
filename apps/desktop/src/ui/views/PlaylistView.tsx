@@ -1,6 +1,7 @@
 import { ArrowLeft, MusicNotes, Play, SpinnerGap, Warning } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
+import { loadAllPlaylistTracks } from "../../lib/playlistTracks";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType, UnifiedPlaylist, UnifiedTrack } from "../../providers/types";
 
@@ -9,8 +10,6 @@ type PlaylistViewProps = {
 };
 
 type ViewMode = "playlists" | "tracks";
-
-const TRACKS_PER_PAGE = 30;
 
 function formatDuration(ms: number): string {
   if (ms <= 0) return "--:--";
@@ -32,12 +31,13 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   const [tracks, setTracks] = useState<UnifiedTrack[]>([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState<boolean>(true);
   const [loadingTracks, setLoadingTracks] = useState<boolean>(false);
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [tracksError, setTracksError] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("playlists");
   const [totalTracks, setTotalTracks] = useState<number>(0);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const loadedCountRef = useRef<number>(0);
+  const loadRunRef = useRef<number>(0);
 
   useEffect(() => {
     setLayout("SearchSongs");
@@ -83,64 +83,41 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
   }, [showOnlyOwn, currentUserId, allPlaylists]);
 
   const handleSelectPlaylist = useCallback(async (playlist: UnifiedPlaylist) => {
+    const runId = loadRunRef.current + 1;
+    loadRunRef.current = runId;
+    const cancelled = () => loadRunRef.current !== runId;
+
     setSelectedPlaylist(playlist);
     setViewMode("tracks");
     setLoadingTracks(true);
     setTracks([]);
+    setTracksError(null);
+    setTotalTracks(playlist.trackCount);
     loadedCountRef.current = 0;
     try {
       const provider = await getActiveProvider();
-      const response = await provider.getPlaylistTracks(playlist.id, TRACKS_PER_PAGE, 0);
-      setTracks(response.tracks);
-      setTotalTracks(response.total);
-      loadedCountRef.current = response.tracks.length;
+      await loadAllPlaylistTracks(
+        provider,
+        playlist.id,
+        ({ tracks: page, loaded, total }) => {
+          loadedCountRef.current = loaded;
+          setTracks((current) => [...current, ...page]);
+          setTotalTracks(total);
+        },
+        cancelled
+      );
     } catch (err) {
       console.error("Failed to load playlist tracks:", err);
-      setTracks([]);
+      if (!cancelled()) {
+        const message = err instanceof Error ? err.message : String(err);
+        setTracksError(
+          message.startsWith("403") ? "Spotify blocked this playlist (403)." : message
+        );
+      }
     } finally {
-      setLoadingTracks(false);
+      if (!cancelled()) setLoadingTracks(false);
     }
   }, []);
-
-  const loadMoreTracks = useCallback(async () => {
-    if (!selectedPlaylist || loadingMore) return;
-
-    const currentOffset = loadedCountRef.current;
-
-    if (currentOffset >= totalTracks && totalTracks > 0) return;
-
-    setLoadingMore(true);
-    try {
-      const provider = await getActiveProvider();
-      const response = await provider.getPlaylistTracks(
-        selectedPlaylist.id,
-        TRACKS_PER_PAGE,
-        currentOffset
-      );
-
-      if (response.tracks.length > 0) {
-        loadedCountRef.current = currentOffset + response.tracks.length;
-        setTracks((prev) => [...prev, ...response.tracks]);
-        setTotalTracks(response.total);
-      }
-    } catch (err) {
-      console.error("Failed to load more tracks:", err);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [selectedPlaylist, loadingMore, totalTracks]);
-
-  const handleScroll = useCallback(() => {
-    const container = tracksContainerRef.current;
-    if (!container || loadingMore) return;
-
-    if (loadedCountRef.current >= totalTracks && totalTracks > 0) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    if (scrollHeight - scrollTop - clientHeight < 150) {
-      loadMoreTracks();
-    }
-  }, [loadMoreTracks, loadingMore, totalTracks]);
 
   const handleBackToPlaylists = useCallback(() => {
     setViewMode("playlists");
@@ -325,30 +302,29 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
 
           {viewMode === "tracks" && (
             <>
-              {loadingTracks && (
+              {loadingTracks && tracks.length === 0 && (
                 <div
-                  className="flex items-center justify-center h-full"
+                  className="flex flex-col items-center justify-center h-full gap-2"
                   style={{ color: "var(--settings-text-muted)" }}
                 >
                   <SpinnerGap size={24} weight="bold" className="animate-spin" />
+                  <p className="text-xs">
+                    {totalTracks > 0 ? `Loading ${totalTracks} tracks…` : "Loading tracks…"}
+                  </p>
                 </div>
               )}
 
               {!loadingTracks && tracks.length === 0 && (
                 <div
-                  className="flex items-center justify-center h-full"
+                  className="flex items-center justify-center h-full text-center px-6"
                   style={{ color: "var(--settings-text-muted)" }}
                 >
-                  <p>No tracks in this playlist</p>
+                  <p>{tracksError ?? "No tracks in this playlist"}</p>
                 </div>
               )}
 
-              {!loadingTracks && tracks.length > 0 && (
-                <div
-                  ref={tracksContainerRef}
-                  onScroll={handleScroll}
-                  className="h-full overflow-auto"
-                >
+              {tracks.length > 0 && (
+                <div ref={tracksContainerRef} className="h-full overflow-auto">
                   <ul className="py-2">
                     {tracks.map((track, index) => {
                       const albumArt = track.album.images[0]?.url;
@@ -424,21 +400,24 @@ export default function PlaylistView({ onBack }: PlaylistViewProps) {
                     })}
                   </ul>
 
-                  {loadingMore && (
+                  {loadingTracks && (
                     <div
-                      className="flex items-center justify-center py-3"
+                      className="flex items-center justify-center gap-2 py-3 text-xs"
                       style={{ color: "var(--settings-text-muted)" }}
                     >
-                      <SpinnerGap size={18} weight="bold" className="animate-spin" />
+                      <SpinnerGap size={16} weight="bold" className="animate-spin" />
+                      <span>
+                        {tracks.length} / {totalTracks} tracks loaded
+                      </span>
                     </div>
                   )}
 
-                  {tracks.length < totalTracks && !loadingMore && (
+                  {!loadingTracks && tracksError && (
                     <div
                       className="text-center py-2 text-xs"
                       style={{ color: "var(--settings-text-muted)" }}
                     >
-                      {tracks.length} / {totalTracks} tracks loaded
+                      {tracksError}
                     </div>
                   )}
                 </div>

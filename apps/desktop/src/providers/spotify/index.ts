@@ -27,6 +27,7 @@ import {
   fetchRecentlyPlayed,
   fetchUserPlaylists,
   fetchUserProfile,
+  playlistTrackTotal,
   type SimplifiedTrack,
   addToQueue as spotifyAddToQueue,
   nextTrack as spotifyNextTrack,
@@ -223,7 +224,7 @@ class SpotifyProviderImpl implements MusicProvider {
           width: img.width ?? 300,
           height: img.height ?? 300,
         })),
-        trackCount: p.tracks?.total ?? 0,
+        trackCount: playlistTrackTotal(p),
         owner: {
           id: p.owner?.id ?? "",
           name: p.owner?.display_name || p.owner?.id || "Spotify",

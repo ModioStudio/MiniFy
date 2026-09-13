@@ -74,7 +74,7 @@ function formatUnifiedTracksForToon(
 function formatArtistsForToon(artists: FullArtist[]): Array<{ n: string; g: string }> {
   return artists.map((a) => ({
     n: a.name,
-    g: a.genres.slice(0, 3).join(", "),
+    g: (a.genres ?? []).slice(0, 3).join(", ") || "unknown",
   }));
 }
 

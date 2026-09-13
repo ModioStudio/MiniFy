@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import type { ThemeConfig } from "./themeLoader";
 
 /**
@@ -117,6 +118,24 @@ function toCss({ r, g, b }: Rgb): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+function toHex({ r, g, b }: Rgb): string {
+  const pair = (value: number) => clamp255(value).toString(16).padStart(2, "0");
+  return `#${pair(r)}${pair(g)}${pair(b)}`;
+}
+
+/**
+ * The desktop window keeps the system title bar, which Windows would otherwise
+ * paint in its own accent colour regardless of the MiniFy theme.
+ */
+function syncNativeTitlebar(background: Rgb, foreground: Rgb): void {
+  invoke("set_titlebar_color", {
+    background: toHex(background),
+    foreground: toHex(foreground),
+  }).catch(() => {
+    // No Tauri host, or a platform without themable window chrome.
+  });
+}
+
 function relativeLuminance({ r, g, b }: Rgb): number {
   const channel = (value: number) => {
     const srgb = value / 255;
@@ -167,4 +186,6 @@ export function applyDesktopThemeVars(theme: ThemeConfig): void {
     root.style.setProperty(name, value);
   }
   root.style.setProperty("color-scheme", isLight ? "light" : "dark");
+
+  syncNativeTitlebar(mix(base, sink, 0.18), flatten(text, base));
 }

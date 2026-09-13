@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
 import { getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
-import { addTrackToPlaylist, fetchUserPlaylists, type SimplifiedPlaylist } from "../spotifyClient";
+import {
+  addTrackToPlaylist,
+  fetchUserPlaylists,
+  playlistTrackTotal,
+  type SimplifiedPlaylist,
+} from "../spotifyClient";
 
 type AddToPlaylistViewProps = {
   trackId: string | null;
@@ -164,7 +169,7 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
                           className="text-xs truncate"
                           style={{ color: "var(--settings-text-muted)" }}
                         >
-                          {playlist.tracks?.total ?? 0} tracks
+                          {playlistTrackTotal(playlist)} tracks
                         </p>
                       </div>
 

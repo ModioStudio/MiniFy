@@ -4,10 +4,10 @@ import { z } from "zod";
 import {
   type AudioFeatures,
   type FullArtist,
+  fetchArtist,
   fetchAudioFeatures,
   fetchCurrentlyPlaying,
   fetchRecentlyPlayed,
-  fetchRecommendations,
   fetchSavedTracksCount,
   fetchTopArtists,
   fetchTopTracks,
@@ -19,6 +19,7 @@ import {
 } from "../ui/spotifyClient";
 import { startAIQueue, stopAIQueue } from "./aiQueueService";
 import { useAIQueueStore } from "./aiQueueStore";
+import { fetchRelatedTracks } from "./relatedTracks";
 
 function formatTrack(track: SimplifiedTrack): string {
   const artists = track.artists.map((a) => a.name).join(", ");
@@ -36,8 +37,8 @@ function formatTrackForToon(track: SimplifiedTrack): { n: string; a: string; u: 
 function formatArtistForToon(artist: FullArtist): { n: string; g: string; p: number; id: string } {
   return {
     n: artist.name,
-    g: artist.genres.slice(0, 3).join(", ") || "unknown",
-    p: artist.popularity,
+    g: (artist.genres ?? []).slice(0, 3).join(", ") || "unknown",
+    p: artist.popularity ?? 0,
     id: artist.id,
   };
 }
@@ -246,7 +247,7 @@ export const spotifyTools = {
           return { success: false, message: "No top artists found" };
         }
 
-        const allGenres = artists.flatMap((a) => a.genres);
+        const allGenres = artists.flatMap((a) => a.genres ?? []);
         const genreCounts = allGenres.reduce(
           (acc, genre) => {
             acc[genre] = (acc[genre] || 0) + 1;
@@ -335,13 +336,13 @@ export const spotifyTools = {
 
   getRecommendations: tool({
     description:
-      "Get personalized track recommendations. Returns TOON format: n=name, a=artists, u=uri. Use searchTracks as fallback.",
+      "Build a radio from artist seeds, genres and the user's own library. Returns TOON format: n=name, a=artists, u=uri. Use searchTracks as fallback.",
     parameters: z.object({
       seedTrackIds: z
         .array(z.string())
         .max(5)
         .optional()
-        .describe("Track IDs (NOT URIs) to base recommendations on (max 5)"),
+        .describe("Track IDs (NOT URIs) to keep out of the result (max 5)"),
       seedArtistIds: z
         .array(z.string())
         .max(5)
@@ -352,55 +353,44 @@ export const spotifyTools = {
         .max(5)
         .optional()
         .describe("Genres to base recommendations on (max 5, e.g. 'pop', 'rock', 'hip-hop')"),
-      targetEnergy: z
-        .number()
-        .min(0)
-        .max(1)
-        .optional()
-        .describe("Target energy level (0.0 = calm, 1.0 = energetic)"),
-      targetDanceability: z
-        .number()
-        .min(0)
-        .max(1)
-        .optional()
-        .describe("Target danceability (0.0 = not danceable, 1.0 = very danceable)"),
-      targetValence: z
-        .number()
-        .min(0)
-        .max(1)
-        .optional()
-        .describe("Target mood (0.0 = sad/dark, 1.0 = happy/cheerful)"),
       limit: z.number().min(1).max(20).default(10).describe("Number of recommendations"),
     }),
     execute: async (params) => {
       try {
-        let seedTrackIds = params.seedTrackIds;
-        const hasSeed =
-          (seedTrackIds?.length ?? 0) > 0 ||
-          (params.seedArtistIds?.length ?? 0) > 0 ||
-          (params.seedGenres?.length ?? 0) > 0;
+        // Seeds are artist names now: Spotify dropped the batch track lookup, so
+        // a bare track id can no longer be resolved back to its artists.
+        const artistNames: string[] = [];
 
-        if (!hasSeed) {
+        for (const artistId of params.seedArtistIds ?? []) {
+          try {
+            const artist = await fetchArtist(artistId);
+            artistNames.push(artist.name);
+          } catch {
+            // Skip an artist Spotify will not resolve.
+          }
+        }
+
+        if (artistNames.length === 0 && !params.seedGenres?.length) {
           const recentTracks = await fetchRecentlyPlayed(5);
-          if (recentTracks.length > 0) {
-            seedTrackIds = recentTracks.map((t) => t.id);
-          } else {
+          if (recentTracks.length === 0) {
             return {
               success: false,
               message: "No seed provided and no recent tracks. Try using searchTracks instead.",
             };
           }
+          for (const track of recentTracks) {
+            for (const artist of track.artists) artistNames.push(artist.name);
+          }
         }
 
-        const tracks = await fetchRecommendations({
-          seedTracks: seedTrackIds,
-          seedArtists: params.seedArtistIds,
-          seedGenres: params.seedGenres,
-          targetEnergy: params.targetEnergy,
-          targetDanceability: params.targetDanceability,
-          targetValence: params.targetValence,
-          limit: params.limit,
-        });
+        const tracks = await fetchRelatedTracks(
+          {
+            artistNames,
+            genres: params.seedGenres,
+            excludeTrackIds: params.seedTrackIds,
+          },
+          params.limit
+        );
 
         if (!tracks || tracks.length === 0) {
           return {

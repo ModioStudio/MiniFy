@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import "./global.css";
 
 import { LogicalPosition } from "@tauri-apps/api/dpi";
+import { listen } from "@tauri-apps/api/event";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { getActiveProvider as getActiveAIProvider } from "../lib/aiClient";
 import { useAIQueueStore } from "../lib/aiQueueStore";
-import { loadCustomThemes, readSettings, writeSettings } from "../lib/settingLib";
+import {
+  type Settings as AppSettings,
+  loadCustomThemes,
+  readSettings,
+  SETTINGS_CHANGED_EVENT,
+  writeSettings,
+} from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
@@ -92,6 +99,27 @@ function MiniPlayerApp() {
 
       setFirstBootDone(settings.first_boot_done ?? false);
     })();
+  }, []);
+
+  // ---- Follow settings changed in the other window (desktop shell <-> mini)
+  useEffect(() => {
+    const applyShared = (settings: AppSettings) => {
+      setLayout(settings.layout ?? "LayoutA");
+      setTheme(settings.theme ?? "dark");
+      setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
+      setShowMusicVisualizer(settings.show_music_visualizer ?? false);
+      setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
+      setMusicVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
+      setWindowOpacity(settings.window_opacity ?? 100);
+    };
+
+    const unlisten = listen<AppSettings>(SETTINGS_CHANGED_EVENT, (event) => {
+      if (event.payload) applyShared(event.payload);
+    });
+
+    return () => {
+      unlisten.then((off) => off());
+    };
   }, []);
 
   // ---- Apply theme

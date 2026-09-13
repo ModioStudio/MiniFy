@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 
 export type AIProviderType = "openai" | "anthropic" | "google" | "groq";
 export type MusicProviderType = "spotify" | "youtube";
@@ -182,11 +183,17 @@ export async function readSettings(): Promise<Settings> {
   }
 }
 
+/** Broadcast so the other window picks up a setting instead of going stale. */
+export const SETTINGS_CHANGED_EVENT = "settings-changed";
+
 export async function writeSettings(update: Partial<Settings>): Promise<void> {
   try {
     const current = await readSettings();
     const merged: Settings = { ...current, ...update };
     await invoke("write_settings", { settings: merged });
+    // The desktop shell and the mini player run in separate webviews, so a
+    // toggle in one is invisible to the other until it is told about it.
+    await emit(SETTINGS_CHANGED_EVENT, merged);
   } catch (err) {
     console.error("Failed to write settings via Tauri:", err);
   }

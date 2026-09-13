@@ -286,12 +286,36 @@ interface SpotifySearchResponse {
   };
 }
 
+/** Spotify answers 400 "Invalid limit" for anything above this on /search. */
+const SEARCH_PAGE_SIZE = 10;
+
 export async function searchTracks(query: string, limit: number): Promise<SimplifiedTrack[]> {
   if (!query.trim()) return [];
 
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}`;
-  const data = await request<SpotifySearchResponse>(url);
-  return data.tracks.items;
+  const encoded = encodeURIComponent(query);
+  const pageCount = Math.max(1, Math.ceil(limit / SEARCH_PAGE_SIZE));
+
+  // Pages are independent, so ask for them at once rather than walking offsets
+  // one round trip at a time.
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, (_, index) => {
+      const offset = index * SEARCH_PAGE_SIZE;
+      const url = `https://api.spotify.com/v1/search?q=${encoded}&type=track&limit=${SEARCH_PAGE_SIZE}&offset=${offset}`;
+      return request<SpotifySearchResponse>(url).then((data) => data.tracks?.items ?? []);
+    })
+  );
+
+  // Paged search can repeat a track across offsets; keep the first occurrence so
+  // React list keys stay unique.
+  const seen = new Set<string>();
+  const unique: SimplifiedTrack[] = [];
+  for (const track of pages.flat()) {
+    if (!track || seen.has(track.id)) continue;
+    seen.add(track.id);
+    unique.push(track);
+  }
+
+  return unique.slice(0, limit);
 }
 
 export async function playTrack(trackUri: string, positionMs?: number): Promise<void> {
@@ -334,8 +358,10 @@ export type TimeRange = "short_term" | "medium_term" | "long_term";
 export interface FullArtist {
   id: string;
   name: string;
-  genres: string[];
-  popularity: number;
+  /** Dropped from artist objects by Spotify; treat as absent. */
+  genres?: string[];
+  /** Dropped from artist objects by Spotify; treat as absent. */
+  popularity?: number;
   images: Array<{ url: string; height: number; width: number }>;
 }
 
@@ -435,49 +461,9 @@ export async function fetchAudioAnalysis(trackIdOrUri: string): Promise<SpotifyA
   return request<SpotifyAudioAnalysis>(url);
 }
 
-export interface SpotifyRecommendation {
-  tracks: SimplifiedTrack[];
-}
-
-export interface RecommendationParams {
-  seedTracks?: string[];
-  seedArtists?: string[];
-  seedGenres?: string[];
-  targetEnergy?: number;
-  targetDanceability?: number;
-  targetValence?: number;
-  limit?: number;
-}
-
-export async function fetchRecommendations(
-  params: RecommendationParams
-): Promise<SimplifiedTrack[]> {
-  const urlParams = new URLSearchParams();
-
-  if (params.seedTracks?.length) {
-    const cleanIds = params.seedTracks.slice(0, 5).map(extractTrackId);
-    urlParams.set("seed_tracks", cleanIds.join(","));
-  }
-  if (params.seedArtists?.length) {
-    urlParams.set("seed_artists", params.seedArtists.slice(0, 5).join(","));
-  }
-  if (params.seedGenres?.length) {
-    urlParams.set("seed_genres", params.seedGenres.slice(0, 5).join(","));
-  }
-  if (params.targetEnergy !== undefined) {
-    urlParams.set("target_energy", params.targetEnergy.toString());
-  }
-  if (params.targetDanceability !== undefined) {
-    urlParams.set("target_danceability", params.targetDanceability.toString());
-  }
-  if (params.targetValence !== undefined) {
-    urlParams.set("target_valence", params.targetValence.toString());
-  }
-  urlParams.set("limit", (params.limit ?? 10).toString());
-
-  const url = `https://api.spotify.com/v1/recommendations?${urlParams.toString()}`;
-  const data = await request<SpotifyRecommendation>(url);
-  return data.tracks ?? [];
+/** Single-artist lookup still works; the batch `/v1/artists?ids=` form is 403. */
+export async function fetchArtist(artistId: string): Promise<FullArtist> {
+  return request<FullArtist>(`https://api.spotify.com/v1/artists/${artistId}`);
 }
 
 export interface UserProfile {
@@ -526,9 +512,22 @@ export interface SimplifiedPlaylist {
     id: string;
     display_name?: string | null;
   };
+  /** Deprecated by Spotify in favour of `items`; still sent to older apps. */
   tracks?: {
     total: number;
   };
+  /** Replaced `tracks` as the track paging stub on simplified playlists. */
+  items?: {
+    total: number;
+  };
+}
+
+/**
+ * Spotify moved the track total on simplified playlists from `tracks.total` to
+ * `items.total`; apps reading only the old field see every playlist as empty.
+ */
+export function playlistTrackTotal(playlist: SimplifiedPlaylist): number {
+  return playlist.items?.total ?? playlist.tracks?.total ?? 0;
 }
 
 interface UserPlaylistsResponse {
@@ -548,9 +547,16 @@ export async function fetchUserPlaylists(
   return { playlists, total: data.total ?? playlists.length };
 }
 
+interface PlaylistEntryItem extends SimplifiedTrack {
+  /** `episode` for podcast entries, which carry no album/artists. */
+  type?: string;
+}
+
 interface PlaylistTracksResponse {
   items: Array<{
-    track: SimplifiedTrack | null;
+    /** Deprecated by Spotify in favour of `item`. */
+    track?: PlaylistEntryItem | null;
+    item?: PlaylistEntryItem | null;
     added_at: string;
   }>;
   total: number;
@@ -563,16 +569,17 @@ export async function fetchPlaylistTracks(
   limit: number,
   offset: number
 ): Promise<{ tracks: SimplifiedTrack[]; total: number }> {
-  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`;
+  // `/tracks` now answers 403 for new apps; `/items` is its live replacement.
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=${limit}&offset=${offset}`;
   const data = await request<PlaylistTracksResponse>(url);
   const tracks = data.items
-    .filter((item) => item.track !== null)
-    .map((item) => item.track as SimplifiedTrack);
+    .map((entry) => entry.item ?? entry.track ?? null)
+    .filter((track): track is PlaylistEntryItem => track !== null && track.type !== "episode");
   return { tracks, total: data.total };
 }
 
 export async function addTrackToPlaylist(playlistId: string, trackUri: string): Promise<void> {
-  const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}/items`;
   await request<{ snapshot_id: string }>(url, {
     method: "POST",
     body: JSON.stringify({ uris: [trackUri] }),

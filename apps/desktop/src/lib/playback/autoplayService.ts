@@ -3,10 +3,10 @@ import type { UnifiedTrack } from "../../providers/types";
 import { getRelatedVideos, videoItemToTrackData } from "../../providers/youtube/client";
 import {
   addToQueue as spotifyAddToQueue,
-  fetchRecommendations,
   getQueue as spotifyGetQueue,
 } from "../../ui/spotifyClient";
 import { useAIQueueStore } from "../aiQueueStore";
+import { fetchRelatedTracks } from "../relatedTracks";
 import { usePlaybackQueueStore } from "./playbackQueueStore";
 
 interface AutoplayState {
@@ -87,25 +87,39 @@ async function checkAndTriggerAutoplay(): Promise<void> {
   state.lastProcessedTrackId = track.id;
 }
 
+const AUTOPLAY_BATCH = 5;
+/** Enough history that a refill does not replay what autoplay just queued. */
+const AUTOPLAY_MEMORY = 200;
+
 async function handleSpotifyAutoplay(currentTrack: UnifiedTrack): Promise<void> {
   try {
     const queue = await spotifyGetQueue();
 
-    if (queue.queue.length > 0) {
+    // With nothing queued, Spotify echoes the current track back several times
+    // rather than returning an empty list, so a plain length check would keep
+    // autoplay switched off forever.
+    const upcoming = queue.queue.filter((track) => track.id !== currentTrack.id);
+    if (upcoming.length > 0) {
       return;
     }
 
-    const recommendations = await fetchRecommendations({
-      seedTracks: [currentTrack.id],
-      limit: 10,
-    });
+    const related = await fetchRelatedTracks(
+      {
+        artistNames: currentTrack.artists.map((artist) => artist.name),
+        excludeTrackIds: [currentTrack.id, ...state.pendingAutoplayTracks],
+      },
+      AUTOPLAY_BATCH
+    );
 
-    if (recommendations.length === 0) return;
+    if (related.length === 0) return;
 
-    for (const track of recommendations.slice(0, 5)) {
-      const uri = `spotify:track:${track.id}`;
-      await spotifyAddToQueue(uri);
+    for (const track of related) {
+      await spotifyAddToQueue(`spotify:track:${track.id}`);
       state.pendingAutoplayTracks.push(track.id);
+    }
+
+    if (state.pendingAutoplayTracks.length > AUTOPLAY_MEMORY) {
+      state.pendingAutoplayTracks = state.pendingAutoplayTracks.slice(-AUTOPLAY_MEMORY);
     }
   } catch (err) {
     console.error("Spotify autoplay failed:", err);

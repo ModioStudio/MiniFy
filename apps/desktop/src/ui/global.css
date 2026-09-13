@@ -749,6 +749,16 @@ textarea {
   font-size: 13px;
 }
 
+.desktop-playlist-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--desktop-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .desktop-playlist-toolbar {
   display: flex;
   align-items: center;
@@ -928,7 +938,7 @@ textarea {
 
 .desktop-now-playing {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -936,8 +946,8 @@ textarea {
 
 .desktop-now-art {
   display: flex;
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
@@ -982,6 +992,8 @@ textarea {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  /* Rides higher than dead centre so the seek bar clears the window edge. */
+  padding-bottom: 12px;
 }
 
 .desktop-player-center > .flex {
@@ -1245,21 +1257,26 @@ textarea {
 
 .resize-handle-x {
   top: 0;
-  right: -5px;
+  right: -7px;
   bottom: 0;
-  width: 10px;
+  width: 14px;
   cursor: col-resize;
 }
 
 .desktop-sidebar-resize-handle {
-  left: calc(var(--desktop-sidebar-width) - 5px);
+  left: calc(var(--desktop-sidebar-width) - 7px);
   right: auto;
+}
+
+/* A faint seam at rest, so the drag target is discoverable without hovering. */
+.desktop-sidebar-resize-handle::after {
+  opacity: 0.25;
 }
 
 .resize-handle-x::after {
   top: 0;
   bottom: 0;
-  left: 4px;
+  left: 6px;
   width: 2px;
 }
 

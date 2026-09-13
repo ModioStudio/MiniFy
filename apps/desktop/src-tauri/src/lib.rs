@@ -8,6 +8,7 @@ pub mod discord_rpc;
 pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
+pub mod titlebar;
 pub mod youtube_auth;
 
 mod clear_all {
@@ -84,6 +85,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             clear_everything,
             open_mini_player,
+            titlebar::set_titlebar_color,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,
