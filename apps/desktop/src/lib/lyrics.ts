@@ -30,8 +30,30 @@ type LrclibRecord = {
 
 const ENDPOINT = "https://lrclib.net/api";
 const DURATION_TOLERANCE_S = 8;
+/** `/get` falls back to external sources on a miss, which can hang. */
+const REQUEST_TIMEOUT_MS = 15_000;
+/** Waits between attempts when LRCLIB fails rather than answers. */
+const RETRY_DELAYS_MS = [1500, 4000, 8000];
+const MAX_RETRY_AFTER_MS = 15_000;
 
+/** Only real answers: a track with lyrics, or a definite "none". */
 const cache = new Map<string, Lyrics | null>();
+const inflight = new Map<string, Promise<Lyrics | null>>();
+
+/**
+ * LRCLIB failed instead of answering: overloaded (it sheds load with 503s,
+ * sometimes for minutes), rate limited, timed out or unreachable. Not the same
+ * as "this track has no lyrics", and never cached as such.
+ */
+export class LyricsServiceError extends Error {
+  readonly retryAfterMs: number | null;
+
+  constructor(message: string, retryAfterMs: number | null = null) {
+    super(message);
+    this.name = "LyricsServiceError";
+    this.retryAfterMs = retryAfterMs;
+  }
+}
 
 function parseSynced(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
@@ -67,10 +89,28 @@ function toLyrics(record: LrclibRecord): Lyrics | null {
   };
 }
 
+function retryAfterMs(response: Response): number | null {
+  const seconds = Number(response.headers.get("retry-after"));
+  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : null;
+}
+
+/** `null` for LRCLIB's 404 "no such track"; throws when the service fails. */
 async function getJson<T>(path: string, params: Record<string, string>): Promise<T | null> {
   const query = new URLSearchParams(params).toString();
-  const response = await fetch(`${ENDPOINT}/${path}?${query}`);
-  if (!response.ok) return null;
+
+  let response: Response;
+  try {
+    response = await fetch(`${ENDPOINT}/${path}?${query}`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw new LyricsServiceError(error instanceof Error ? error.message : String(error));
+  }
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new LyricsServiceError(`LRCLIB answered ${response.status}`, retryAfterMs(response));
+  }
   return (await response.json()) as T;
 }
 
@@ -95,7 +135,35 @@ function bestMatch(records: LrclibRecord[], durationMs: number): LrclibRecord | 
   return distance <= DURATION_TOLERANCE_S ? closest : null;
 }
 
-export async function fetchLyrics(
+async function lookup(
+  trackName: string,
+  artistName: string,
+  albumName: string,
+  durationMs: number
+): Promise<Lyrics | null> {
+  const exact = await getJson<LrclibRecord>("get", {
+    artist_name: artistName,
+    track_name: trackName,
+    album_name: albumName,
+    duration: Math.round(durationMs / 1000).toString(),
+  });
+  if (exact) return toLyrics(exact);
+
+  // The exact endpoint wants all four fields to line up, which they rarely
+  // do once a remix or a re-release is involved.
+  const found = await getJson<LrclibRecord[]>("search", {
+    q: `${artistName} ${trackName}`,
+  });
+  const match = found ? bestMatch(found, durationMs) : null;
+  return match ? toLyrics(match) : null;
+}
+
+/**
+ * Lyrics for a track, or `null` when LRCLIB has none. Retries a few times
+ * when LRCLIB fails, then throws `LyricsServiceError` so the caller can try
+ * again later instead of showing "no lyrics" for a track that has them.
+ */
+export function fetchLyrics(
   trackName: string,
   artistName: string,
   albumName: string,
@@ -103,35 +171,30 @@ export async function fetchLyrics(
 ): Promise<Lyrics | null> {
   const key = `${artistName}|${trackName}|${durationMs}`;
   const cached = cache.get(key);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) return Promise.resolve(cached);
 
-  let result: Lyrics | null = null;
+  // The panel restarts its lookup whenever the track object is re-sent;
+  // share the request that is already out instead of firing another.
+  const pending = inflight.get(key);
+  if (pending) return pending;
 
-  try {
-    const exact = await getJson<LrclibRecord>("get", {
-      artist_name: artistName,
-      track_name: trackName,
-      album_name: albumName,
-      duration: Math.round(durationMs / 1000).toString(),
-    });
-
-    if (exact) {
-      result = toLyrics(exact);
-    } else {
-      // The exact endpoint wants all four fields to line up, which they rarely
-      // do once a remix or a re-release is involved.
-      const found = await getJson<LrclibRecord[]>("search", {
-        q: `${artistName} ${trackName}`,
-      });
-      const match = found ? bestMatch(found, durationMs) : null;
-      result = match ? toLyrics(match) : null;
+  const request = (async () => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const result = await lookup(trackName, artistName, albumName, durationMs);
+        cache.set(key, result);
+        return result;
+      } catch (error) {
+        const delay = RETRY_DELAYS_MS[attempt];
+        if (!(error instanceof LyricsServiceError) || delay === undefined) throw error;
+        const wait = Math.min(MAX_RETRY_AFTER_MS, error.retryAfterMs ?? delay);
+        await new Promise((resolve) => setTimeout(resolve, wait));
+      }
     }
-  } catch {
-    result = null;
-  }
+  })().finally(() => inflight.delete(key));
 
-  cache.set(key, result);
-  return result;
+  inflight.set(key, request);
+  return request;
 }
 
 /** Index of the line that should be highlighted at `progressMs`, or -1. */

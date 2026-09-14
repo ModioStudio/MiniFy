@@ -1,5 +1,6 @@
 import {
   forceRefreshSpotifyAccessToken,
+  getDevices,
   getSpotifyAccessToken,
   type SimplifiedAlbum,
   type SimplifiedArtist,
@@ -8,6 +9,8 @@ import {
 } from "../ui/spotifyClient";
 import { logDiagnostic } from "./diagnostics";
 import { probeDrmSupport } from "./drmSupport";
+import { toOutputVolume } from "./outputVolume";
+import { readSettings } from "./settingLib";
 import {
   getSpotifyWebPlaybackDeviceId,
   setSpotifyWebPlaybackDeviceId,
@@ -119,6 +122,8 @@ export type SpotifyLocalPlayback = {
   shuffle: boolean;
   repeatMode: number;
   track: SimplifiedTrack | null;
+  /** Tracks lined up after this one (context and queue); the SDK lists at most two. */
+  nextTrackCount: number;
   /** Wall clock at capture, so position can be extrapolated between events. */
   sampledAt: number;
 };
@@ -156,7 +161,8 @@ let authRetries = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let healthyTimer: ReturnType<typeof setTimeout> | null = null;
 let disposed = false;
-let pendingVolume = 0.5;
+/** SDK volume (0–1), already scaled down from the slider by `toOutputVolume`. */
+let pendingVolume = toOutputVolume(50) / 100;
 
 const statusSubscribers = new Set<(status: SpotifyWebPlaybackStatus) => void>();
 const playbackSubscribers = new Set<(state: SpotifyLocalPlayback | null) => void>();
@@ -298,7 +304,39 @@ function teardownPlayer(): void {
   publishPlayback(null);
 }
 
+/**
+ * Returns playback to the speaker the user picked last session, if it is
+ * online. False means MiniFy should claim playback itself.
+ */
+async function restoreSavedDevice(localDeviceId: string): Promise<boolean> {
+  const saved = (await readSettings()).spotify_device;
+  if (!saved || saved.local) return false;
+
+  try {
+    const devices = await getDevices();
+    // Some Connect devices come back with a new id after a restart; the name
+    // is the next best thing to recognise them by.
+    const target =
+      devices.find((device) => device.id === saved.id) ??
+      devices.find((device) => device.name === saved.name && device.id !== localDeviceId);
+    if (!target) {
+      logDiagnostic("playback", `saved device ${saved.name} is offline, using MiniFy`);
+      return false;
+    }
+
+    if (!target.is_active) await transferPlayback(target.id, false);
+    logDiagnostic("playback", `restored saved device ${target.name}`);
+    return true;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    logDiagnostic("playback", `could not restore saved device: ${detail}`);
+    return false;
+  }
+}
+
 async function claimPlaybackDevice(deviceId: string): Promise<void> {
+  if (await restoreSavedDevice(deviceId)) return;
+
   // Registering the device is not enough. Until playback is transferred, every
   // Web API call still targets whatever Spotify considers the active device,
   // which is normally the official desktop client. This transfer is what makes
@@ -315,6 +353,8 @@ async function claimPlaybackDevice(deviceId: string): Promise<void> {
     try {
       await transferPlayback(deviceId, false);
       logDiagnostic("playback", `transferred playback to ${deviceId}`);
+      // A transfer can carry the previous device's level over; the saved one wins.
+      await player?.setVolume(pendingVolume);
       return;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
@@ -343,6 +383,7 @@ function handleStateChange(state: SpotifyWebPlaybackState | null): void {
     shuffle: state.shuffle,
     repeatMode: state.repeat_mode,
     track: track ? spotifyWebPlaybackTrackToSimplifiedTrack(track) : null,
+    nextTrackCount: state.track_window.next_tracks.length,
     sampledAt: Date.now(),
   });
 }
@@ -380,6 +421,11 @@ export function initializeSpotifyWebPlayback(): Promise<void> {
 
       if (!window.Spotify?.Player) {
         throw new Error("Spotify Web Playback SDK is unavailable");
+      }
+
+      const savedVolume = (await readSettings()).spotify_volume;
+      if (savedVolume !== null) {
+        pendingVolume = toOutputVolume(savedVolume) / 100;
       }
 
       const instance = new window.Spotify.Player({
@@ -573,7 +619,7 @@ export async function seekSpotifyWebPlayback(positionMs: number): Promise<void> 
 }
 
 export async function setSpotifyWebPlaybackVolume(volumePercent: number): Promise<void> {
-  pendingVolume = Math.max(0, Math.min(1, volumePercent / 100));
+  pendingVolume = toOutputVolume(volumePercent) / 100;
   await player?.setVolume(pendingVolume);
 }
 

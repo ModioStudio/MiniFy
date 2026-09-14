@@ -250,7 +250,11 @@ textarea {
   grid-template-columns: var(--desktop-sidebar-width) minmax(0, 1fr) var(--desktop-now-panel-width);
 }
 
+/* A column so the lyrics box can take whatever height is left. The panel only
+   scrolls as a whole when the window is too short for a usable lyrics box. */
 .desktop-now-panel {
+  display: flex;
+  flex-direction: column;
   grid-row: 1;
   grid-column: 3;
   min-height: 0;
@@ -269,6 +273,7 @@ textarea {
 
 .desktop-now-panel-head {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 18px;
@@ -314,6 +319,7 @@ textarea {
 
 .desktop-now-panel-body {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: 20px;
 }
@@ -423,6 +429,31 @@ textarea {
   background: var(--desktop-surface);
 }
 
+.desktop-now-panel-lyrics {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.desktop-now-panel-lyrics-box {
+  /* Positioned so each line's offsetTop is measured against the box. */
+  position: relative;
+  flex: 1 1 0;
+  min-height: 240px;
+  margin: 0;
+  padding: 20px 14px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: var(--desktop-surface);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 20px,
+    #000 calc(100% - 20px),
+    transparent
+  );
+}
+
 .desktop-now-panel-synced p {
   margin: 0 0 10px;
   color: var(--desktop-dim);
@@ -443,7 +474,6 @@ textarea {
 }
 
 .desktop-now-panel-plain {
-  margin: 0;
   color: var(--desktop-muted);
   font: inherit;
   font-size: 13px;
@@ -819,6 +849,38 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+.desktop-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.desktop-section-title h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-back-button {
+  display: flex;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--desktop-surface);
+  color: var(--desktop-text);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.desktop-back-button:hover {
+  background: var(--desktop-surface-strong);
+}
+
 .desktop-track-grid,
 .desktop-playlist-grid {
   display: grid;
@@ -1188,8 +1250,8 @@ textarea {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  /* Defaulted to 112px, then user-resizable through --desktop-player-height. */
-  padding: 12px 24px 14px;
+  /* Defaulted to 92px, then user-resizable through --desktop-player-height. */
+  padding: 8px 24px;
   border-top: 1px solid var(--desktop-border);
   background: var(--desktop-chrome);
   isolation: isolate;
@@ -1208,7 +1270,7 @@ textarea {
 
 .desktop-now-playing {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -1216,8 +1278,8 @@ textarea {
 
 .desktop-now-art {
   display: flex;
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
@@ -1260,14 +1322,114 @@ textarea {
 .desktop-player-center {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
-  /* Rides higher than dead centre so the seek bar clears the window edge. */
-  padding-bottom: 12px;
+  /* Rides a little above dead centre so the seek bar clears the window edge. */
+  padding-bottom: 4px;
 }
 
 .desktop-player-center > .flex {
   justify-content: center;
+}
+
+/* Shuffle | previous play next | empty: the outer columns split the leftover
+   width evenly, so the transport stays centred with or without shuffle. */
+.desktop-transport {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.desktop-transport > :first-child {
+  justify-self: end;
+  margin-right: 8px;
+}
+
+.desktop-shuffle {
+  position: relative;
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--desktop-muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.desktop-shuffle:hover {
+  color: var(--desktop-text);
+}
+
+.desktop-shuffle.is-on {
+  color: var(--desktop-accent);
+}
+
+.desktop-shuffle.is-on::after {
+  content: "";
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.desktop-shuffle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.desktop-now-autoplay {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--desktop-surface-strong);
+  color: var(--desktop-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.desktop-playlist-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.desktop-play-button {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--desktop-accent);
+  color: #000;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.desktop-play-button:hover {
+  transform: scale(1.04);
+  filter: brightness(1.08);
+}
+
+.desktop-play-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+  transform: none;
 }
 
 .desktop-player-actions {

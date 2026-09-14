@@ -1,7 +1,11 @@
 import { SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fromOutputVolume } from "../../../lib/outputVolume";
 import { readSettings, writeSettings } from "../../../lib/settingLib";
-import { subscribeSpotifyWebPlaybackDeviceId } from "../../../lib/spotifyWebPlaybackDevice";
+import {
+  getSpotifyWebPlaybackDeviceId,
+  subscribeSpotifyWebPlaybackDeviceId,
+} from "../../../lib/spotifyWebPlaybackDevice";
 import { getActiveProvider, getActiveProviderType } from "../../../providers";
 import type { MusicProviderType } from "../../../providers/types";
 import { getPlayerState } from "../../spotifyClient";
@@ -43,11 +47,26 @@ export default function VolumeControl() {
         return;
       }
 
-      const state = await getPlayerState();
-      if (!mounted || !state?.device) return;
-      setVolume(state.device.volume_percent);
-      volumeBeforeMute.current = state.device.volume_percent || 50;
-      setMuted(state.device.volume_percent === 0);
+      const [state, settings] = await Promise.all([getPlayerState(), readSettings()]);
+      if (!mounted) return;
+      // MiniFy's own player starts at the saved level. Only show another
+      // speaker's level when that speaker is where the music is meant to be.
+      const localId = getSpotifyWebPlaybackDeviceId();
+      const device = state?.device ?? null;
+      const expectsLocal = localId !== null && settings.spotify_device?.local !== false;
+      // MiniFy's own device reports the scaled level it actually plays at.
+      const reported = device
+        ? device.id === localId
+          ? fromOutputVolume(device.volume_percent)
+          : device.volume_percent
+        : null;
+      const level =
+        device && device.id !== localId && !expectsLocal
+          ? device.volume_percent
+          : (settings.spotify_volume ?? reported ?? 50);
+      setVolume(level);
+      volumeBeforeMute.current = level || 50;
+      setMuted(level === 0);
     };
 
     void syncFromDevice();
@@ -76,10 +95,11 @@ export default function VolumeControl() {
       const musicProvider = await getActiveProvider();
       musicProvider.setVolume(clamped);
 
-      if (provider !== "youtube") return;
       if (persistTimer.current) clearTimeout(persistTimer.current);
       persistTimer.current = setTimeout(() => {
-        void writeSettings({ youtube_volume: clamped });
+        void writeSettings(
+          provider === "youtube" ? { youtube_volume: clamped } : { spotify_volume: clamped }
+        );
         persistTimer.current = null;
       }, PERSIST_DEBOUNCE_MS);
     },

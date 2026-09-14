@@ -221,6 +221,7 @@ export interface PlayerDevice {
 export interface PlayerState {
   device: PlayerDevice;
   is_playing: boolean;
+  shuffle_state: boolean;
   progress_ms: number | null;
   item: SimplifiedTrack | null;
 }
@@ -508,6 +509,14 @@ export async function fetchSavedTracksCount(): Promise<number> {
 export async function addToQueue(trackUri: string): Promise<void> {
   const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(trackUri)}`;
   await request<void>(withMinifyDevice(url), { method: "POST" });
+}
+
+/** Spotify's shuffle mode on the active device; it carries over to the next context. */
+export async function setShuffle(on: boolean): Promise<void> {
+  await request<void>(
+    withMinifyDevice(`https://api.spotify.com/v1/me/player/shuffle?state=${on}`),
+    { method: "PUT" }
+  );
 }
 
 export async function playTracks(trackUris: string[]): Promise<void> {

@@ -1,6 +1,7 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import { getLastPlayedForProvider } from "../../../hooks/useCurrentlyPlaying";
+import { skipToNext } from "../../../lib/playback/spotifyAutoplay";
 import { getActiveProvider, getActiveProviderType } from "../../../providers";
 
 type TrackControlsProps = {
@@ -8,22 +9,49 @@ type TrackControlsProps = {
   currentTrackUri?: string | null;
   onTogglePlaying?: (playing: boolean) => void;
   className?: string;
+  /** Trims the play button's hit area so the desktop player bar can stay low. */
+  compact?: boolean;
 };
+
+/**
+ * Starts or pauses playback, resuming the last cached track when nothing is
+ * loaded. Shared by the on-screen controls and the Windows taskbar buttons;
+ * throws when the provider refuses.
+ */
+export async function setPlayback(playing: boolean): Promise<void> {
+  const provider = await getActiveProvider();
+  if (!playing) {
+    await provider.pause();
+    return;
+  }
+
+  const playbackState = await provider.getPlaybackState();
+  if (playbackState?.track == null) {
+    const cached = await getLastPlayedForProvider(await getActiveProviderType());
+    if (cached) {
+      await provider.playTrack(cached.track.uri, cached.progress_ms);
+      return;
+    }
+  }
+
+  await provider.play();
+}
 
 export function TrackControls({
   isPlaying,
   currentTrackUri: _currentTrackUri,
   onTogglePlaying,
   className = "",
+  compact = false,
 }: TrackControlsProps) {
   const handlePrev = useCallback(async () => {
     const provider = await getActiveProvider();
     provider.previousTrack();
   }, []);
 
-  const handleNext = useCallback(async () => {
-    const provider = await getActiveProvider();
-    provider.nextTrack();
+  // On the last song this continues into autoplay instead of stopping.
+  const handleNext = useCallback(() => {
+    void skipToNext();
   }, []);
 
   const handleToggle = useCallback(async () => {
@@ -32,25 +60,7 @@ export function TrackControls({
     onTogglePlaying?.(next);
 
     try {
-      const provider = await getActiveProvider();
-      const providerType = await getActiveProviderType();
-
-      if (next) {
-        const playbackState = await provider.getPlaybackState();
-        const hasActiveTrack = playbackState?.track != null;
-
-        if (!hasActiveTrack) {
-          const cached = await getLastPlayedForProvider(providerType);
-          if (cached) {
-            await provider.playTrack(cached.track.uri, cached.progress_ms);
-            return;
-          }
-        }
-
-        await provider.play();
-      } else {
-        await provider.pause();
-      }
+      await setPlayback(next);
     } catch (error) {
       console.error("Playback toggle failed:", error);
       onTogglePlaying?.(previous);
@@ -95,7 +105,7 @@ export function TrackControls({
         type="button"
         onClick={handleToggle}
         aria-label={isPlaying ? "Pause" : "Play"}
-        style={{ ...buttonStyle, width: 72, height: 72 }}
+        style={{ ...buttonStyle, width: 72, height: compact ? 48 : 72 }}
         onMouseEnter={() => setHovered((s) => ({ ...s, play: true }))}
         onMouseLeave={() => setHovered((s) => ({ ...s, play: false }))}
       >

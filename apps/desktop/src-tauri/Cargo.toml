@@ -46,9 +46,19 @@ chacha20poly1305 = "0.10"
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 keyring = "2"
 
-# Only needed to tint the native title bar through DWM.
+# Tints the native title bar through DWM, and drives the taskbar thumbnail
+# buttons, which are COM (`ITaskbarList3`) and need `windows`' wrappers. 0.61
+# is the version Tauri already pulls in.
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_System_Com",
+  "Win32_System_Registry",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 # The self-updater is desktop-only (no mobile targets are built).
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

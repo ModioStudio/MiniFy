@@ -19,6 +19,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { setPreferredSpotifyDevice } from "../../../lib/playback/spotifyKeepAlive";
+import { writeSettings } from "../../../lib/settingLib";
 import { subscribeSpotifyWebPlaybackDeviceId } from "../../../lib/spotifyWebPlaybackDevice";
 import { getDevices, type PlayerDevice, transferPlayback } from "../../spotifyClient";
 
@@ -136,6 +137,10 @@ export default function DeviceMenu() {
         // Keep playing: the user switched rooms, not stopped listening.
         await transferPlayback(device.id, true);
         setPreferredSpotifyDevice(device.id);
+        // Remembered across restarts; startup hands playback back to it.
+        void writeSettings({
+          spotify_device: { id: device.id, name: device.name, local: device.id === localDeviceId },
+        });
         await refresh();
         setError(null);
       } catch (cause) {
@@ -144,7 +149,7 @@ export default function DeviceMenu() {
         setSwitchingId(null);
       }
     },
-    [refresh]
+    [localDeviceId, refresh]
   );
 
   const activeDevice = devices.find((device) => device.is_active);

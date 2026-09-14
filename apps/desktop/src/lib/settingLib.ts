@@ -81,6 +81,13 @@ export type ProviderPlaybackCache = {
   youtube: LastPlayedTrack | null;
 };
 
+/** `local` means MiniFy's own player, whose device id changes every session. */
+export type SavedSpotifyDevice = {
+  id: string;
+  name: string;
+  local: boolean;
+};
+
 export type Settings = {
   first_boot_done: boolean;
   layout: string;
@@ -97,6 +104,8 @@ export type Settings = {
   last_played_track: LastPlayedTrack | null;
   provider_playback_cache: ProviderPlaybackCache | null;
   youtube_volume: number | null;
+  spotify_volume: number | null;
+  spotify_device: SavedSpotifyDevice | null;
 };
 
 export type CustomTheme = {
@@ -160,6 +169,8 @@ export async function readSettings(): Promise<Settings> {
       last_played_track: settings.last_played_track ?? null,
       provider_playback_cache: settings.provider_playback_cache ?? null,
       youtube_volume: settings.youtube_volume ?? null,
+      spotify_volume: settings.spotify_volume ?? null,
+      spotify_device: settings.spotify_device ?? null,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
@@ -179,6 +190,8 @@ export async function readSettings(): Promise<Settings> {
       last_played_track: null,
       provider_playback_cache: null,
       youtube_volume: null,
+      spotify_volume: null,
+      spotify_device: null,
     };
   }
 }

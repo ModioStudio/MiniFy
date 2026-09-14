@@ -1,7 +1,7 @@
 import { ArrowSquareOut, MusicNotes, X } from "@phosphor-icons/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
-import { activeLineIndex, fetchLyrics, type Lyrics } from "../../lib/lyrics";
+import { activeLineIndex, fetchLyrics, type LyricLine, type Lyrics } from "../../lib/lyrics";
 import {
   type AlbumFacts,
   fetchAlbumFacts,
@@ -14,11 +14,102 @@ import type { UnifiedTrack } from "../../providers/types";
 type NowPlayingPanelProps = {
   track: UnifiedTrack | null;
   progressMs: number;
+  isPlaying: boolean;
   onClose: () => void;
 };
 
+const CLOCK_TICK_MS = 200;
+/**
+ * The reported position is already a network round trip old when it lands,
+ * and a line reads as late when it lights up exactly on its first syllable.
+ */
+const LYRIC_LEAD_MS = 300;
+/** How long autoscroll stays out of the way after the user scrolls lyrics. */
+const MANUAL_SCROLL_HOLD_MS = 4000;
+/** Next try after LRCLIB stayed unavailable through its own retries. */
+const LYRICS_RETRY_MS = 20_000;
+
 function releaseYear(date: string | null): string | null {
   return date ? (date.split("-")[0] ?? null) : null;
+}
+
+/**
+ * Playback position advanced locally between reports. The shell only learns
+ * the position from a 2.5s poll and SDK events, so reading it raw leaves the
+ * highlight up to a full poll — about one lyric line — behind.
+ */
+function useLiveProgress(progressMs: number, isPlaying: boolean, durationMs: number): number {
+  const [live, setLive] = useState(progressMs);
+
+  useEffect(() => {
+    setLive(progressMs);
+    if (!isPlaying) return;
+
+    const anchoredAt = performance.now();
+    const end = durationMs > 0 ? durationMs : Number.POSITIVE_INFINITY;
+    const id = window.setInterval(() => {
+      setLive(Math.min(end, progressMs + performance.now() - anchoredAt));
+    }, CLOCK_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [progressMs, isPlaying, durationMs]);
+
+  return live;
+}
+
+type SyncedLyricsProps = {
+  lines: LyricLine[];
+  progressMs: number;
+  isPlaying: boolean;
+  durationMs: number;
+};
+
+/**
+ * Its own component so the 200ms clock re-renders the lyrics, not the video
+ * and artwork above them.
+ */
+function SyncedLyrics({ lines, progressMs, isPlaying, durationMs }: SyncedLyricsProps) {
+  const position = useLiveProgress(progressMs, isPlaying, durationMs);
+  const current = activeLineIndex(lines, position + LYRIC_LEAD_MS);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const activeLineRef = useRef<HTMLParagraphElement | null>(null);
+  const manualScrollAt = useRef(0);
+
+  // Scrolls the box itself. `scrollIntoView` would also scroll every ancestor,
+  // dragging the whole panel along with the lyrics.
+  useEffect(() => {
+    const box = boxRef.current;
+    const line = activeLineRef.current;
+    if (current < 0 || !box || !line) return;
+    if (Date.now() - manualScrollAt.current < MANUAL_SCROLL_HOLD_MS) return;
+
+    box.scrollTo({
+      top: line.offsetTop - box.clientHeight / 2 + line.offsetHeight / 2,
+      behavior: "smooth",
+    });
+  }, [current]);
+
+  const holdAutoscroll = () => {
+    manualScrollAt.current = Date.now();
+  };
+
+  return (
+    <div
+      ref={boxRef}
+      className="desktop-now-panel-lyrics-box desktop-now-panel-synced"
+      onWheel={holdAutoscroll}
+      onPointerDown={holdAutoscroll}
+    >
+      {lines.map((line, index) => (
+        <p
+          key={`${line.timeMs}-${line.text}`}
+          ref={index === current ? activeLineRef : null}
+          className={index === current ? "is-active" : index < current ? "is-past" : ""}
+        >
+          {line.text || "♪"}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -26,12 +117,17 @@ function releaseYear(date: string | null): string | null {
  * out, the track's video on YouTube, and lyrics from LRCLIB that follow along
  * when a timed transcript exists.
  */
-export default function NowPlayingPanel({ track, progressMs, onClose }: NowPlayingPanelProps) {
+export default function NowPlayingPanel({
+  track,
+  progressMs,
+  isPlaying,
+  onClose,
+}: NowPlayingPanelProps) {
   const [album, setAlbum] = useState<AlbumFacts | null>(null);
   const [video, setVideo] = useState<MusicVideo | null>(null);
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
-  const activeLineRef = useRef<HTMLParagraphElement | null>(null);
+  const [lyricsBusy, setLyricsBusy] = useState(false);
 
   const artistText = track?.artists.map((artist) => artist.name).join(", ") ?? "";
   const artwork = track?.album.images[0]?.url ?? null;
@@ -49,14 +145,11 @@ export default function NowPlayingPanel({ track, progressMs, onClose }: NowPlayi
     if (!trackId || !trackName) {
       setAlbum(null);
       setVideo(null);
-      setLyrics(null);
       return;
     }
 
     let mounted = true;
-    setLyrics(null);
     setVideo(null);
-    setLoadingLyrics(true);
 
     if (albumId) {
       void fetchAlbumFacts(albumId).then((facts) => {
@@ -68,27 +161,51 @@ export default function NowPlayingPanel({ track, progressMs, onClose }: NowPlayi
       if (mounted) setVideo(found);
     });
 
-    void fetchLyrics(trackName, leadArtist ?? "", albumName ?? "", durationMs)
-      .then((found) => {
-        if (mounted) setLyrics(found);
-      })
-      .finally(() => {
-        if (mounted) setLoadingLyrics(false);
-      });
-
     return () => {
       mounted = false;
     };
-  }, [trackId, trackName, leadArtist, albumId, albumName, durationMs]);
+  }, [trackId, trackName, leadArtist, albumId]);
+
+  // Its own effect so a retry does not reload the video along with it.
+  useEffect(() => {
+    if (!trackId || !trackName) {
+      setLyrics(null);
+      setLoadingLyrics(false);
+      setLyricsBusy(false);
+      return;
+    }
+
+    let mounted = true;
+    let retryTimer: number | undefined;
+    setLyrics(null);
+    setLyricsBusy(false);
+    setLoadingLyrics(true);
+
+    const load = () => {
+      fetchLyrics(trackName, leadArtist ?? "", albumName ?? "", durationMs)
+        .then((found) => {
+          if (!mounted) return;
+          setLyrics(found);
+          setLyricsBusy(false);
+          setLoadingLyrics(false);
+        })
+        .catch(() => {
+          if (!mounted) return;
+          // LRCLIB can stay overloaded for minutes. A track that has lyrics
+          // should still get them, so keep asking while it plays.
+          setLyricsBusy(true);
+          retryTimer = window.setTimeout(load, LYRICS_RETRY_MS);
+        });
+    };
+    load();
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(retryTimer);
+    };
+  }, [trackId, trackName, leadArtist, albumName, durationMs]);
 
   const lines = lyrics?.lines ?? null;
-  const current = lines ? activeLineIndex(lines, progressMs) : -1;
-
-  // Keep the sung line in view as playback moves through the transcript.
-  useEffect(() => {
-    if (current < 0) return;
-    activeLineRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [current]);
 
   return (
     <aside className="desktop-now-panel">
@@ -169,7 +286,11 @@ export default function NowPlayingPanel({ track, progressMs, onClose }: NowPlayi
 
           <section className="desktop-now-panel-section desktop-now-panel-lyrics">
             <h4>Lyrics</h4>
-            {loadingLyrics && <p className="desktop-now-panel-hint">Looking for lyrics…</p>}
+            {lyricsBusy ? (
+              <p className="desktop-now-panel-hint">The lyrics service is busy. Trying again…</p>
+            ) : (
+              loadingLyrics && <p className="desktop-now-panel-hint">Looking for lyrics…</p>
+            )}
             {!loadingLyrics && lyrics?.instrumental && (
               <p className="desktop-now-panel-hint">Instrumental.</p>
             )}
@@ -177,19 +298,20 @@ export default function NowPlayingPanel({ track, progressMs, onClose }: NowPlayi
               <p className="desktop-now-panel-hint">No lyrics found for this track.</p>
             )}
             {lines ? (
-              <div className="desktop-now-panel-synced">
-                {lines.map((line, index) => (
-                  <p
-                    key={`${line.timeMs}-${line.text}`}
-                    ref={index === current ? activeLineRef : null}
-                    className={index === current ? "is-active" : index < current ? "is-past" : ""}
-                  >
-                    {line.text || "♪"}
-                  </p>
-                ))}
-              </div>
+              // Keyed by track so a new song starts at the top of its lyrics.
+              <SyncedLyrics
+                key={trackId}
+                lines={lines}
+                progressMs={progressMs}
+                isPlaying={isPlaying}
+                durationMs={durationMs}
+              />
             ) : (
-              lyrics?.plain && <pre className="desktop-now-panel-plain">{lyrics.plain}</pre>
+              lyrics?.plain && (
+                <pre className="desktop-now-panel-lyrics-box desktop-now-panel-plain">
+                  {lyrics.plain}
+                </pre>
+              )
             )}
           </section>
         </div>

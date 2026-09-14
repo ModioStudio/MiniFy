@@ -8,6 +8,7 @@ pub mod discord_rpc;
 pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
+pub mod taskbar;
 pub mod titlebar;
 pub mod youtube_auth;
 
@@ -86,6 +87,7 @@ pub fn run() {
             clear_everything,
             open_mini_player,
             titlebar::set_titlebar_color,
+            taskbar::set_taskbar_playing,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,

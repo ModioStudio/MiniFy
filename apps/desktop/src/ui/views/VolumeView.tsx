@@ -1,7 +1,9 @@
 import { ArrowLeft, SpeakerHigh, SpeakerLow, SpeakerNone, SpeakerX } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
+import { fromOutputVolume } from "../../lib/outputVolume";
 import { readSettings, writeSettings } from "../../lib/settingLib";
+import { getSpotifyWebPlaybackDeviceId } from "../../lib/spotifyWebPlaybackDevice";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
 import { getPlayerState } from "../spotifyClient";
@@ -41,7 +43,11 @@ export default function VolumeView({ onBack }: VolumeViewProps) {
 
       const state = await getPlayerState();
       if (state?.device) {
-        setLocalVolume(state.device.volume_percent);
+        // MiniFy's own device reports the scaled level it actually plays at.
+        const isLocal = state.device.id === getSpotifyWebPlaybackDeviceId();
+        setLocalVolume(
+          isLocal ? fromOutputVolume(state.device.volume_percent) : state.device.volume_percent
+        );
         setDeviceName(state.device.name);
       }
       setLoading(false);

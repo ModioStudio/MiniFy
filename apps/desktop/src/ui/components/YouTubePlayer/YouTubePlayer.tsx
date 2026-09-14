@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { fromOutputVolume, toOutputVolume } from "../../../lib/outputVolume";
 
 declare global {
   interface Window {
@@ -194,8 +195,9 @@ export function YouTubePlayer({
           pause: () => playerInstance.pauseVideo(),
           stop: () => playerInstance.stopVideo(),
           seek: (seconds) => playerInstance.seekTo(seconds, true),
-          setVolume: (volume) => playerInstance.setVolume(volume),
-          getVolume: () => playerInstance.getVolume(),
+          // Callers speak slider percent; the iframe plays 30% quieter.
+          setVolume: (volume) => playerInstance.setVolume(Math.round(toOutputVolume(volume))),
+          getVolume: () => fromOutputVolume(playerInstance.getVolume()),
           loadVideo: (videoId) => playerInstance.loadVideoById(videoId),
           getState: () => {
             const videoData = playerInstance.getVideoData();

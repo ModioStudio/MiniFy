@@ -1,5 +1,6 @@
 import {
   ArrowClockwise,
+  ArrowLeft,
   ArrowsOutSimple,
   Article,
   ClockCounterClockwise,
@@ -24,6 +25,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
 import { fetchListeningStats, type ListeningStats } from "../lib/listeningStats";
+import { refreshShuffle, useShuffleStore, watchShuffle } from "../lib/playback/shuffle";
+import { skipToNext, useAutoplayStore } from "../lib/playback/spotifyAutoplay";
 import { loadAllPlaylistTracks } from "../lib/playlistTracks";
 import {
   type Settings as AppSettings,
@@ -54,8 +57,9 @@ import DeviceMenu from "./components/DeviceMenu/DeviceMenu";
 import MusicVisualizer from "./components/MusicVisualizer";
 import NowPlayingPanel from "./components/NowPlayingPanel";
 import ResizeHandle from "./components/ResizeHandle/ResizeHandle";
+import ShuffleButton from "./components/ShuffleButton";
 import PlaybackBar from "./components/TrackControls/PlaybackBar";
-import TrackControls from "./components/TrackControls/TrackControls";
+import TrackControls, { setPlayback } from "./components/TrackControls/TrackControls";
 import VolumeControl from "./components/VolumeControl/VolumeControl";
 import AIDJView from "./views/AIDJView";
 import Settings from "./views/Settings";
@@ -69,14 +73,15 @@ type DesktopView = "home" | "search" | "playlists" | "aidj" | "settings";
 
 const featuredSearches = ["lofi focus", "deep house", "indie pop", "jazz night"];
 const DESKTOP_SIDEBAR_WIDTH_KEY = "minify.desktop.sidebarWidth";
-const DESKTOP_PLAYER_HEIGHT_KEY = "minify.desktop.playerHeight";
+/** Renamed when the bar got lower, so a height saved for the old bar does not pin it tall. */
+const DESKTOP_PLAYER_HEIGHT_KEY = "minify.desktop.playerHeight.compact";
 const DEFAULT_DESKTOP_SIDEBAR_WIDTH = 248;
-const DEFAULT_DESKTOP_PLAYER_HEIGHT = 112;
+const DEFAULT_DESKTOP_PLAYER_HEIGHT = 92;
 const MIN_DESKTOP_SIDEBAR_WIDTH = 160;
 const MAX_DESKTOP_SIDEBAR_WIDTH = 420;
-/** Floor raised so the 72px artwork in the player bar never gets clipped. */
-const MIN_DESKTOP_PLAYER_HEIGHT = 100;
-const MAX_DESKTOP_PLAYER_HEIGHT = 180;
+/** Floor that keeps the transport and seek bar from being clipped. */
+const MIN_DESKTOP_PLAYER_HEIGHT = 88;
+const MAX_DESKTOP_PLAYER_HEIGHT = 160;
 
 const DESKTOP_NOW_PANEL_KEY = "minify.desktop.nowPanelOpen";
 const DESKTOP_NOW_PANEL_WIDTH_KEY = "minify.desktop.nowPanelWidth";
@@ -227,6 +232,8 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     )
   );
   const playlistRunId = useRef(0);
+  /** Where the playlist's back button leads: the view it was opened from. */
+  const playlistReturnView = useRef<DesktopView>("playlists");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [hasConnectDevices, setHasConnectDevices] = useState(false);
   const [showVisualizer, setShowVisualizer] = useState(false);
@@ -263,6 +270,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const setCurrentState = current.setState;
   const artistText = currentTrack?.artists.map((artist) => artist.name).join(", ") ?? "MiniFy";
   const artwork = getArtwork(currentTrack);
+  const currentTrackId = currentTrack?.id ?? null;
+  const isRadioTrack = useAutoplayStore((state) =>
+    currentTrackId ? state.radioTrackIds.has(currentTrackId) : false
+  );
   const shellStyle = {
     "--desktop-sidebar-width": `${sidebarWidth}px`,
     "--desktop-player-height": `${playerHeight}px`,
@@ -275,6 +286,37 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       return !open;
     });
   }, []);
+
+  // Windows only: previous / play-pause / next under the taskbar thumbnail.
+  // The command is a no-op on macOS and Linux, which have nothing like it.
+  const isPlayingRef = useRef(currentIsPlaying);
+  isPlayingRef.current = currentIsPlaying;
+
+  useEffect(() => {
+    invoke("set_taskbar_playing", { playing: currentIsPlaying }).catch(() => {});
+  }, [currentIsPlaying]);
+
+  useEffect(() => {
+    const unlisten = listen<string>("taskbar-control", async (event) => {
+      const musicProvider = await getActiveProvider();
+      if (event.payload === "previous") {
+        musicProvider.previousTrack();
+      } else if (event.payload === "next") {
+        void skipToNext();
+      } else if (event.payload === "toggle") {
+        const next = !isPlayingRef.current;
+        setCurrentState((state) => (state ? { ...state, isPlaying: next } : state));
+        setPlayback(next).catch((error) => {
+          console.error("Taskbar playback toggle failed:", error);
+          setCurrentState((state) => (state ? { ...state, isPlaying: !next } : state));
+        });
+      }
+    });
+
+    return () => {
+      unlisten.then((off) => off());
+    };
+  }, [setCurrentState]);
 
   useEffect(() => {
     getActiveProviderType()
@@ -342,6 +384,19 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   }, []);
 
   useEffect(() => subscribeSpotifyWebPlaybackStatus(setSpotifyPlaybackStatus), []);
+
+  // Shuffle belongs to Spotify's player and can change from any other app, so
+  // it is read back: pushed by MiniFy's own player, re-read on track changes.
+  useEffect(() => {
+    if (provider !== "spotify") return;
+    return watchShuffle();
+  }, [provider]);
+
+  useEffect(() => {
+    if (provider === "spotify" && currentTrackId) {
+      refreshShuffle().catch(() => {});
+    }
+  }, [provider, currentTrackId]);
 
   // The SDK pushes state the instant a track changes; polling alone would leave
   // the player bar up to a poll interval behind.
@@ -547,13 +602,23 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     });
   }, []);
 
+  // Only a playlist's own track list plays in the playlist's context. Rows in
+  // search and on home play the single track, which autoplay then continues —
+  // they used to pick up whichever playlist had last been opened.
   const playTrack = useCallback(
-    async (selectedTrack: UnifiedTrack, index?: number) => {
+    async (
+      selectedTrack: UnifiedTrack,
+      fromPlaylist?: { playlist: UnifiedPlaylist; index: number }
+    ) => {
       setPlayingId(selectedTrack.id);
       try {
         const musicProvider = await getActiveProvider();
-        if (selectedPlaylist && typeof index === "number" && musicProvider.playPlaylistFromIndex) {
-          await musicProvider.playPlaylistFromIndex(selectedPlaylist.id, index, selectedTrack.uri);
+        if (fromPlaylist && musicProvider.playPlaylistFromIndex) {
+          await musicProvider.playPlaylistFromIndex(
+            fromPlaylist.playlist.id,
+            fromPlaylist.index,
+            selectedTrack.uri
+          );
         } else {
           await musicProvider.playTrack(selectedTrack.uri);
         }
@@ -561,14 +626,26 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         setPlayingId(null);
       }
     },
-    [selectedPlaylist]
+    []
   );
 
-  const selectPlaylist = useCallback(async (playlist: UnifiedPlaylist) => {
+  // Spotify's big play button: from the top, or from a random song with
+  // shuffle on (Spotify then shuffles the rest).
+  const playWholePlaylist = useCallback(() => {
+    if (!selectedPlaylist || playlistTracks.length === 0) return;
+    const index = useShuffleStore.getState().on
+      ? Math.floor(Math.random() * playlistTracks.length)
+      : 0;
+    const track = playlistTracks[index];
+    if (track) void playTrack(track, { playlist: selectedPlaylist, index });
+  }, [playTrack, playlistTracks, selectedPlaylist]);
+
+  const selectPlaylist = useCallback(async (playlist: UnifiedPlaylist, from: DesktopView) => {
     const runId = playlistRunId.current + 1;
     playlistRunId.current = runId;
     const cancelled = () => playlistRunId.current !== runId;
 
+    playlistReturnView.current = from === "home" ? "home" : "playlists";
     setSelectedPlaylist(playlist);
     setView("playlists");
     setLoadingPlaylistTracks(true);
@@ -592,6 +669,16 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     } finally {
       if (!cancelled()) setLoadingPlaylistTracks(false);
     }
+  }, []);
+
+  const closePlaylist = useCallback(() => {
+    // Bumping the run id also stops a large playlist that is still paging in.
+    playlistRunId.current += 1;
+    setSelectedPlaylist(null);
+    setPlaylistTracks([]);
+    setPlaylistError(null);
+    setLoadingPlaylistTracks(false);
+    setView(playlistReturnView.current);
   }, []);
 
   const navItems = [
@@ -724,7 +811,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                     tracks={recentTracks}
                     playingId={playingId}
                     emptyLabel="No recent tracks yet"
-                    onPlay={playTrack}
+                    onPlay={(track) => playTrack(track)}
                   />
                 </section>
 
@@ -753,7 +840,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                   <div className="desktop-section-heading">
                     <h2>Playlists</h2>
                   </div>
-                  <PlaylistList playlists={playlists} onSelect={selectPlaylist} />
+                  <PlaylistList
+                    playlists={playlists}
+                    onSelect={(playlist) => selectPlaylist(playlist, "home")}
+                  />
                 </section>
               </div>
             )}
@@ -813,9 +903,9 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                           ? "No results found"
                           : "Start typing to search"
                     }
-                    onPlay={(track, index) => {
+                    onPlay={(track) => {
                       rememberSearch(query);
-                      playTrack(track, index);
+                      playTrack(track);
                     }}
                   />
                 )}
@@ -825,13 +915,43 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             {view === "playlists" && (
               <section className="desktop-section desktop-full-section">
                 <div className="desktop-section-heading">
-                  <h2>{selectedPlaylist?.name ?? "Playlists"}</h2>
+                  <div className="desktop-section-title">
+                    {selectedPlaylist && (
+                      <button
+                        type="button"
+                        className="desktop-back-button"
+                        onClick={closePlaylist}
+                        aria-label={
+                          playlistReturnView.current === "home"
+                            ? "Back to home"
+                            : "Back to playlists"
+                        }
+                        title="Back"
+                      >
+                        <ArrowLeft size={18} weight="bold" />
+                      </button>
+                    )}
+                    <h2>{selectedPlaylist?.name ?? "Playlists"}</h2>
+                  </div>
                   {(loadingPlaylists || loadingPlaylistTracks) && (
                     <SpinnerGap size={18} weight="bold" className="animate-spin" />
                   )}
                 </div>
                 {selectedPlaylist ? (
                   <>
+                    <div className="desktop-playlist-actions">
+                      <button
+                        type="button"
+                        className="desktop-play-button"
+                        onClick={playWholePlaylist}
+                        disabled={playlistTracks.length === 0}
+                        aria-label={`Play ${selectedPlaylist.name}`}
+                        title="Play"
+                      >
+                        <Play size={22} weight="fill" />
+                      </button>
+                      {provider === "spotify" && <ShuffleButton />}
+                    </div>
                     {loadingPlaylistTracks && playlistProgress.total > 0 && (
                       <div className="desktop-playlist-progress">
                         <SpinnerGap size={16} weight="bold" className="animate-spin" />
@@ -862,7 +982,12 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                       emptyLabel={
                         loadingPlaylistTracks ? "Loading tracks…" : "No tracks in this playlist"
                       }
-                      onPlay={playTrack}
+                      onPlay={(track, index) =>
+                        playTrack(
+                          track,
+                          index === undefined ? undefined : { playlist: selectedPlaylist, index }
+                        )
+                      }
                     />
                   </>
                 ) : (
@@ -885,7 +1010,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                         <SpinnerGap size={22} weight="bold" className="animate-spin" />
                       </div>
                     ) : (
-                      <PlaylistGrid playlists={playlists} onSelect={selectPlaylist} />
+                      <PlaylistGrid
+                        playlists={playlists}
+                        onSelect={(playlist) => selectPlaylist(playlist, "playlists")}
+                      />
                     )}
                   </>
                 )}
@@ -922,6 +1050,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
           <NowPlayingPanel
             track={currentTrack}
             progressMs={currentProgress}
+            isPlaying={currentIsPlaying}
             onClose={toggleNowPanel}
           />
         </>
@@ -959,17 +1088,23 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
           <div className="desktop-now-copy">
             <p>{currentTrack?.name ?? "Nothing playing"}</p>
             <span>{artistText}</span>
+            {isRadioTrack && <small className="desktop-now-autoplay">Autoplay</small>}
           </div>
         </div>
 
         <div className="desktop-player-center">
-          <TrackControls
-            isPlaying={currentIsPlaying}
-            currentTrackUri={currentTrack?.uri}
-            onTogglePlaying={(playing) =>
-              setCurrentState((state) => (state ? { ...state, isPlaying: playing } : state))
-            }
-          />
+          <div className="desktop-transport">
+            {provider === "spotify" ? <ShuffleButton /> : <span />}
+            <TrackControls
+              compact
+              isPlaying={currentIsPlaying}
+              currentTrackUri={currentTrack?.uri}
+              onTogglePlaying={(playing) =>
+                setCurrentState((state) => (state ? { ...state, isPlaying: playing } : state))
+              }
+            />
+            <span />
+          </div>
           <PlaybackBar
             variant="inline"
             durationMs={currentDuration}
