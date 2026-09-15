@@ -5,6 +5,7 @@ mod credential_store;
 pub mod custom_themes;
 pub mod debug;
 pub mod discord_rpc;
+pub mod music_video;
 pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
@@ -83,11 +84,18 @@ pub fn run() {
 
     let app = builder
         .manage(discord_state)
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler({
+            // Typed here: outside invoke_handler(..) the generated closure has
+            // no other way to learn what it is called with.
+            let commands: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
             clear_everything,
             open_mini_player,
             titlebar::set_titlebar_color,
             taskbar::set_taskbar_playing,
+            music_video::youtube_web_status,
+            music_video::youtube_web_sign_in,
+            music_video::youtube_web_sign_out,
+            music_video::search_music_videos,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,
@@ -115,6 +123,7 @@ pub fn run() {
             ai_keyring::clear_all_ai_keys,
             debug::open_webview_devtools,
             debug::log_diagnostic,
+            debug::renderer_heartbeat,
             resize::set_layout,
             custom_themes::save_custom_theme,
             custom_themes::load_custom_themes,
@@ -135,22 +144,37 @@ pub fn run() {
             youtube_auth::cancel_youtube_oauth_flow,
             youtube_auth::refresh_youtube_access_token,
             youtube_auth::clear_youtube_credentials
-        ])
+            ];
+            // Counted for the watchdog, which logs when calls into Rust flood.
+            move |invoke: tauri::ipc::Invoke| {
+                debug::count_command(invoke.message.command());
+                // When a heartbeat reaches this point is the line between a
+                // jam in the webview's transport and one in Rust's runtime.
+                if invoke.message.command() == "renderer_heartbeat" {
+                    if let tauri::ipc::InvokeBody::Json(body) = invoke.message.payload() {
+                        debug::note_heartbeat_dispatch(body.get("sentAt").and_then(|v| v.as_f64()));
+                    }
+                }
+                commands(invoke)
+            }
+        })
         .setup(|app| {
+            debug::start_watchdog(app.handle().clone());
             spotify_auth::spawn_token_refresh_task(app.handle().clone());
             youtube_auth::spawn_youtube_token_refresh_task(app.handle().clone());
 
-            let state = app.state::<discord_rpc::DiscordState>();
-            discord_rpc::init_discord_rpc(&state);
+            // The saved switch, not a default: presence used to start up and
+            // show on Discord even with the setting turned off.
+            let discord_enabled = settings::read_settings(app.handle().clone()).discord_rpc_enabled;
+            discord_rpc::init_discord_rpc(&app.state::<discord_rpc::DiscordState>(), discord_enabled);
 
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|_app_handle, event| {
-        if let tauri::RunEvent::ExitRequested { api, .. } = event {
-            api.prevent_exit();
-        }
-    });
+    // Closing the last window quits. Preventing that left a headless MiniFy
+    // behind on every close; one of them kept "MiniFy Paused" on Discord for
+    // hours after its window was gone.
+    app.run(|_app_handle, _event| {});
 }

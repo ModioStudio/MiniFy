@@ -101,7 +101,9 @@ export default function ResizeHandle({
 
       event.preventDefault();
       const delta = event.key === grow ? step : -step;
-      const next = clamp(latest.current + delta * (axis === "x" ? 1 : -direction));
+      // The arrow names the way the edge moves: left grows a panel whose
+      // handle sits on its left side (direction -1), right grows the sidebar.
+      const next = clamp(latest.current + delta * (axis === "x" ? direction : -direction));
       latest.current = next;
       onChange(next);
       onCommit?.(next);

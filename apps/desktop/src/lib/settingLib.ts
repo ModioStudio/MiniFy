@@ -88,6 +88,14 @@ export type SavedSpotifyDevice = {
   local: boolean;
 };
 
+/** The desktop window's dragged edges and panel state; `null` = never set. */
+export type DesktopLayout = {
+  sidebar_width: number | null;
+  player_height: number | null;
+  now_panel_width: number | null;
+  now_panel_open: boolean | null;
+};
+
 export type Settings = {
   first_boot_done: boolean;
   layout: string;
@@ -106,6 +114,10 @@ export type Settings = {
   youtube_volume: number | null;
   spotify_volume: number | null;
   spotify_device: SavedSpotifyDevice | null;
+  /** Desktop only, and never both at once. */
+  music_video_sidebar: boolean;
+  music_video_background: boolean;
+  desktop_layout: DesktopLayout | null;
 };
 
 export type CustomTheme = {
@@ -171,6 +183,9 @@ export async function readSettings(): Promise<Settings> {
       youtube_volume: settings.youtube_volume ?? null,
       spotify_volume: settings.spotify_volume ?? null,
       spotify_device: settings.spotify_device ?? null,
+      music_video_sidebar: settings.music_video_sidebar ?? false,
+      music_video_background: settings.music_video_background ?? false,
+      desktop_layout: settings.desktop_layout ?? null,
     };
   } catch (err) {
     console.warn("Failed to read settings via Tauri, using defaults:", err);
@@ -192,6 +207,9 @@ export async function readSettings(): Promise<Settings> {
       youtube_volume: null,
       spotify_volume: null,
       spotify_device: null,
+      music_video_sidebar: false,
+      music_video_background: false,
+      desktop_layout: null,
     };
   }
 }

@@ -30,8 +30,10 @@ import { skipToNext, useAutoplayStore } from "../lib/playback/spotifyAutoplay";
 import { loadAllPlaylistTracks } from "../lib/playlistTracks";
 import {
   type Settings as AppSettings,
+  type DesktopLayout,
   readSettings,
   SETTINGS_CHANGED_EVENT,
+  writeSettings,
 } from "../lib/settingLib";
 import {
   clearSpotifyWebPlaybackAuthFailure,
@@ -43,6 +45,7 @@ import {
   subscribeSpotifyWebPlaybackStatus,
 } from "../lib/spotifyWebPlayback";
 import { useUpdaterStore } from "../lib/updaterStore";
+import { startRendererWatchdog } from "../lib/watchdog";
 import { getActiveProvider, getActiveProviderType } from "../providers";
 import { convertToUnifiedTrack as convertSpotifyTrack } from "../providers/spotify";
 import type {
@@ -54,6 +57,7 @@ import type {
   UnifiedUserProfile,
 } from "../providers/types";
 import DeviceMenu from "./components/DeviceMenu/DeviceMenu";
+import MusicVideo from "./components/MusicVideo";
 import MusicVisualizer from "./components/MusicVisualizer";
 import NowPlayingPanel from "./components/NowPlayingPanel";
 import ResizeHandle from "./components/ResizeHandle/ResizeHandle";
@@ -70,6 +74,8 @@ type DesktopShellProps = {
 };
 
 type DesktopView = "home" | "search" | "playlists" | "aidj" | "settings";
+/** Where the music video plays, if anywhere. The settings allow one place at a time. */
+type MusicVideoMode = "off" | "sidebar" | "background";
 
 const featuredSearches = ["lofi focus", "deep house", "indie pop", "jazz night"];
 const DESKTOP_SIDEBAR_WIDTH_KEY = "minify.desktop.sidebarWidth";
@@ -90,6 +96,14 @@ const MIN_NOW_PANEL_WIDTH = 280;
 const MAX_NOW_PANEL_WIDTH = 520;
 
 const SEARCH_HISTORY_KEY = "minify.desktop.searchHistory";
+const OWN_PLAYLISTS_KEY = "minify.desktop.ownPlaylistsOnly";
+
+const EMPTY_LAYOUT: DesktopLayout = {
+  sidebar_width: null,
+  player_height: null,
+  now_panel_width: null,
+  now_panel_open: null,
+};
 const SEARCH_HISTORY_SIZE = 8;
 
 function readSearchHistory(): string[] {
@@ -122,6 +136,10 @@ function readStoredDimension(key: string, fallback: number, min: number, max: nu
 
 function storeDimension(key: string, value: number): void {
   window.localStorage.setItem(key, String(Math.round(value)));
+}
+
+function clampDimension(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
 }
 
 async function fetchAllUserPlaylists(musicProvider: MusicProvider): Promise<PlaylistsResult> {
@@ -184,6 +202,19 @@ function greeting(): string {
   return "Good evening";
 }
 
+function foldText(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+/** Every word of the query somewhere in the name: "deep mix" finds "Mix: Deep House". */
+function matchesPlaylistQuery(name: string, query: string): boolean {
+  const folded = foldText(name);
+  return foldText(query)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => folded.includes(word));
+}
+
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] ?? "M";
@@ -204,7 +235,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const [playlists, setPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [allPlaylists, setAllPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [showOnlyOwnPlaylists, setShowOnlyOwnPlaylists] = useState(false);
+  const [showOnlyOwnPlaylists, setShowOnlyOwnPlaylists] = useState(
+    () => window.localStorage.getItem(OWN_PLAYLISTS_KEY) === "true"
+  );
+  const [playlistQuery, setPlaylistQuery] = useState("");
   const [allPlaylistsLoaded, setAllPlaylistsLoaded] = useState(false);
   const [playlistTracks, setPlaylistTracks] = useState<UnifiedTrack[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<UnifiedPlaylist | null>(null);
@@ -239,6 +273,9 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [visualizerColor, setVisualizerColor] = useState("theme");
   const [visualizerIntensity, setVisualizerIntensity] = useState(100);
+  const [musicVideoMode, setMusicVideoMode] = useState<MusicVideoMode>("off");
+  /** `null` until settings were read once, so startup does not count as a switch. */
+  const musicVideoModeRef = useRef<MusicVideoMode | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(() =>
     readStoredDimension(
       DESKTOP_SIDEBAR_WIDTH_KEY,
@@ -286,6 +323,74 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       return !open;
     });
   }, []);
+
+  // settings.json is the lasting copy of the layout, shared by every build of
+  // the app. localStorage stays as a cache so the first frame is already right.
+  const layoutRef = useRef<DesktopLayout | null>(null);
+  const layoutLoaded = useRef(false);
+
+  const saveLayout = useCallback((patch: Partial<DesktopLayout>) => {
+    const next: DesktopLayout = { ...EMPTY_LAYOUT, ...layoutRef.current, ...patch };
+    layoutRef.current = next;
+    void writeSettings({ desktop_layout: next });
+  }, []);
+
+  useEffect(() => {
+    const apply = (
+      value: number | null | undefined,
+      key: string,
+      min: number,
+      max: number,
+      set: (value: number) => void
+    ) => {
+      if (!value) return;
+      const clamped = clampDimension(value, min, max);
+      set(clamped);
+      storeDimension(key, clamped);
+    };
+
+    readSettings()
+      .then(({ desktop_layout: layout }) => {
+        layoutRef.current = layout;
+        if (!layout) return;
+        apply(
+          layout.sidebar_width,
+          DESKTOP_SIDEBAR_WIDTH_KEY,
+          MIN_DESKTOP_SIDEBAR_WIDTH,
+          MAX_DESKTOP_SIDEBAR_WIDTH,
+          setSidebarWidth
+        );
+        apply(
+          layout.player_height,
+          DESKTOP_PLAYER_HEIGHT_KEY,
+          MIN_DESKTOP_PLAYER_HEIGHT,
+          MAX_DESKTOP_PLAYER_HEIGHT,
+          setPlayerHeight
+        );
+        apply(
+          layout.now_panel_width,
+          DESKTOP_NOW_PANEL_WIDTH_KEY,
+          MIN_NOW_PANEL_WIDTH,
+          MAX_NOW_PANEL_WIDTH,
+          setNowPanelWidth
+        );
+        if (layout.now_panel_open !== null) {
+          setNowPanelOpen(layout.now_panel_open);
+          window.localStorage.setItem(DESKTOP_NOW_PANEL_KEY, String(layout.now_panel_open));
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        layoutLoaded.current = true;
+      });
+  }, []);
+
+  // Covers every way the panel opens or closes: its button, its close button,
+  // and switching the side-panel music video on.
+  useEffect(() => {
+    if (!layoutLoaded.current || layoutRef.current?.now_panel_open === nowPanelOpen) return;
+    saveLayout({ now_panel_open: nowPanelOpen });
+  }, [nowPanelOpen, saveLayout]);
 
   // Windows only: previous / play-pause / next under the taskbar thumbnail.
   // The command is a no-op on macOS and Linux, which have nothing like it.
@@ -366,6 +471,21 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       setShowVisualizer(settings.show_music_visualizer ?? false);
       setVisualizerColor(settings.music_visualizer_color ?? "theme");
       setVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
+
+      const mode: MusicVideoMode = settings.music_video_background
+        ? "background"
+        : settings.music_video_sidebar
+          ? "sidebar"
+          : "off";
+      // Switching the side-panel video on should show it, not leave the
+      // user hunting for the panel that holds it.
+      const previous = musicVideoModeRef.current;
+      if (mode === "sidebar" && previous !== null && previous !== "sidebar") {
+        window.localStorage.setItem(DESKTOP_NOW_PANEL_KEY, "true");
+        setNowPanelOpen(true);
+      }
+      musicVideoModeRef.current = mode;
+      setMusicVideoMode(mode);
     };
 
     readSettings()
@@ -384,6 +504,9 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   }, []);
 
   useEffect(() => subscribeSpotifyWebPlaybackStatus(setSpotifyPlaybackStatus), []);
+
+  // Only this window: its JavaScript runs playback, autoplay and the video.
+  useEffect(() => startRendererWatchdog(), []);
 
   // Shuffle belongs to Spotify's player and can change from any other app, so
   // it is read back: pushed by MiniFy's own player, re-read on track changes.
@@ -596,6 +719,15 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     return [...new Set(terms)].slice(0, 6);
   }, [searchHistory, listening]);
 
+  // Filtered locally: the playlists view already holds every playlist.
+  const visiblePlaylists = useMemo(
+    () =>
+      playlistQuery.trim()
+        ? playlists.filter((playlist) => matchesPlaylistQuery(playlist.name, playlistQuery))
+        : playlists,
+    [playlists, playlistQuery]
+  );
+
   const openMiniPlayer = useCallback(async () => {
     await invoke("open_mini_player").catch((error) => {
       console.error("Failed to open mini player:", error);
@@ -758,8 +890,24 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         className="desktop-sidebar-resize-handle"
         label="Resize sidebar"
         onChange={setSidebarWidth}
-        onCommit={(next) => storeDimension(DESKTOP_SIDEBAR_WIDTH_KEY, next)}
+        onCommit={(next) => {
+          storeDimension(DESKTOP_SIDEBAR_WIDTH_KEY, next);
+          saveLayout({ sidebar_width: Math.round(next) });
+        }}
       />
+
+      {/* Spotify only: with YouTube Music the track already is a video, and a
+          second player would fight the one making the sound. */}
+      {provider === "spotify" && musicVideoMode === "background" && currentTrack && (
+        <div className="desktop-video-backdrop" aria-hidden="true">
+          <MusicVideo
+            track={currentTrack}
+            progressMs={currentProgress}
+            isPlaying={currentIsPlaying}
+            lowRes
+          />
+        </div>
+      )}
 
       <main className="desktop-main">
         <PlaybackNotice
@@ -992,27 +1140,61 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                   </>
                 ) : (
                   <>
-                    {provider === "spotify" && (
-                      <div className="desktop-playlist-toolbar">
-                        <span>Only my playlists</span>
+                    {/* Spotify's library pattern: search, and the filter as a chip
+                        beside it rather than a settings row of its own. */}
+                    <div className="desktop-playlist-filters">
+                      <div className="desktop-search-row desktop-playlist-search">
+                        <MagnifyingGlass size={18} weight="bold" />
+                        <input
+                          value={playlistQuery}
+                          onChange={(event) => setPlaylistQuery(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") setPlaylistQuery("");
+                          }}
+                          placeholder="Search your playlists"
+                          aria-label="Search your playlists"
+                        />
+                        {playlistQuery && (
+                          <button
+                            type="button"
+                            className="desktop-search-clear"
+                            onClick={() => setPlaylistQuery("")}
+                            aria-label="Clear playlist search"
+                          >
+                            <X size={14} weight="bold" />
+                          </button>
+                        )}
+                      </div>
+                      {provider === "spotify" && (
                         <button
                           type="button"
-                          className={`desktop-toggle ${showOnlyOwnPlaylists ? "is-on" : ""}`}
-                          onClick={() => setShowOnlyOwnPlaylists((current) => !current)}
+                          className={`desktop-filter-chip ${showOnlyOwnPlaylists ? "is-on" : ""}`}
+                          onClick={() =>
+                            setShowOnlyOwnPlaylists((current) => {
+                              window.localStorage.setItem(OWN_PLAYLISTS_KEY, String(!current));
+                              return !current;
+                            })
+                          }
                           aria-pressed={showOnlyOwnPlaylists}
+                          title="Only playlists you created"
                         >
-                          <span />
+                          By you
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     {loadingPlaylists ? (
                       <div className="desktop-empty">
                         <SpinnerGap size={22} weight="bold" className="animate-spin" />
                       </div>
                     ) : (
                       <PlaylistGrid
-                        playlists={playlists}
+                        playlists={visiblePlaylists}
                         onSelect={(playlist) => selectPlaylist(playlist, "playlists")}
+                        emptyLabel={
+                          playlistQuery.trim()
+                            ? `No playlists match "${playlistQuery.trim()}"`
+                            : undefined
+                        }
                       />
                     )}
                   </>
@@ -1045,12 +1227,16 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             className="desktop-now-panel-resize-handle"
             label="Resize now playing panel"
             onChange={setNowPanelWidth}
-            onCommit={(next) => storeDimension(DESKTOP_NOW_PANEL_WIDTH_KEY, next)}
+            onCommit={(next) => {
+              storeDimension(DESKTOP_NOW_PANEL_WIDTH_KEY, next);
+              saveLayout({ now_panel_width: Math.round(next) });
+            }}
           />
           <NowPlayingPanel
             track={currentTrack}
             progressMs={currentProgress}
             isPlaying={currentIsPlaying}
+            showVideo={provider === "spotify" && musicVideoMode === "sidebar"}
             onClose={toggleNowPanel}
           />
         </>
@@ -1066,7 +1252,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
           defaultValue={DEFAULT_DESKTOP_PLAYER_HEIGHT}
           label="Resize player bar"
           onChange={setPlayerHeight}
-          onCommit={(next) => storeDimension(DESKTOP_PLAYER_HEIGHT_KEY, next)}
+          onCommit={(next) => {
+            storeDimension(DESKTOP_PLAYER_HEIGHT_KEY, next);
+            saveLayout({ player_height: Math.round(next) });
+          }}
         />
         {showVisualizer && (
           <MusicVisualizer
@@ -1381,6 +1570,7 @@ function TrackTable({ tracks, playingId, emptyLabel, onPlay }: TrackCollectionPr
 type PlaylistCollectionProps = {
   playlists: UnifiedPlaylist[];
   onSelect: (playlist: UnifiedPlaylist) => void;
+  emptyLabel?: string;
 };
 
 function PlaylistList({ playlists, onSelect }: PlaylistCollectionProps) {
@@ -1406,9 +1596,13 @@ function PlaylistList({ playlists, onSelect }: PlaylistCollectionProps) {
   );
 }
 
-function PlaylistGrid({ playlists, onSelect }: PlaylistCollectionProps) {
+function PlaylistGrid({
+  playlists,
+  onSelect,
+  emptyLabel = "No playlists found",
+}: PlaylistCollectionProps) {
   if (playlists.length === 0) {
-    return <div className="desktop-empty">No playlists found</div>;
+    return <div className="desktop-empty">{emptyLabel}</div>;
   }
 
   return (

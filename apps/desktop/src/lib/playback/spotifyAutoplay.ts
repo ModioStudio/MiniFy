@@ -180,6 +180,7 @@ async function startRadio(seed: UnifiedTrack): Promise<boolean> {
   if (starting) return false;
   starting = true;
   retry = null;
+  const started = performance.now();
 
   try {
     const pending = prepared?.seedId === seed.id ? prepared.tracks : buildRadio(seed);
@@ -190,7 +191,10 @@ async function startRadio(seed: UnifiedTrack): Promise<boolean> {
     if (!isSpotifyWebPlaybackReady()) await ensureActiveDevice();
     await playTracks(tracks.map((track) => `spotify:track:${track.id}`));
     useAutoplayStore.getState().setRadio(tracks.map((track) => track.id));
-    logDiagnostic("autoplay", `radio after "${seed.name}" (${tracks.length} tracks)`);
+    logDiagnostic(
+      "autoplay",
+      `radio after "${seed.name}" (${tracks.length} tracks) in ${Math.round(performance.now() - started)} ms`
+    );
     return true;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);

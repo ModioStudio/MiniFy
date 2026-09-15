@@ -8,6 +8,7 @@ import {
   DiscordLogo,
   Download,
   Eye,
+  FilmStrip,
   FloppyDisk,
   GearSix,
   GithubLogo,
@@ -32,6 +33,7 @@ import useWindowLayout from "../../hooks/useWindowLayout";
 import {
   type AIProviderConfig,
   type AIProviderType,
+  type Settings as AppSettings,
   type CustomTheme,
   deleteAIApiKey,
   deleteCustomTheme,
@@ -40,6 +42,7 @@ import {
   loadCustomThemes,
   type MusicProviderType,
   readSettings,
+  SETTINGS_CHANGED_EVENT,
   saveAIApiKey,
   saveCustomTheme,
   writeSettings,
@@ -112,6 +115,32 @@ async function validateAIApiKey(provider: AIProviderType, apiKey: string): Promi
   } catch {
     return false;
   }
+}
+
+type SwitchProps = {
+  on: boolean;
+  label: string;
+  onClick: () => void;
+};
+
+function Switch({ on, label, onClick }: SwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onClick}
+      className="relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 cursor-pointer"
+      style={{ background: on ? "var(--settings-accent)" : "rgba(255, 255, 255, 0.2)" }}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ${
+          on ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
 }
 
 type SettingsProps = {
@@ -280,6 +309,10 @@ export default function Settings({
   const [musicVisualizerIntensity, setMusicVisualizerIntensity] = useState<number>(100);
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState<boolean>(true);
   const [windowOpacity, setWindowOpacity] = useState<number>(100);
+  const [musicVideoSidebar, setMusicVideoSidebar] = useState<boolean>(false);
+  const [musicVideoBackground, setMusicVideoBackground] = useState<boolean>(false);
+  const [youtubeWebSignedIn, setYoutubeWebSignedIn] = useState<boolean>(false);
+  const [youtubeWebBusy, setYoutubeWebBusy] = useState<boolean>(false);
   const [showClearDialog, setShowClearDialog] = useState<boolean>(false);
   const [clearingData, setClearingData] = useState<boolean>(false);
 
@@ -362,6 +395,8 @@ export default function Settings({
       setMusicVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
       setDiscordRpcEnabled(settings.discord_rpc_enabled ?? true);
       setWindowOpacity(settings.window_opacity ?? 100);
+      setMusicVideoSidebar(settings.music_video_sidebar);
+      setMusicVideoBackground(settings.music_video_background);
       await refreshCustomThemes();
       await checkSpotifyConnection();
       await checkYouTubeConnection();
@@ -405,6 +440,43 @@ export default function Settings({
       cleanup.then((c) => c());
     };
   }, [checkSpotifyConnection, checkYouTubeConnection]);
+
+  // The mini player and the desktop window each render these settings. A
+  // switch flipped in one has to show in the other, not only after a restart.
+  useEffect(() => {
+    const unlisten = listen<AppSettings>(SETTINGS_CHANGED_EVENT, ({ payload }) => {
+      if (!payload) return;
+      setDiscordRpcEnabled(payload.discord_rpc_enabled);
+      setShowAIQueueBorder(payload.show_ai_queue_border);
+      setShowMusicVisualizer(payload.show_music_visualizer);
+      setMusicVisualizerColor(payload.music_visualizer_color);
+      setMusicVisualizerIntensity(payload.music_visualizer_intensity);
+      setMusicVideoSidebar(payload.music_video_sidebar);
+      setMusicVideoBackground(payload.music_video_background);
+    });
+    return () => {
+      unlisten.then((off) => off());
+    };
+  }, []);
+
+  // Desktop only: the YouTube sign-in behind the music videos. It is a
+  // youtube.com session inside MiniFy, separate from the YouTube Music
+  // connection above.
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    invoke<{ signedIn: boolean }>("youtube_web_status")
+      .then((status) => setYoutubeWebSignedIn(status.signedIn))
+      .catch(() => {});
+
+    const unlisten = listen<{ signedIn: boolean }>("youtube-web-sign-in", (event) => {
+      setYoutubeWebBusy(false);
+      setYoutubeWebSignedIn(event.payload.signedIn);
+    });
+    return () => {
+      unlisten.then((off) => off());
+    };
+  }, [isDesktop]);
 
   const handleSpotifyLogout = async () => {
     setSpotifyLoading(true);
@@ -533,6 +605,38 @@ export default function Settings({
     setMusicVisualizerIntensity(nextIntensity);
     onUpdateMusicVisualizerIntensity?.(nextIntensity);
     await writeSettings({ music_visualizer_intensity: nextIntensity });
+  };
+
+  // One place at a time: switching one on switches the other off.
+  const handleToggleMusicVideo = async (place: "sidebar" | "background") => {
+    const sidebar = place === "sidebar" ? !musicVideoSidebar : false;
+    const background = place === "background" ? !musicVideoBackground : false;
+    setMusicVideoSidebar(sidebar);
+    setMusicVideoBackground(background);
+    await writeSettings({ music_video_sidebar: sidebar, music_video_background: background });
+  };
+
+  const handleYouTubeWebSignIn = async () => {
+    setYoutubeWebBusy(true);
+    try {
+      // Opens the sign-in window; the result arrives as `youtube-web-sign-in`.
+      await invoke("youtube_web_sign_in");
+    } catch (error) {
+      console.error("YouTube sign-in failed:", error);
+      setYoutubeWebBusy(false);
+    }
+  };
+
+  const handleYouTubeWebSignOut = async () => {
+    setYoutubeWebBusy(true);
+    try {
+      await invoke("youtube_web_sign_out");
+      setYoutubeWebSignedIn(false);
+    } catch (error) {
+      console.error("YouTube sign-out failed:", error);
+    } finally {
+      setYoutubeWebBusy(false);
+    }
   };
 
   const handleToggleDiscordRpc = async () => {
@@ -1184,6 +1288,92 @@ export default function Settings({
                 )}
               </div>
 
+              {isDesktop && (
+                <div
+                  className="p-4 rounded-xl border"
+                  style={{
+                    background: "var(--settings-card-bg)",
+                    borderColor: "var(--settings-card-border)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FilmStrip size={18} weight="fill" />
+                    <div>
+                      <div className="font-medium">Music videos</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-1">
+                        Plays the song's music video, muted and in step with Spotify. MiniFy finds
+                        it on YouTube by itself. One place at a time.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm">In the side panel</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-0.5">
+                        Takes the cover's place in the Now playing panel.
+                      </p>
+                    </div>
+                    <Switch
+                      on={musicVideoSidebar}
+                      label="Music video in the side panel"
+                      onClick={() => handleToggleMusicVideo("sidebar")}
+                    />
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm">Behind the app</div>
+                      <p className="text-xs text-[--settings-text-muted] mt-0.5">
+                        Plays dimmed behind Home, Search and your playlists.
+                      </p>
+                    </div>
+                    <Switch
+                      on={musicVideoBackground}
+                      label="Music video behind the app"
+                      onClick={() => handleToggleMusicVideo("background")}
+                    />
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <YoutubeLogo size={18} weight="fill" className="flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm">
+                          {youtubeWebSignedIn ? "Signed in to YouTube" : "YouTube account"}
+                        </div>
+                        <p className="text-xs text-[--settings-text-muted] mt-0.5">
+                          {youtubeWebSignedIn
+                            ? "Videos play as your account; with YouTube Premium, without ads."
+                            : "Optional. Signed in, videos play as your account and YouTube Premium removes the ads. Without it, ads stay hidden behind the cover."}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={
+                        youtubeWebSignedIn ? handleYouTubeWebSignOut : handleYouTubeWebSignIn
+                      }
+                      disabled={youtubeWebBusy}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 cursor-pointer transition-opacity disabled:opacity-60 disabled:cursor-default"
+                      style={{
+                        background: "var(--settings-item-hover)",
+                        color: "var(--settings-text)",
+                      }}
+                    >
+                      {youtubeWebBusy ? (
+                        <CircleNotch size={14} weight="bold" className="animate-spin" />
+                      ) : youtubeWebSignedIn ? (
+                        <SignOut size={14} weight="bold" />
+                      ) : (
+                        <YoutubeLogo size={14} weight="fill" />
+                      )}
+                      {youtubeWebSignedIn ? "Sign out" : "Sign in"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="font-medium">Built-in Themes</div>
                 <span className="text-xs text-[--settings-text-muted]">
@@ -1337,7 +1527,7 @@ export default function Settings({
                   setValidationStatus(null);
                   setSaveStatus(null);
                 }}
-                className="flex-1 min-h-[200px] p-3 rounded-lg border border-white/10 bg-black/30 text-xs font-mono resize-none focus:outline-none focus:border-[--settings-accent]"
+                className="settings-theme-editor flex-1 min-h-[200px] p-3 rounded-lg border border-white/10 bg-black/30 text-xs font-mono resize-none focus:outline-none focus:border-[--settings-accent]"
                 style={{
                   color: "var(--settings-text)",
                 }}

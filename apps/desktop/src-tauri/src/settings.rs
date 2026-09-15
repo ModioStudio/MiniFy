@@ -81,6 +81,28 @@ pub struct Settings {
     pub spotify_volume: Option<u8>,
     #[serde(default)]
     pub spotify_device: Option<SavedSpotifyDevice>,
+    /// Desktop only, and never both: the music video in the side panel, or
+    /// behind the main view.
+    #[serde(default)]
+    pub music_video_sidebar: bool,
+    #[serde(default)]
+    pub music_video_background: bool,
+    /// Where the desktop window's edges were dragged to. Kept here rather
+    /// than only in localStorage, which dev and release builds do not share.
+    #[serde(default)]
+    pub desktop_layout: Option<DesktopLayout>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct DesktopLayout {
+    #[serde(default)]
+    pub sidebar_width: Option<u32>,
+    #[serde(default)]
+    pub player_height: Option<u32>,
+    #[serde(default)]
+    pub now_panel_width: Option<u32>,
+    #[serde(default)]
+    pub now_panel_open: Option<bool>,
 }
 
 /// The Connect device the user last picked. `local` stands for MiniFy's own
@@ -139,6 +161,9 @@ impl Default for Settings {
             youtube_volume: None,
             spotify_volume: None,
             spotify_device: None,
+            music_video_sidebar: false,
+            music_video_background: false,
+            desktop_layout: None,
         }
     }
 }

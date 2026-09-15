@@ -594,6 +594,7 @@ export default function MusicVisualizer({
     syncedAt: performance.now(),
   });
   const volumeRef = useRef<number>(0.6);
+  const youtubeVolumeReadAt = useRef(0);
   const profileRef = useRef<DynamicsProfile>(idleProfile);
   const profileRequestRef = useRef<number>(0);
 
@@ -700,9 +701,15 @@ export default function MusicVisualizer({
           const playback = await provider.getPlaybackState();
           if (cancelled) return;
 
-          const settings = await readSettings();
-          if (cancelled) return;
-          volumeRef.current = clamp((settings.youtube_volume ?? 50) / 100);
+          // The saved volume only changes when the slider moves. Reading the
+          // settings through Rust on every tick fed the same queue that made
+          // song switches lag, so it is re-read at most every ten seconds.
+          if (performance.now() - youtubeVolumeReadAt.current > 10_000) {
+            youtubeVolumeReadAt.current = performance.now();
+            const settings = await readSettings();
+            if (cancelled) return;
+            volumeRef.current = clamp((settings.youtube_volume ?? 50) / 100);
+          }
 
           if (!playback?.track) {
             playbackRef.current = {

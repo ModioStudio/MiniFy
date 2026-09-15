@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
 import { startAutoplayMonitor, stopAutoplayMonitor } from "../lib/playback/autoplayService";
@@ -16,6 +17,15 @@ import {
   type PlaybackState,
   type UnifiedTrack,
 } from "../providers";
+
+/**
+ * Only the main window reports to Discord. The mini player polls on its own
+ * schedule and, reporting too, overwrote the main window with a staler state:
+ * the "Paused" that stuck on Discord while music played.
+ */
+const IS_MAIN_WINDOW = getCurrentWindow().label === "main";
+/** Resent now and then, so a Discord started later, or one that dropped an update, catches up. */
+const PRESENCE_REFRESH_MS = 30_000;
 
 function updateDiscordPresence(
   trackName: string | null,
@@ -78,6 +88,9 @@ function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let currentProviderCache: ProviderPlaybackCache = { spotify: null, youtube: null };
+/** How stale the saved resume position may get while one track plays. */
+const CACHE_SAVE_EVERY_MS = 30_000;
+let lastCacheSave: { trackId: string; at: number } | null = null;
 
 async function saveTrackToProviderCache(
   provider: MusicProviderType,
@@ -86,6 +99,14 @@ async function saveTrackToProviderCache(
 ): Promise<void> {
   const cached = unifiedTrackToCache(track, progressMs);
   currentProviderCache[provider] = cached;
+
+  // Written for a new track, then every half minute. It used to go out on
+  // every poll: a file read and write in Rust plus a broadcast to every
+  // window, every 2.5 seconds, for as long as music played.
+  const recent =
+    lastCacheSave?.trackId === track.id && Date.now() - lastCacheSave.at < CACHE_SAVE_EVERY_MS;
+  if (recent) return;
+  lastCacheSave = { trackId: track.id, at: Date.now() };
 
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -132,6 +153,7 @@ export function useCurrentlyPlaying(pollMs = 3000) {
   const lastTrackRef = useRef<string | null>(null);
   const lastPlayingRef = useRef<boolean>(false);
   const lastAIQueueRef = useRef<boolean>(false);
+  const lastPresenceAt = useRef<number>(0);
   const initialLoadDone = useRef<boolean>(false);
   const cachedTrackLoaded = useRef<boolean>(false);
 
@@ -218,14 +240,17 @@ export function useCurrentlyPlaying(pollMs = 3000) {
         const isPlaying = playbackState?.isPlaying ?? false;
         const aiQueueActive = useAIQueueStore.getState().isActive;
 
-        if (
+        const changed =
           trackId !== lastTrackRef.current ||
           isPlaying !== lastPlayingRef.current ||
-          aiQueueActive !== lastAIQueueRef.current
-        ) {
+          aiQueueActive !== lastAIQueueRef.current;
+        const stale = Date.now() - lastPresenceAt.current > PRESENCE_REFRESH_MS;
+
+        if (IS_MAIN_WINDOW && (changed || stale)) {
           lastTrackRef.current = trackId;
           lastPlayingRef.current = isPlaying;
           lastAIQueueRef.current = aiQueueActive;
+          lastPresenceAt.current = Date.now();
 
           const trackName = playbackState?.track?.name ?? null;
           const artistName = playbackState?.track?.artists?.map((a) => a.name).join(", ") ?? null;
@@ -266,8 +291,21 @@ export function useCurrentlyPlaying(pollMs = 3000) {
       }
     };
 
-    load();
-    const id = setInterval(load, pollMs);
+    // One poll at a time. When calls into Rust slowed down, overlapping polls
+    // piled more calls onto the queue that was already too slow.
+    let polling = false;
+    const poll = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        await load();
+      } finally {
+        polling = false;
+      }
+    };
+
+    poll();
+    const id = setInterval(poll, pollMs);
 
     return () => {
       mounted = false;

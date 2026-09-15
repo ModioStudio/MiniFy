@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fromOutputVolume, toOutputVolume } from "../../../lib/outputVolume";
+import { loadYouTubeIframeApi } from "../../../lib/youtubeIframe";
 
 declare global {
   interface Window {
@@ -117,35 +118,8 @@ interface YouTubePlayerProps {
   playerRef?: React.MutableRefObject<YouTubePlayerRef | null>;
 }
 
-let apiLoadPromise: Promise<void> | null = null;
-
-function loadYouTubeAPI(): Promise<void> {
-  if (apiLoadPromise) return apiLoadPromise;
-
-  apiLoadPromise = new Promise((resolve) => {
-    if (window.YT?.Player) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.getElementById("youtube-iframe-api");
-    if (existingScript) {
-      window.onYouTubeIframeAPIReady = () => resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "youtube-iframe-api";
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-
-    window.onYouTubeIframeAPIReady = () => resolve();
-
-    document.head.appendChild(script);
-  });
-
-  return apiLoadPromise;
-}
+// Shared with the music videos, which need the same API in the same window.
+const loadYouTubeAPI = loadYouTubeIframeApi;
 
 export function YouTubePlayer({
   onReady,

@@ -46,6 +46,40 @@ body.mini-window {
   cursor: move;
 }
 
+/* Shown by ErrorBoundary instead of an empty window. Plain colours on
+   purpose: the theme may be what failed. */
+.app-crash {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: #121212;
+  color: #f2f2f2;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+}
+
+.app-crash p {
+  max-width: 560px;
+  margin: 0;
+  color: #a8a8a8;
+  font-size: 13px;
+}
+
+.app-crash button {
+  margin-top: 6px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f2;
+  color: #121212;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* App scrollbar styling */
 * {
   scrollbar-width: thin; /* Firefox */
@@ -74,6 +108,11 @@ body.mini-window {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Windows draws arrow buttons at both ends unless told not to. */
+*::-webkit-scrollbar-button {
+  display: none;
 }
 
 .window-opacity-slider::-webkit-slider-thumb {
@@ -264,13 +303,6 @@ textarea {
   background: var(--desktop-chrome);
 }
 
-.desktop-now-panel-resize-handle {
-  top: 0;
-  bottom: var(--desktop-player-height);
-  right: calc(var(--desktop-now-panel-width) - 7px);
-  left: auto;
-}
-
 .desktop-now-panel-head {
   display: flex;
   flex-shrink: 0;
@@ -341,6 +373,95 @@ textarea {
   object-fit: cover;
 }
 
+/* Music video in the slot: 16:9 so the video is not cropped to a square. The
+   cover sits whole in the middle over a blurred copy of itself until the
+   video fades in on top. */
+.desktop-now-panel-art.has-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.desktop-now-panel-art.has-video > img {
+  position: relative;
+  object-fit: contain;
+}
+
+.desktop-now-panel-art.has-video > .desktop-now-panel-art-backdrop {
+  position: absolute;
+  inset: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  object-fit: cover;
+  filter: blur(22px) brightness(0.55);
+}
+
+/* Music video ------------------------------------------------------------ */
+
+/* Invisible until MusicVideo marks the video itself as playing. No pointer
+   events: YouTube never sees a hover, so its title bar, controls and logo
+   stay away. */
+.music-video {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Fades in, but hides at once: a fade-out would leave YouTube's own overlays
+   on screen for its length when a song changes or pauses. */
+.music-video.is-visible {
+  opacity: 1;
+  transition: opacity 450ms ease;
+}
+
+.music-video-frame {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+
+/* Covers the box like object-fit: cover, then a little more, so the edges
+   where YouTube draws its overlays fall outside. */
+.music-video-frame iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, 177.78cqh);
+  height: max(100cqh, 56.25cqw);
+  border: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1.14);
+}
+
+/* Half the layout size, twice the scale: YouTube streams by player size. */
+.music-video.is-low-res .music-video-frame iframe {
+  width: max(50cqw, 88.89cqh);
+  height: max(50cqh, 28.125cqw);
+  transform: translate(-50%, -50%) scale(2.28);
+}
+
+/* Shares the main view's grid cell, underneath it. */
+.desktop-video-backdrop {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Dims the video, not the app: the scrim fades in and out with it. */
+.desktop-video-backdrop .music-video::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--desktop-bg) 45%, transparent),
+    color-mix(in srgb, var(--desktop-bg) 78%, transparent)
+  );
+}
+
 .desktop-now-panel-meta h3 {
   margin: 0;
   font-size: 18px;
@@ -390,43 +511,11 @@ textarea {
   color: var(--desktop-muted);
 }
 
-.desktop-now-panel-video {
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border-radius: 10px;
-  background: #000;
-}
-
-.desktop-now-panel-video iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
 .desktop-now-panel-hint {
   margin: 8px 0 0;
   color: var(--desktop-dim);
   font-size: 12px;
   font-weight: 600;
-}
-
-.desktop-now-panel-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid var(--desktop-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--desktop-text);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.desktop-now-panel-link:hover {
-  background: var(--desktop-surface);
 }
 
 .desktop-now-panel-lyrics {
@@ -738,7 +827,16 @@ textarea {
   font-weight: 700;
 }
 
+/* Placed explicitly so the music video backdrop can share the cell. */
+.desktop-main,
+.desktop-video-backdrop {
+  grid-row: 1;
+  grid-column: 2;
+}
+
 .desktop-main {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   overflow: auto;
   padding: 28px 32px 24px;
@@ -1037,54 +1135,6 @@ textarea {
   font-weight: 700;
 }
 
-.desktop-playlist-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 40px;
-  margin-bottom: 16px;
-  padding: 0 14px;
-  border: 1px solid var(--desktop-border);
-  border-radius: 8px;
-  background: var(--desktop-surface);
-  color: var(--desktop-muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.desktop-toggle {
-  position: relative;
-  width: 38px;
-  height: 20px;
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 999px;
-  background: var(--desktop-surface-hover);
-  cursor: pointer;
-  transition: background 150ms ease;
-}
-
-.desktop-toggle span {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--desktop-text);
-  transition: transform 150ms ease;
-}
-
-.desktop-toggle.is-on {
-  background: var(--desktop-accent);
-}
-
-.desktop-toggle.is-on span {
-  transform: translateX(18px);
-  background: var(--desktop-accent-contrast);
-}
-
 .desktop-search-row {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) 28px;
@@ -1110,6 +1160,78 @@ textarea {
 
 .desktop-search-row input::placeholder {
   color: var(--desktop-dim);
+}
+
+/* The track search's pill, a size down: here it filters, it is not the page. */
+.desktop-playlist-search {
+  grid-template-columns: 22px minmax(0, 1fr) 28px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  color: var(--desktop-muted);
+}
+
+.desktop-playlist-search input {
+  font-size: 14px;
+}
+
+.desktop-search-clear {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--desktop-muted);
+  cursor: pointer;
+}
+
+.desktop-search-clear:hover {
+  background: var(--desktop-surface);
+  color: var(--desktop-text);
+}
+
+.desktop-playlist-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.desktop-playlist-filters .desktop-playlist-search {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* Spotify's library chips: quiet at rest, filled in when they apply. */
+.desktop-filter-chip {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--desktop-surface-strong);
+  color: var(--desktop-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.desktop-filter-chip:hover {
+  background: var(--desktop-surface);
+}
+
+.desktop-filter-chip.is-on {
+  background: var(--desktop-text);
+  color: var(--desktop-bg);
 }
 
 .desktop-search-history ul {
@@ -1692,6 +1814,10 @@ textarea {
   right: -7px;
   bottom: 0;
   width: 14px;
+  /* The handle is an <hr>, and Tailwind's preflight gives every <hr>
+     `height: 0`. A fixed height wins over top/bottom, which left the side
+     handles zero pixels tall: nothing to grab, no cursor, no glow. */
+  height: auto;
   cursor: col-resize;
 }
 
@@ -1700,9 +1826,14 @@ textarea {
   right: auto;
 }
 
-/* A faint seam at rest, so the drag target is discoverable without hovering. */
-.desktop-sidebar-resize-handle::after {
-  opacity: 0.25;
+/* Has to come after .resize-handle-x: same specificity, and that rule's
+   `right: -7px` would otherwise park the handle outside the window. Stops at
+   the player bar so it never covers the bar's own resize edge. */
+.desktop-now-panel-resize-handle {
+  top: 0;
+  right: calc(var(--desktop-now-panel-width) - 7px);
+  bottom: var(--desktop-player-height);
+  left: auto;
 }
 
 .resize-handle-x::after {
@@ -1834,6 +1965,12 @@ textarea {
     grid-column: 1;
   }
 
+  .desktop-main,
+  .desktop-video-backdrop {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
   .desktop-content-grid {
     grid-template-columns: 1fr;
   }
@@ -1909,7 +2046,8 @@ textarea {
  * 160px column.
  */
 .settings-surface--desktop {
-  max-width: 1080px;
+  height: auto;
+  min-height: 100%;
 }
 
 .settings-surface--desktop .settings-topbar {
@@ -1924,7 +2062,27 @@ textarea {
 
 .settings-surface--desktop .settings-body {
   grid-template-columns: 224px minmax(0, 1fr);
-  gap: 20px;
+  align-items: start;
+  gap: 32px;
+}
+
+/* The page scrolls as a whole, like every other desktop view. Panes that
+   scroll on their own are the mini player's layout: a second scrollbar in the
+   middle of the window and content cut off at a fixed height. */
+.settings-surface--desktop .settings-pane {
+  overflow: visible;
+}
+
+.settings-surface--desktop .settings-pane-nav {
+  position: sticky;
+  top: 0;
+}
+
+/* With the page scrolling as a whole there is no fixed height left for
+   flex-1 to fill, so the editor measures itself against the window: all of
+   it below the headings and above the buttons and the player bar. */
+.settings-surface--desktop .settings-theme-editor {
+  min-height: max(320px, calc(100vh - var(--desktop-player-height, 92px) - 240px));
 }
 
 /*

@@ -1,24 +1,20 @@
-import { ArrowSquareOut, MusicNotes, X } from "@phosphor-icons/react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { MusicNotes, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import { useLiveProgress } from "../../hooks/useLiveProgress";
 import { activeLineIndex, fetchLyrics, type LyricLine, type Lyrics } from "../../lib/lyrics";
-import {
-  type AlbumFacts,
-  fetchAlbumFacts,
-  fetchMusicVideo,
-  type MusicVideo,
-  youtubeSearchUrl,
-} from "../../lib/trackExtras";
+import { type AlbumFacts, fetchAlbumFacts } from "../../lib/trackExtras";
 import type { UnifiedTrack } from "../../providers/types";
+import MusicVideo from "./MusicVideo";
 
 type NowPlayingPanelProps = {
   track: UnifiedTrack | null;
   progressMs: number;
   isPlaying: boolean;
+  /** Play the music video where the cover would be. */
+  showVideo: boolean;
   onClose: () => void;
 };
 
-const CLOCK_TICK_MS = 200;
 /**
  * The reported position is already a network round trip old when it lands,
  * and a line reads as late when it lights up exactly on its first syllable.
@@ -31,29 +27,6 @@ const LYRICS_RETRY_MS = 20_000;
 
 function releaseYear(date: string | null): string | null {
   return date ? (date.split("-")[0] ?? null) : null;
-}
-
-/**
- * Playback position advanced locally between reports. The shell only learns
- * the position from a 2.5s poll and SDK events, so reading it raw leaves the
- * highlight up to a full poll — about one lyric line — behind.
- */
-function useLiveProgress(progressMs: number, isPlaying: boolean, durationMs: number): number {
-  const [live, setLive] = useState(progressMs);
-
-  useEffect(() => {
-    setLive(progressMs);
-    if (!isPlaying) return;
-
-    const anchoredAt = performance.now();
-    const end = durationMs > 0 ? durationMs : Number.POSITIVE_INFINITY;
-    const id = window.setInterval(() => {
-      setLive(Math.min(end, progressMs + performance.now() - anchoredAt));
-    }, CLOCK_TICK_MS);
-    return () => window.clearInterval(id);
-  }, [progressMs, isPlaying, durationMs]);
-
-  return live;
 }
 
 type SyncedLyricsProps = {
@@ -113,18 +86,18 @@ function SyncedLyrics({ lines, progressMs, isPlaying, durationMs }: SyncedLyrics
 }
 
 /**
- * The right-hand companion to the player: cover, the facts Spotify still hands
- * out, the track's video on YouTube, and lyrics from LRCLIB that follow along
+ * The right-hand companion to the player: cover (or the music video), the
+ * facts Spotify still hands out, and lyrics from LRCLIB that follow along
  * when a timed transcript exists.
  */
 export default function NowPlayingPanel({
   track,
   progressMs,
   isPlaying,
+  showVideo,
   onClose,
 }: NowPlayingPanelProps) {
   const [album, setAlbum] = useState<AlbumFacts | null>(null);
-  const [video, setVideo] = useState<MusicVideo | null>(null);
   const [lyrics, setLyrics] = useState<Lyrics | null>(null);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [lyricsBusy, setLyricsBusy] = useState(false);
@@ -142,31 +115,21 @@ export default function NowPlayingPanel({
   const durationMs = track?.durationMs ?? 0;
 
   useEffect(() => {
-    if (!trackId || !trackName) {
+    if (!albumId) {
       setAlbum(null);
-      setVideo(null);
       return;
     }
 
     let mounted = true;
-    setVideo(null);
-
-    if (albumId) {
-      void fetchAlbumFacts(albumId).then((facts) => {
-        if (mounted) setAlbum(facts);
-      });
-    }
-
-    void fetchMusicVideo(trackId, trackName, leadArtist ?? "").then((found) => {
-      if (mounted) setVideo(found);
+    void fetchAlbumFacts(albumId).then((facts) => {
+      if (mounted) setAlbum(facts);
     });
 
     return () => {
       mounted = false;
     };
-  }, [trackId, trackName, leadArtist, albumId]);
+  }, [albumId]);
 
-  // Its own effect so a retry does not reload the video along with it.
   useEffect(() => {
     if (!trackId || !trackName) {
       setLyrics(null);
@@ -223,8 +186,16 @@ export default function NowPlayingPanel({
         </div>
       ) : (
         <div className="desktop-now-panel-body">
-          <div className="desktop-now-panel-art">
+          {/* With the video on, the slot turns 16:9. The cover stays underneath
+              for the moments the video is not showing: loading, an ad, paused. */}
+          <div className={`desktop-now-panel-art ${showVideo ? "has-video" : ""}`}>
+            {showVideo && artwork && (
+              <img src={artwork} alt="" className="desktop-now-panel-art-backdrop" />
+            )}
             {artwork ? <img src={artwork} alt="" /> : <MusicNotes size={40} weight="duotone" />}
+            {showVideo && (
+              <MusicVideo track={track} progressMs={progressMs} isPlaying={isPlaying} />
+            )}
           </div>
 
           <div className="desktop-now-panel-meta">
@@ -255,34 +226,6 @@ export default function NowPlayingPanel({
               )}
             </dl>
           </div>
-
-          <section className="desktop-now-panel-section">
-            <h4>Video</h4>
-            {video ? (
-              <>
-                {/* Muted on purpose: Spotify owns the audio, this is the
-                    picture. Unmute in the player if you want YouTube's. */}
-                <div className="desktop-now-panel-video">
-                  <iframe
-                    title={video.title}
-                    src={`https://www.youtube-nocookie.com/embed/${video.videoId}?autoplay=1&mute=1&playsinline=1&modestbranding=1`}
-                    allow="accelerometer; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-                <p className="desktop-now-panel-hint">Muted — Spotify is playing the audio.</p>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="desktop-now-panel-link"
-                onClick={() => openUrl(youtubeSearchUrl(track.name, track.artists[0]?.name ?? ""))}
-              >
-                <ArrowSquareOut size={14} weight="bold" />
-                Search on YouTube
-              </button>
-            )}
-          </section>
 
           <section className="desktop-now-panel-section desktop-now-panel-lyrics">
             <h4>Lyrics</h4>
