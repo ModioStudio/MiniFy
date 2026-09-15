@@ -88,7 +88,7 @@ jobs:
             args: --bundles nsis,msi
           - name: Linux
             os: ubuntu-22.04
-            args: --bundles deb,appimage,rpm
+            args: --verbose --bundles deb,appimage,rpm
           - name: macOS (Universal)
             os: macos-latest
             args: --target universal-apple-darwin --bundles dmg
@@ -156,6 +156,13 @@ jobs:
             fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
           "
           echo "Updated tauri.conf.json version to ${VERSION}"
+
+      - name: Configure Linux audio library lookup
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # linuxdeploy also scans yt-dlp's libraries, which live outside system search paths.
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/apps/desktop/src-tauri/resources/audio/linux-x86_64/yt-dlp/_internal${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
