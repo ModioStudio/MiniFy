@@ -1,6 +1,4 @@
 import { useEffect, useRef } from "react";
-import { readSettings } from "../../lib/settingLib";
-import { getActiveProvider, getActiveProviderType } from "../../providers";
 import type { MusicProviderType } from "../../providers/types";
 import {
   type AudioFeatures,
@@ -594,7 +592,6 @@ export default function MusicVisualizer({
     syncedAt: performance.now(),
   });
   const volumeRef = useRef<number>(0.6);
-  const youtubeVolumeReadAt = useRef(0);
   const profileRef = useRef<DynamicsProfile>(idleProfile);
   const profileRequestRef = useRef<number>(0);
 
@@ -617,125 +614,59 @@ export default function MusicVisualizer({
   useEffect(() => {
     let cancelled = false;
 
-    const applyProceduralTrack = (
-      provider: MusicProviderType,
-      trackKey: string,
-      trackName: string,
-      artistText: string,
-      durationMs: number
-    ) => {
-      if (profileRef.current.trackKey !== trackKey) {
-        profileRequestRef.current++;
-        profileRef.current = createProceduralProfile(trackKey, trackName, artistText, durationMs);
-      }
-      playbackRef.current = {
-        ...playbackRef.current,
-        provider,
-        trackKey,
-        trackName,
-        artistText,
-        durationMs,
-        syncedAt: performance.now(),
-      };
-    };
-
     const poll = async () => {
       try {
-        const type = await getActiveProviderType();
+        const state = await getPlayerState();
+        if (cancelled) return;
 
-        if (type === "spotify") {
-          const state = await getPlayerState();
-          if (cancelled) return;
-
-          if (!state?.item) {
-            playbackRef.current = {
-              ...playbackRef.current,
-              provider: "spotify",
-              isPlaying: false,
-              progressMs: 0,
-              syncedAt: performance.now(),
-            };
-            return;
-          }
-
-          const track = state.item;
-          const artistText = track.artists.map((artist) => artist.name).join(", ");
-          const trackKey = `spotify:${track.id}`;
-          const currentKey = playbackRef.current.trackKey;
-
-          playbackRef.current = {
-            provider: "spotify",
-            trackKey,
-            trackName: track.name,
-            artistText,
-            isPlaying: state.is_playing,
-            progressMs: state.progress_ms ?? playbackRef.current.progressMs,
-            durationMs: track.duration_ms,
-            syncedAt: performance.now(),
-          };
-          if (state.device) {
-            volumeRef.current = clamp(state.device.volume_percent / 100);
-          }
-
-          if (trackKey !== currentKey) {
-            profileRef.current = createProceduralProfile(
-              trackKey,
-              track.name,
-              artistText,
-              track.duration_ms
-            );
-            const requestId = profileRequestRef.current + 1;
-            profileRequestRef.current = requestId;
-            loadSpotifyDynamics(track)
-              .then((profile) => {
-                if (!cancelled && profileRequestRef.current === requestId) {
-                  profileRef.current = profile;
-                }
-              })
-              .catch(() => {
-                // The procedural profile is already active.
-              });
-          }
-        } else {
-          const provider = await getActiveProvider();
-          const playback = await provider.getPlaybackState();
-          if (cancelled) return;
-
-          // The saved volume only changes when the slider moves. Reading the
-          // settings through Rust on every tick fed the same queue that made
-          // song switches lag, so it is re-read at most every ten seconds.
-          if (performance.now() - youtubeVolumeReadAt.current > 10_000) {
-            youtubeVolumeReadAt.current = performance.now();
-            const settings = await readSettings();
-            if (cancelled) return;
-            volumeRef.current = clamp((settings.youtube_volume ?? 50) / 100);
-          }
-
-          if (!playback?.track) {
-            playbackRef.current = {
-              ...playbackRef.current,
-              provider: "youtube",
-              isPlaying: false,
-              progressMs: 0,
-              syncedAt: performance.now(),
-            };
-            return;
-          }
-
-          const artistText = playback.track.artists.map((artist) => artist.name).join(", ");
-          const trackKey = `youtube:${playback.track.id}`;
-          applyProceduralTrack(
-            "youtube",
-            trackKey,
-            playback.track.name,
-            artistText,
-            playback.track.durationMs
-          );
+        if (!state?.item) {
           playbackRef.current = {
             ...playbackRef.current,
-            isPlaying: playback.isPlaying,
-            progressMs: playback.progressMs ?? playbackRef.current.progressMs,
+            provider: "spotify",
+            isPlaying: false,
+            progressMs: 0,
+            syncedAt: performance.now(),
           };
+          return;
+        }
+
+        const track = state.item;
+        const artistText = track.artists.map((artist) => artist.name).join(", ");
+        const trackKey = `spotify:${track.id}`;
+        const currentKey = playbackRef.current.trackKey;
+
+        playbackRef.current = {
+          provider: "spotify",
+          trackKey,
+          trackName: track.name,
+          artistText,
+          isPlaying: state.is_playing,
+          progressMs: state.progress_ms ?? playbackRef.current.progressMs,
+          durationMs: track.duration_ms,
+          syncedAt: performance.now(),
+        };
+        if (state.device) {
+          volumeRef.current = clamp(state.device.volume_percent / 100);
+        }
+
+        if (trackKey !== currentKey) {
+          profileRef.current = createProceduralProfile(
+            trackKey,
+            track.name,
+            artistText,
+            track.duration_ms
+          );
+          const requestId = profileRequestRef.current + 1;
+          profileRequestRef.current = requestId;
+          loadSpotifyDynamics(track)
+            .then((profile) => {
+              if (!cancelled && profileRequestRef.current === requestId) {
+                profileRef.current = profile;
+              }
+            })
+            .catch(() => {
+              // The procedural profile is already active.
+            });
         }
       } catch {
         // Ignore transient API/network errors; keep the last known motion state.

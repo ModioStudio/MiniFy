@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { playbackCommand } from "./session";
+import { ownsLocalPlayback, usePlaybackSession } from "./sessionStore";
 import { getPlayerState, setShuffle } from "../../ui/spotifyClient";
 import {
   getSpotifyLocalPlayback,
@@ -20,6 +22,7 @@ type ShuffleStore = {
 export const useShuffleStore = create<ShuffleStore>(() => ({ on: false, busy: false }));
 
 export async function refreshShuffle(): Promise<void> {
+  if (ownsLocalPlayback()) { useShuffleStore.setState({ on: usePlaybackSession.getState().shuffle }); return; }
   if (useShuffleStore.getState().busy) return;
 
   const local = getSpotifyLocalPlayback();
@@ -37,7 +40,7 @@ export async function refreshShuffle(): Promise<void> {
 /** Follows the shuffle state MiniFy's own player reports, whoever changed it. */
 export function watchShuffle(): () => void {
   return subscribeSpotifyLocalPlayback((local) => {
-    if (local && !useShuffleStore.getState().busy) {
+    if (local && !ownsLocalPlayback() && !useShuffleStore.getState().busy) {
       useShuffleStore.setState({ on: local.shuffle });
     }
   });
@@ -49,7 +52,8 @@ export async function toggleShuffle(): Promise<void> {
 
   useShuffleStore.setState({ on: !on, busy: true });
   try {
-    await setShuffle(!on);
+    if (ownsLocalPlayback()) await playbackCommand({ action: "shuffle", enabled: !on });
+    else await setShuffle(!on);
   } catch (error) {
     useShuffleStore.setState({ on });
     throw error;

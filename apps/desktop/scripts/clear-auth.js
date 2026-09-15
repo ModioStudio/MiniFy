@@ -22,7 +22,7 @@ const KEYRING_KEYS = [
   "refresh_token",
   "token_expiry",
   "spotify_client_id",
-  // YouTube
+  // Legacy YouTube Music provider keys
   "youtube_access_token",
   "youtube_refresh_token",
   "youtube_token_expiry",
@@ -197,7 +197,7 @@ async function main() {
   console.log(`\n${"=".repeat(40)}`);
   console.log("✅ All credentials and settings cleared.");
   console.log("   - Spotify tokens removed from keyring");
-  console.log("   - YouTube tokens removed from keyring");
+  console.log("   - Legacy YouTube Music tokens removed from keyring");
   console.log("   - AI API keys removed from keyring");
   console.log("   - Settings file deleted");
   console.log("\nRestart the app to trigger first-boot flow.");

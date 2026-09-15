@@ -43,6 +43,7 @@ import {
 
 function convertToUnifiedTrack(track: SimplifiedTrack): UnifiedTrack {
   return {
+    playlistKey: track.playlistKey,
     id: track.id,
     name: track.name,
     durationMs: track.duration_ms,
@@ -124,55 +125,55 @@ class SpotifyProviderImpl implements MusicProvider {
     };
   }
 
-  play(): void {
+  async play(): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
       // activateElement has to run while the user gesture is still on the
       // stack, so it is called first and not awaited before resume.
       void activateSpotifyWebPlayback();
-      void resumeSpotifyWebPlayback();
+      await resumeSpotifyWebPlayback();
       return;
     }
-    spotifyPlay();
+    await spotifyPlay();
   }
 
-  pause(): void {
+  async pause(): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
-      void pauseSpotifyWebPlayback();
+      await pauseSpotifyWebPlayback();
       return;
     }
-    spotifyPause();
+    await spotifyPause();
   }
 
-  nextTrack(): void {
+  async nextTrack(): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
-      void nextSpotifyWebPlaybackTrack();
+      await nextSpotifyWebPlaybackTrack();
       return;
     }
-    spotifyNextTrack();
+    await spotifyNextTrack();
   }
 
-  previousTrack(): void {
+  async previousTrack(): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
-      void previousSpotifyWebPlaybackTrack();
+      await previousSpotifyWebPlaybackTrack();
       return;
     }
-    spotifyPreviousTrack();
+    await spotifyPreviousTrack();
   }
 
-  seek(positionMs: number): void {
+  async seek(positionMs: number): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
-      void seekSpotifyWebPlayback(positionMs);
+      await seekSpotifyWebPlayback(positionMs);
       return;
     }
-    spotifySeek(positionMs);
+    await spotifySeek(positionMs);
   }
 
-  setVolume(volumePercent: number): void {
+  async setVolume(volumePercent: number): Promise<void> {
     if (isSpotifyWebPlaybackReady()) {
-      void setSpotifyWebPlaybackVolume(volumePercent);
+      await setSpotifyWebPlaybackVolume(volumePercent);
       return;
     }
-    spotifySetVolume(volumePercent);
+    await spotifySetVolume(volumePercent);
   }
 
   async searchTracks(query: string, limit: number): Promise<UnifiedTrack[]> {
@@ -216,6 +217,7 @@ class SpotifyProviderImpl implements MusicProvider {
     ]);
     return {
       playlists: response.playlists.map((p) => ({
+        writable: p.owner?.id === userProfile.id || p.collaborative === true,
         id: p.id,
         name: p.name,
         description: p.description,

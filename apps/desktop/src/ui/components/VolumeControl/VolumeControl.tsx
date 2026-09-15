@@ -6,8 +6,7 @@ import {
   getSpotifyWebPlaybackDeviceId,
   subscribeSpotifyWebPlaybackDeviceId,
 } from "../../../lib/spotifyWebPlaybackDevice";
-import { getActiveProvider, getActiveProviderType } from "../../../providers";
-import type { MusicProviderType } from "../../../providers/types";
+import { playbackCommand } from "../../../lib/playback/session";
 import { getPlayerState } from "../../spotifyClient";
 
 /** Debounce before persisting, so dragging the slider does not spam settings. */
@@ -21,7 +20,6 @@ function volumeIcon(volume: number, muted: boolean) {
 }
 
 export default function VolumeControl() {
-  const [provider, setProvider] = useState<MusicProviderType | null>(null);
   const [volume, setVolume] = useState(50);
   const [muted, setMuted] = useState(false);
   /** Level to restore when unmuting, captured before the volume went to zero. */
@@ -32,20 +30,7 @@ export default function VolumeControl() {
     let mounted = true;
 
     const syncFromDevice = async () => {
-      const type = await getActiveProviderType();
       if (!mounted) return;
-      setProvider(type);
-
-      if (type === "youtube") {
-        const settings = await readSettings();
-        if (!mounted) return;
-        const saved = settings.youtube_volume ?? 50;
-        setVolume(saved);
-        volumeBeforeMute.current = saved || 50;
-        // The iframe player starts at its own default, so push ours onto it.
-        (await getActiveProvider()).setVolume(saved);
-        return;
-      }
 
       const [state, settings] = await Promise.all([getPlayerState(), readSettings()]);
       if (!mounted) return;
@@ -92,18 +77,15 @@ export default function VolumeControl() {
       setVolume(clamped);
       setMuted(clamped === 0);
 
-      const musicProvider = await getActiveProvider();
-      musicProvider.setVolume(clamped);
+      await playbackCommand({ action: "volume", volume: clamped });
 
       if (persistTimer.current) clearTimeout(persistTimer.current);
       persistTimer.current = setTimeout(() => {
-        void writeSettings(
-          provider === "youtube" ? { youtube_volume: clamped } : { spotify_volume: clamped }
-        );
+        void writeSettings({ spotify_volume: clamped });
         persistTimer.current = null;
       }, PERSIST_DEBOUNCE_MS);
     },
-    [provider]
+    []
   );
 
   const toggleMute = useCallback(() => {

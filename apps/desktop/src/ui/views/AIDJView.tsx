@@ -18,8 +18,7 @@ import { startAIQueue, stopAIQueue } from "../../lib/aiQueueService";
 import { useAIQueueStore } from "../../lib/aiQueueStore";
 import { musicTools } from "../../lib/musicTools";
 import { readSettings } from "../../lib/settingLib";
-import { getActiveProvider, getActiveProviderType } from "../../providers";
-import type { MusicProviderType } from "../../providers/types";
+import { getActiveProvider } from "../../providers";
 
 type AIDJViewProps = {
   onBack: () => void;
@@ -42,10 +41,9 @@ async function buildUserContext(): Promise<string> {
   const contextParts: string[] = [];
 
   try {
-    const providerType = await getActiveProviderType();
     const provider = await getActiveProvider();
 
-    contextParts.push(`Provider: ${providerType === "youtube" ? "YouTube Music" : "Spotify"}`);
+    contextParts.push("Provider: Spotify");
 
     const now = new Date();
     const timeOfDay =
@@ -82,7 +80,6 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
   const { setLayout } = useWindowLayout();
   const isDesktop = surface === "desktop";
   const title = "AI DJ";
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -126,9 +123,6 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
 
   useEffect(() => {
     (async () => {
-      const type = await getActiveProviderType();
-      setProviderType(type);
-
       const settings = await readSettings();
       const provider = await getActiveProviderWithKey(
         settings.ai_providers,
@@ -137,8 +131,8 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
       setIsConfigured(provider !== null);
 
       if (provider) {
-        const providerName = type === "youtube" ? "YouTube Music" : "Spotify";
-        const welcomeMsg = `Hey! I'm your AI DJ for ${providerName}. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!`;
+        const welcomeMsg =
+          "Hey! I'm your AI DJ for Spotify. Tell me what kind of music you're in the mood for, or ask me to suggest something based on your recent listening history!";
 
         setMessages([
           {
@@ -306,14 +300,11 @@ export default function AIDJView({ onBack, onOpenSettings, surface = "mini" }: A
     );
   }
 
-  const suggestions =
-    providerType === "youtube"
-      ? ["Find me something relaxing", "Play upbeat music", "Start the AI Queue"]
-      : [
-          "Play something based on my recent history",
-          "Find me something upbeat",
-          "What's playing now?",
-        ];
+  const suggestions = [
+    "Play something based on my recent history",
+    "Find me something upbeat",
+    "What's playing now?",
+  ];
 
   return (
     <div className="h-full w-full p-4 flex flex-col" style={{ color: "var(--settings-text)" }}>

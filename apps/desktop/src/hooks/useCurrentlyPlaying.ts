@@ -3,6 +3,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState } from "react";
 import { useAIQueueStore } from "../lib/aiQueueStore";
 import { startAutoplayMonitor, stopAutoplayMonitor } from "../lib/playback/autoplayService";
+import { initializePlaybackSession } from "../lib/playback/session";
+import { usePlaybackSession } from "../lib/playback/sessionStore";
 import { startKeepAlive, stopKeepAlive } from "../lib/playback/spotifyKeepAlive";
 import {
   type LastPlayedTrack,
@@ -87,7 +89,7 @@ function cacheToPlaybackState(cache: LastPlayedTrack): PlaybackState {
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-let currentProviderCache: ProviderPlaybackCache = { spotify: null, youtube: null };
+let currentProviderCache: ProviderPlaybackCache = { spotify: null };
 /** How stale the saved resume position may get while one track plays. */
 const CACHE_SAVE_EVERY_MS = 30_000;
 let lastCacheSave: { trackId: string; at: number } | null = null;
@@ -148,6 +150,9 @@ export interface CurrentPlayingState {
 }
 
 export function useCurrentlyPlaying(pollMs = 3000) {
+  // Field by field: subscribing to the whole session re-rendered on every change.
+  const sessionLocal = usePlaybackSession((session) => session.local);
+  const sessionPlayback = usePlaybackSession((session) => session.playback);
   const [state, setState] = useState<PlaybackState | null>(null);
   const [activeProvider, setActiveProvider] = useState<MusicProviderType | null>(null);
   const lastTrackRef = useRef<string | null>(null);
@@ -182,8 +187,9 @@ export function useCurrentlyPlaying(pollMs = 3000) {
         }
 
         // Start playback services
-        startAutoplayMonitor();
-        if (provider === "spotify") {
+        await initializePlaybackSession();
+        if (IS_MAIN_WINDOW) {
+          startAutoplayMonitor();
           startKeepAlive();
         }
       } catch (err) {
@@ -192,8 +198,10 @@ export function useCurrentlyPlaying(pollMs = 3000) {
     })();
 
     return () => {
-      stopAutoplayMonitor();
-      stopKeepAlive();
+      if (IS_MAIN_WINDOW) {
+        stopAutoplayMonitor();
+        stopKeepAlive();
+      }
     };
   }, []);
 
@@ -313,12 +321,13 @@ export function useCurrentlyPlaying(pollMs = 3000) {
     };
   }, [pollMs]);
 
+  const displayed = sessionLocal ? sessionPlayback : state;
   return {
-    track: state?.track ?? null,
-    isPlaying: state?.isPlaying ?? false,
-    progress: state?.progressMs ?? 0,
-    duration: state?.track?.durationMs ?? 0,
-    provider: activeProvider,
+    track: displayed?.track ?? null,
+    isPlaying: displayed?.isPlaying ?? false,
+    progress: displayed?.progressMs ?? 0,
+    duration: displayed?.track?.durationMs ?? 0,
+    provider: displayed?.track?.provider ?? activeProvider,
     setState,
   };
 }

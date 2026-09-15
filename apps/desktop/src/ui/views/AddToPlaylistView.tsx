@@ -1,64 +1,62 @@
-import { ArrowLeft, MusicNotes, Plus, SpinnerGap, Warning } from "@phosphor-icons/react";
+import { ArrowLeft, MusicNotes, Plus, SpinnerGap } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import useWindowLayout from "../../hooks/useWindowLayout";
-import { getActiveProviderType } from "../../providers";
-import type { MusicProviderType } from "../../providers/types";
 import {
   addTrackToPlaylist,
-  fetchUserPlaylists,
-  playlistTrackTotal,
-  type SimplifiedPlaylist,
-} from "../spotifyClient";
+  fetchAllPlaylists,
+  useYouTubeTrackCounts,
+} from "../../lib/localLibrary";
+import type { UnifiedPlaylist, UnifiedTrack } from "../../providers/types";
 
 type AddToPlaylistViewProps = {
-  trackId: string | null;
-  trackName: string | null;
+  track: UnifiedTrack | null;
   onBack: () => void;
 };
 
-export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToPlaylistViewProps) {
+export default function AddToPlaylistView({ track, onBack }: AddToPlaylistViewProps) {
   const { setLayout } = useWindowLayout();
-  const [providerType, setProviderType] = useState<MusicProviderType | null>(null);
-  const [playlists, setPlaylists] = useState<SimplifiedPlaylist[]>([]);
+  const [playlists, setPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isYouTube = track?.provider === "youtube";
+  const youtubeCounts = useYouTubeTrackCounts();
 
   useEffect(() => {
     setLayout("SearchSongs");
   }, [setLayout]);
 
+  // Spotify only takes tracks into playlists the user may edit. A YouTube
+  // track is stored in MiniFy's local copy, so any playlist can take it.
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      const type = await getActiveProviderType();
-      setProviderType(type);
-
-      if (type !== "spotify") {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetchUserPlaylists(50, 0);
-        setPlaylists(response.playlists);
-      } catch (err) {
+    let alive = true;
+    fetchAllPlaylists()
+      .then((all) => {
+        if (alive) setPlaylists(all.filter((playlist) => isYouTube || playlist.writable));
+      })
+      .catch((err) => {
         console.error("Failed to load playlists:", err);
-      } finally {
-        setLoading(false);
-      }
+        if (alive) setError(String(err));
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
     };
-    init();
-  }, []);
+  }, [isYouTube]);
 
-  const handleAddToPlaylist = async (playlist: SimplifiedPlaylist) => {
-    if (!trackId || addingTo) return;
+  const handleAddToPlaylist = async (playlist: UnifiedPlaylist) => {
+    if (!track || addingTo) return;
 
     setAddingTo(playlist.id);
+    setError(null);
     try {
-      await addTrackToPlaylist(playlist.id, `spotify:track:${trackId}`);
+      await addTrackToPlaylist(track, playlist.id);
       onBack();
     } catch (err) {
       console.error("Failed to add track to playlist:", err);
+      setError(String(err));
       setAddingTo(null);
     }
   };
@@ -71,9 +69,9 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
       >
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold">Add to Playlist</h1>
-          {trackName && (
+          {track && (
             <p className="text-xs truncate mt-0.5" style={{ color: "var(--settings-text-muted)" }}>
-              {trackName}
+              {isYouTube ? `${track.name} · saved in MiniFy only` : track.name}
             </p>
           )}
         </div>
@@ -88,6 +86,11 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
       </div>
 
       <div className="h-[calc(100%-60px)] w-full flex flex-col gap-3">
+        {error && (
+          <p className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400" role="alert">
+            {error}
+          </p>
+        )}
         <div
           className="flex-1 rounded-xl border overflow-auto text-sm"
           style={{
@@ -104,20 +107,7 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
             </div>
           )}
 
-          {!loading && providerType === "youtube" && (
-            <div
-              className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
-              style={{ color: "var(--settings-text-muted)" }}
-            >
-              <Warning size={32} weight="fill" className="text-yellow-500" />
-              <p className="font-medium">Not available</p>
-              <p className="text-xs">
-                YouTube Music does not support adding tracks to playlists through the API.
-              </p>
-            </div>
-          )}
-
-          {!loading && providerType === "spotify" && playlists.length === 0 && (
+          {!loading && playlists.length === 0 && (
             <div
               className="flex items-center justify-center h-full"
               style={{ color: "var(--settings-text-muted)" }}
@@ -126,11 +116,10 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
             </div>
           )}
 
-          {!loading && providerType === "spotify" && playlists.length > 0 && (
+          {!loading && playlists.length > 0 && (
             <ul className="py-2">
               {playlists.map((playlist) => {
-                const playlistImage =
-                  playlist.images && playlist.images.length > 0 ? playlist.images[0]?.url : null;
+                const playlistImage = playlist.images[0]?.url ?? null;
                 const isAdding = addingTo === playlist.id;
 
                 return (
@@ -169,7 +158,7 @@ export default function AddToPlaylistView({ trackId, trackName, onBack }: AddToP
                           className="text-xs truncate"
                           style={{ color: "var(--settings-text-muted)" }}
                         >
-                          {playlistTrackTotal(playlist)} tracks
+                          {playlist.trackCount + (youtubeCounts[playlist.id] ?? 0)} tracks
                         </p>
                       </div>
 

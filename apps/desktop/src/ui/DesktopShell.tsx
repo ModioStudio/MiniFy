@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowsOutSimple,
   Article,
-  ClockCounterClockwise,
   DownloadSimple,
   GearSix,
   House,
@@ -12,6 +11,7 @@ import {
   MusicNotes,
   Play,
   Playlist,
+  PlusCircle,
   SidebarSimple,
   SpinnerGap,
   UserCircle,
@@ -21,13 +21,14 @@ import {
 } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentlyPlaying } from "../hooks/useCurrentlyPlaying";
 import { fetchListeningStats, type ListeningStats } from "../lib/listeningStats";
-import { refreshShuffle, useShuffleStore, watchShuffle } from "../lib/playback/shuffle";
-import { skipToNext, useAutoplayStore } from "../lib/playback/spotifyAutoplay";
-import { loadAllPlaylistTracks } from "../lib/playlistTracks";
+import { useYouTubeTrackCounts } from "../lib/localLibrary";
+import { playbackCommand } from "../lib/playback/session";
+import { usePlaybackSession } from "../lib/playback/sessionStore";
+import { refreshShuffle, watchShuffle } from "../lib/playback/shuffle";
+import { useAutoplayStore } from "../lib/playback/spotifyAutoplay";
 import {
   type Settings as AppSettings,
   type DesktopLayout,
@@ -37,7 +38,6 @@ import {
 } from "../lib/settingLib";
 import {
   clearSpotifyWebPlaybackAuthFailure,
-  disconnectSpotifyWebPlayback,
   getSpotifyWebPlaybackStatus,
   initializeSpotifyWebPlayback,
   type SpotifyWebPlaybackStatus,
@@ -57,9 +57,12 @@ import type {
   UnifiedUserProfile,
 } from "../providers/types";
 import DeviceMenu from "./components/DeviceMenu/DeviceMenu";
+import LocalPlaylistTracks from "./components/LocalPlaylistTracks";
+import MusicSearch from "./components/MusicSearch";
 import MusicVideo from "./components/MusicVideo";
 import MusicVisualizer from "./components/MusicVisualizer";
 import NowPlayingPanel from "./components/NowPlayingPanel";
+import PlaylistPicker from "./components/PlaylistPicker";
 import ResizeHandle from "./components/ResizeHandle/ResizeHandle";
 import ShuffleButton from "./components/ShuffleButton";
 import PlaybackBar from "./components/TrackControls/PlaybackBar";
@@ -69,7 +72,7 @@ import AIDJView from "./views/AIDJView";
 import Settings from "./views/Settings";
 
 type DesktopShellProps = {
-  onResetAuth: (provider?: "spotify" | "youtube") => void;
+  onResetAuth: (provider?: "spotify") => void;
   onUpdateTheme: (theme: string) => void;
 };
 
@@ -166,30 +169,11 @@ async function fetchAllUserPlaylists(musicProvider: MusicProvider): Promise<Play
   };
 }
 
-/** Spotify answers 403 for playlists it will not expose to third-party apps. */
-function describeError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  if (message.startsWith("403")) {
-    return "Spotify will not share this playlist's tracks with third-party apps. The block is per playlist and only Spotify can lift it.";
-  }
-  if (message.startsWith("404")) return "Spotify no longer serves this endpoint (404).";
-  return message;
-}
-
 function getArtwork(track: UnifiedTrack | null): string | null {
   return track?.album.images[0]?.url ?? null;
 }
 
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "--:--";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-function providerLabel(provider: MusicProviderType | null): string {
-  if (provider === "youtube") return "YouTube Music";
+function providerLabel(): string {
   return "Spotify";
 }
 
@@ -223,6 +207,9 @@ function getInitials(name: string): string {
 }
 
 export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShellProps) {
+  // Only the error: the whole session changes with every playback report.
+  const sessionError = usePlaybackSession((session) => session.error);
+  const [addingTrack, setAddingTrack] = useState<UnifiedTrack | null>(null);
   const [view, setView] = useState<DesktopView>("home");
   const [provider, setProvider] = useState<MusicProviderType | null>(null);
   const [account, setAccount] = useState<UnifiedUserProfile | null>(null);
@@ -230,7 +217,6 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     getSpotifyWebPlaybackStatus()
   );
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<UnifiedTrack[]>([]);
   const [recentTracks, setRecentTracks] = useState<UnifiedTrack[]>([]);
   const [playlists, setPlaylists] = useState<UnifiedPlaylist[]>([]);
   const [allPlaylists, setAllPlaylists] = useState<UnifiedPlaylist[]>([]);
@@ -240,18 +226,9 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
   );
   const [playlistQuery, setPlaylistQuery] = useState("");
   const [allPlaylistsLoaded, setAllPlaylistsLoaded] = useState(false);
-  const [playlistTracks, setPlaylistTracks] = useState<UnifiedTrack[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<UnifiedPlaylist | null>(null);
-  const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingHome, setLoadingHome] = useState(true);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
-  const [loadingPlaylistTracks, setLoadingPlaylistTracks] = useState(false);
-  const [playlistProgress, setPlaylistProgress] = useState<{ loaded: number; total: number }>({
-    loaded: 0,
-    total: 0,
-  });
-  const [playlistError, setPlaylistError] = useState<string | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => readSearchHistory());
   const [listening, setListening] = useState<ListeningStats>({ artists: [], totalPlays: 0 });
   const [nowPanelOpen, setNowPanelOpen] = useState(
@@ -265,7 +242,6 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       MAX_NOW_PANEL_WIDTH
     )
   );
-  const playlistRunId = useRef(0);
   /** Where the playlist's back button leads: the view it was opened from. */
   const playlistReturnView = useRef<DesktopView>("playlists");
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -403,11 +379,10 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
 
   useEffect(() => {
     const unlisten = listen<string>("taskbar-control", async (event) => {
-      const musicProvider = await getActiveProvider();
       if (event.payload === "previous") {
-        musicProvider.previousTrack();
+        await playbackCommand({ action: "previous" });
       } else if (event.payload === "next") {
-        void skipToNext();
+        void playbackCommand({ action: "next" });
       } else if (event.payload === "toggle") {
         const next = !isPlayingRef.current;
         setCurrentState((state) => (state ? { ...state, isPlaying: next } : state));
@@ -551,15 +526,9 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
       .catch(() => setScopesStale(false));
   }, [provider]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run once the Spotify session is known
   useEffect(() => {
-    if (provider === "spotify") {
-      void initializeSpotifyWebPlayback();
-      return;
-    }
-
-    if (provider === "youtube") {
-      void disconnectSpotifyWebPlayback();
-    }
+    void initializeSpotifyWebPlayback();
   }, [provider]);
 
   useEffect(() => {
@@ -590,14 +559,8 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     };
   }, [provider]);
 
-  // Spotify-only: the chart counts plays, and the YouTube provider has no
-  // equivalent history to count.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run once the Spotify session is known
   useEffect(() => {
-    if (provider !== "spotify") {
-      setListening({ artists: [], totalPlays: 0 });
-      return;
-    }
-
     let mounted = true;
     fetchListeningStats()
       .then((stats) => {
@@ -657,33 +620,6 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     };
   }, []);
 
-  useEffect(() => {
-    if (view !== "search") return;
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setSearchResults([]);
-      return;
-    }
-
-    const id = window.setTimeout(async () => {
-      setLoadingSearch(true);
-      setSearchError(null);
-      try {
-        const musicProvider = await getActiveProvider();
-        const tracks = await musicProvider.searchTracks(trimmed, 30);
-        setSearchResults(tracks);
-      } catch (error) {
-        console.error("Desktop search failed:", error);
-        setSearchResults([]);
-        setSearchError(describeError(error));
-      } finally {
-        setLoadingSearch(false);
-      }
-    }, 250);
-
-    return () => window.clearTimeout(id);
-  }, [query, view]);
-
   // Recorded on submit and on play rather than on every keystroke, so the list
   // holds searches the user meant instead of every prefix they typed.
   const rememberSearch = useCallback((term: string) => {
@@ -734,84 +670,39 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
     });
   }, []);
 
-  // Only a playlist's own track list plays in the playlist's context. Rows in
-  // search and on home play the single track, which autoplay then continues —
-  // they used to pick up whichever playlist had last been opened.
-  const playTrack = useCallback(
-    async (
-      selectedTrack: UnifiedTrack,
-      fromPlaylist?: { playlist: UnifiedPlaylist; index: number }
-    ) => {
-      setPlayingId(selectedTrack.id);
-      try {
-        const musicProvider = await getActiveProvider();
-        if (fromPlaylist && musicProvider.playPlaylistFromIndex) {
-          await musicProvider.playPlaylistFromIndex(
-            fromPlaylist.playlist.id,
-            fromPlaylist.index,
-            selectedTrack.uri
-          );
-        } else {
-          await musicProvider.playTrack(selectedTrack.uri);
-        }
-      } finally {
-        setPlayingId(null);
-      }
-    },
-    []
-  );
-
-  // Spotify's big play button: from the top, or from a random song with
-  // shuffle on (Spotify then shuffles the rest).
-  const playWholePlaylist = useCallback(() => {
-    if (!selectedPlaylist || playlistTracks.length === 0) return;
-    const index = useShuffleStore.getState().on
-      ? Math.floor(Math.random() * playlistTracks.length)
-      : 0;
-    const track = playlistTracks[index];
-    if (track) void playTrack(track, { playlist: selectedPlaylist, index });
-  }, [playTrack, playlistTracks, selectedPlaylist]);
-
-  const selectPlaylist = useCallback(async (playlist: UnifiedPlaylist, from: DesktopView) => {
-    const runId = playlistRunId.current + 1;
-    playlistRunId.current = runId;
-    const cancelled = () => playlistRunId.current !== runId;
-
-    playlistReturnView.current = from === "home" ? "home" : "playlists";
-    setSelectedPlaylist(playlist);
-    setView("playlists");
-    setLoadingPlaylistTracks(true);
-    setPlaylistTracks([]);
-    setPlaylistError(null);
-    setPlaylistProgress({ loaded: 0, total: playlist.trackCount });
+  const playTrack = useCallback(async (track: UnifiedTrack) => {
+    setPlayingId(track.id);
     try {
-      const musicProvider = await getActiveProvider();
-      await loadAllPlaylistTracks(
-        musicProvider,
-        playlist.id,
-        ({ tracks, loaded, total }) => {
-          setPlaylistTracks((current) => [...current, ...tracks]);
-          setPlaylistProgress({ loaded, total });
-        },
-        cancelled
-      );
+      await playbackCommand({ action: "track", track });
     } catch (error) {
-      console.error("Failed to load playlist tracks:", error);
-      if (!cancelled()) setPlaylistError(describeError(error));
+      console.error("Playback failed:", error);
     } finally {
-      if (!cancelled()) setLoadingPlaylistTracks(false);
+      setPlayingId(null);
     }
   }, []);
 
+  const selectPlaylist = useCallback((playlist: UnifiedPlaylist, from: DesktopView) => {
+    playlistReturnView.current = from === "home" ? "home" : "playlists";
+    setSelectedPlaylist(playlist);
+    setView("playlists");
+  }, []);
+
   const closePlaylist = useCallback(() => {
-    // Bumping the run id also stops a large playlist that is still paging in.
-    playlistRunId.current += 1;
     setSelectedPlaylist(null);
-    setPlaylistTracks([]);
-    setPlaylistError(null);
-    setLoadingPlaylistTracks(false);
     setView(playlistReturnView.current);
   }, []);
+
+  // The mouse's back button leaves an open playlist, as it would in a browser.
+  useEffect(() => {
+    if (!selectedPlaylist) return;
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button !== 3) return;
+      event.preventDefault();
+      closePlaylist();
+    };
+    window.addEventListener("mouseup", onMouseUp);
+    return () => window.removeEventListener("mouseup", onMouseUp);
+  }, [selectedPlaylist, closePlaylist]);
 
   const navItems = [
     { id: "home" as const, label: "Home", icon: House },
@@ -831,7 +722,6 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
           <img src="/logo.png" alt="" className="desktop-brand-mark" />
           <div>
             <div className="desktop-brand-name">MiniFy</div>
-            <div className="desktop-brand-provider">{providerLabel(provider)}</div>
           </div>
         </div>
 
@@ -877,7 +767,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             <span>Mini player</span>
           </button>
 
-          <DesktopAccount account={account} provider={provider} />
+          <DesktopAccount account={account} />
         </div>
       </aside>
 
@@ -896,9 +786,7 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         }}
       />
 
-      {/* Spotify only: with YouTube Music the track already is a video, and a
-          second player would fight the one making the sound. */}
-      {provider === "spotify" && musicVideoMode === "background" && currentTrack && (
+      {musicVideoMode === "background" && currentTrack && (
         <div className="desktop-video-backdrop" aria-hidden="true">
           <MusicVideo
             track={currentTrack}
@@ -909,7 +797,13 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
         </div>
       )}
 
+      {addingTrack && <PlaylistPicker track={addingTrack} onClose={() => setAddingTrack(null)} />}
       <main className="desktop-main">
+        {sessionError && (
+          <p className="library-error" role="alert">
+            {sessionError}
+          </p>
+        )}
         <PlaybackNotice
           provider={provider}
           authenticated={account !== null}
@@ -930,14 +824,13 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             onUpdateMusicVisualizerColor={setVisualizerColor}
             onUpdateMusicVisualizerIntensity={setVisualizerIntensity}
             onUpdateWindowOpacity={() => {}}
-            onMusicProviderChange={setProvider}
           />
         ) : (
           <>
             {view === "home" && (
               <section className="desktop-hero">
                 <div>
-                  <span className="desktop-kicker">{providerLabel(provider)}</span>
+                  <span className="desktop-kicker">{providerLabel()}</span>
                   <h1>{greeting()}</h1>
                   <p>
                     {currentTrack
@@ -998,71 +891,18 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
 
             {view === "search" && (
               <section className="desktop-section desktop-full-section">
-                <div className="desktop-search-row">
-                  <MagnifyingGlass size={22} weight="bold" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") rememberSearch(query);
-                    }}
-                    placeholder="What do you want to listen to?"
-                  />
-                  {loadingSearch && <SpinnerGap size={20} weight="bold" className="animate-spin" />}
-                </div>
-                {searchError && (
-                  <output className="desktop-notice is-warning">
-                    <WarningCircle size={18} weight="bold" />
-                    <p>{searchError}</p>
-                  </output>
-                )}
-                {!query.trim() && searchHistory.length > 0 ? (
-                  <div className="desktop-search-history">
-                    <div className="desktop-section-heading">
-                      <h2>Recent searches</h2>
-                    </div>
-                    <ul>
-                      {searchHistory.map((term) => (
-                        <li key={term}>
-                          <button type="button" onClick={() => setQuery(term)}>
-                            <ClockCounterClockwise size={16} weight="bold" />
-                            <span>{term}</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="desktop-search-history-remove"
-                            onClick={() => forgetSearch(term)}
-                            aria-label={`Remove ${term} from recent searches`}
-                          >
-                            <X size={14} weight="bold" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <TrackTable
-                    tracks={searchResults}
-                    playingId={playingId}
-                    emptyLabel={
-                      searchError
-                        ? "Search failed"
-                        : query.trim()
-                          ? "No results found"
-                          : "Start typing to search"
-                    }
-                    onPlay={(track) => {
-                      rememberSearch(query);
-                      playTrack(track);
-                    }}
-                  />
-                )}
+                <MusicSearch
+                  initialQuery={query}
+                  history={searchHistory}
+                  onRemember={rememberSearch}
+                  onForget={forgetSearch}
+                />
               </section>
             )}
 
             {view === "playlists" && (
               <section className="desktop-section desktop-full-section">
-                <div className="desktop-section-heading">
+                <div className={`desktop-section-heading${selectedPlaylist ? " is-sticky" : ""}`}>
                   <div className="desktop-section-title">
                     {selectedPlaylist && (
                       <button
@@ -1081,62 +921,14 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
                     )}
                     <h2>{selectedPlaylist?.name ?? "Playlists"}</h2>
                   </div>
-                  {(loadingPlaylists || loadingPlaylistTracks) && (
+                  {loadingPlaylists && (
                     <SpinnerGap size={18} weight="bold" className="animate-spin" />
                   )}
                 </div>
                 {selectedPlaylist ? (
                   <>
-                    <div className="desktop-playlist-actions">
-                      <button
-                        type="button"
-                        className="desktop-play-button"
-                        onClick={playWholePlaylist}
-                        disabled={playlistTracks.length === 0}
-                        aria-label={`Play ${selectedPlaylist.name}`}
-                        title="Play"
-                      >
-                        <Play size={22} weight="fill" />
-                      </button>
-                      {provider === "spotify" && <ShuffleButton />}
-                    </div>
-                    {loadingPlaylistTracks && playlistProgress.total > 0 && (
-                      <div className="desktop-playlist-progress">
-                        <SpinnerGap size={16} weight="bold" className="animate-spin" />
-                        <span>
-                          Loading {playlistProgress.loaded} of {playlistProgress.total} tracks
-                        </span>
-                      </div>
-                    )}
-                    {playlistError && (
-                      <output className="desktop-notice is-warning">
-                        <WarningCircle size={18} weight="bold" />
-                        <p>{playlistError}</p>
-                        {selectedPlaylist && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openUrl(`https://open.spotify.com/playlist/${selectedPlaylist.id}`)
-                            }
-                          >
-                            Open in Spotify
-                          </button>
-                        )}
-                      </output>
-                    )}
-                    <TrackTable
-                      tracks={playlistTracks}
-                      playingId={playingId}
-                      emptyLabel={
-                        loadingPlaylistTracks ? "Loading tracks…" : "No tracks in this playlist"
-                      }
-                      onPlay={(track, index) =>
-                        playTrack(
-                          track,
-                          index === undefined ? undefined : { playlist: selectedPlaylist, index }
-                        )
-                      }
-                    />
+                    <ShuffleButton />
+                    <LocalPlaylistTracks key={selectedPlaylist.id} playlist={selectedPlaylist} />
                   </>
                 ) : (
                   <>
@@ -1279,6 +1071,18 @@ export default function DesktopShell({ onResetAuth, onUpdateTheme }: DesktopShel
             <span>{artistText}</span>
             {isRadioTrack && <small className="desktop-now-autoplay">Autoplay</small>}
           </div>
+          {/* Beside the title, where Spotify keeps it, not among the transport. */}
+          {currentTrack && (
+            <button
+              type="button"
+              className="desktop-now-add"
+              onClick={() => setAddingTrack(currentTrack)}
+              title="Add to playlist"
+              aria-label={`Add ${currentTrack.name} to a playlist`}
+            >
+              <PlusCircle size={20} weight="bold" />
+            </button>
+          )}
         </div>
 
         <div className="desktop-player-center">
@@ -1339,12 +1143,11 @@ function useCurrentDesktopPlayback() {
 
 type DesktopAccountProps = {
   account: UnifiedUserProfile | null;
-  provider: MusicProviderType | null;
 };
 
-function DesktopAccount({ account, provider }: DesktopAccountProps) {
+function DesktopAccount({ account }: DesktopAccountProps) {
   const name = account?.name ?? "Not signed in";
-  const subtitle = account?.subtitle ?? providerLabel(provider);
+  const subtitle = account?.subtitle ?? providerLabel();
 
   return (
     <section className="desktop-account" title={`${name} — ${subtitle}`}>
@@ -1533,40 +1336,6 @@ function TrackGrid({ tracks, playingId, emptyLabel, onPlay }: TrackCollectionPro
   );
 }
 
-function TrackTable({ tracks, playingId, emptyLabel, onPlay }: TrackCollectionProps) {
-  if (tracks.length === 0) {
-    return <div className="desktop-empty">{emptyLabel}</div>;
-  }
-
-  return (
-    <div className="desktop-track-table">
-      {tracks.map((track, index) => (
-        <button
-          key={track.uri}
-          type="button"
-          className="desktop-track-row"
-          onClick={() => onPlay(track, index)}
-        >
-          <span className="desktop-row-index">{index + 1}</span>
-          <span className="desktop-row-art">
-            {getArtwork(track) ? (
-              <img src={getArtwork(track) ?? ""} alt={track.album.name} />
-            ) : (
-              <MusicNotes size={20} />
-            )}
-          </span>
-          <span className="desktop-row-title">
-            <strong>{track.name}</strong>
-            <small>{track.artists.map((artist) => artist.name).join(", ")}</small>
-          </span>
-          <span>{track.album.name}</span>
-          <span>{playingId === track.id ? "Loading" : formatDuration(track.durationMs)}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 type PlaylistCollectionProps = {
   playlists: UnifiedPlaylist[];
   onSelect: (playlist: UnifiedPlaylist) => void;
@@ -1601,6 +1370,7 @@ function PlaylistGrid({
   onSelect,
   emptyLabel = "No playlists found",
 }: PlaylistCollectionProps) {
+  const youtubeCounts = useYouTubeTrackCounts();
   if (playlists.length === 0) {
     return <div className="desktop-empty">{emptyLabel}</div>;
   }
@@ -1617,7 +1387,7 @@ function PlaylistGrid({
             )}
           </div>
           <strong>{playlist.name}</strong>
-          <small>{playlist.trackCount} tracks</small>
+          <small>{playlist.trackCount + (youtubeCounts[playlist.id] ?? 0)} tracks</small>
         </button>
       ))}
     </div>

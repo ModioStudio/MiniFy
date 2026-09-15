@@ -2,12 +2,13 @@ import { PlusCircle } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useCurrentlyPlaying } from "../../hooks/useCurrentlyPlaying";
 import useWindowLayout from "../../hooks/useWindowLayout";
+import type { UnifiedTrack } from "../../providers/types";
 import { TrackInfoLayout } from "../components/LayoutTrackInfo/TrackInfoLayout";
 import PlaybackBar from "../components/TrackControls/PlaybackBar";
 import PlayerControls from "../components/TrackControls/TrackControls";
 
 type LayoutBProps = {
-  onAddToPlaylist?: (trackId: string, trackName: string) => void;
+  onAddToPlaylist?: (track: UnifiedTrack) => void;
 };
 
 function LayoutB({ onAddToPlaylist }: LayoutBProps) {
@@ -44,7 +45,7 @@ function LayoutB({ onAddToPlaylist }: LayoutBProps) {
           type="button"
           onClick={() => {
             if (track && onAddToPlaylist) {
-              onAddToPlaylist(track.id, track.name);
+              onAddToPlaylist(track);
             }
           }}
           disabled={!track || !onAddToPlaylist}

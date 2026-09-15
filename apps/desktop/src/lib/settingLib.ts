@@ -78,7 +78,7 @@ export type LastPlayedTrack = {
 
 export type ProviderPlaybackCache = {
   spotify: LastPlayedTrack | null;
-  youtube: LastPlayedTrack | null;
+  youtube?: LastPlayedTrack | null;
 };
 
 /** `local` means MiniFy's own player, whose device id changes every session. */
@@ -111,7 +111,6 @@ export type Settings = {
   music_visualizer_intensity: number;
   last_played_track: LastPlayedTrack | null;
   provider_playback_cache: ProviderPlaybackCache | null;
-  youtube_volume: number | null;
   spotify_volume: number | null;
   spotify_device: SavedSpotifyDevice | null;
   /** Desktop only, and never both at once. */
@@ -167,11 +166,13 @@ export type CustomTheme = {
 export async function readSettings(): Promise<Settings> {
   try {
     const settings: Settings = await invoke("read_settings");
+    const activeMusicProvider =
+      settings.active_music_provider === "spotify" ? settings.active_music_provider : "spotify";
     return {
       ...settings,
       ai_providers: settings.ai_providers ?? [],
       active_ai_provider: settings.active_ai_provider ?? null,
-      active_music_provider: settings.active_music_provider ?? "spotify",
+      active_music_provider: activeMusicProvider,
       show_ai_queue_border: settings.show_ai_queue_border ?? true,
       discord_rpc_enabled: settings.discord_rpc_enabled ?? false,
       window_opacity: settings.window_opacity ?? 100,
@@ -180,7 +181,6 @@ export async function readSettings(): Promise<Settings> {
       music_visualizer_intensity: settings.music_visualizer_intensity ?? 100,
       last_played_track: settings.last_played_track ?? null,
       provider_playback_cache: settings.provider_playback_cache ?? null,
-      youtube_volume: settings.youtube_volume ?? null,
       spotify_volume: settings.spotify_volume ?? null,
       spotify_device: settings.spotify_device ?? null,
       music_video_sidebar: settings.music_video_sidebar ?? false,
@@ -204,7 +204,6 @@ export async function readSettings(): Promise<Settings> {
       music_visualizer_intensity: 100,
       last_played_track: null,
       provider_playback_cache: null,
-      youtube_volume: null,
       spotify_volume: null,
       spotify_device: null,
       music_video_sidebar: false,

@@ -107,7 +107,7 @@ export const musicTools = {
   playTrack: tool({
     description: "Play a specific track using its URI",
     parameters: z.object({
-      trackUri: z.string().describe("Track URI (spotify:track:ID or youtube:video:ID format)"),
+      trackUri: z.string().describe("Track URI (spotify:track:ID format)"),
     }),
     execute: async ({ trackUri }) => {
       try {

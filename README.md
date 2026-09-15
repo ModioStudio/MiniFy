@@ -26,6 +26,11 @@ hand.
 
 The repository also contains the public website and documentation site.
 
+## Policy
+
+This project is intended for personal, non-commercial use.
+Each user must register their own application with Spotify for Developers and configure their own Client ID. Each installation is operated by the respective user under their own Spotify Developer account.
+
 ## Features
 
 - Spotify OAuth PKCE login with automatic token refresh
@@ -71,19 +76,6 @@ pnpm docs:dev
 
 On first desktop launch, MiniFy asks for a Spotify Client ID and starts the
 browser-based OAuth flow.
-
-## Scripts
-
-| Command | Description |
-| --- | --- |
-| `pnpm desktop:dev` | Start the Tauri desktop app |
-| `pnpm desktop:build` | Build the desktop app |
-| `pnpm desktop:clear` | Clear desktop credentials and settings |
-| `pnpm www:dev` | Start the Next.js website |
-| `pnpm docs:dev` | Start the documentation site |
-| `pnpm lint` | Run workspace Biome checks |
-| `pnpm test` | Run the Oxlint quality gate |
-| `pnpm format` | Format with Biome |
 
 ## Security
 

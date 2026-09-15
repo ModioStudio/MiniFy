@@ -1,13 +1,6 @@
 import { encode } from "@toon-format/toon";
 import { generateText } from "ai";
 import {
-  getActiveProvider,
-  getActiveProviderType,
-  type MusicProviderType,
-  type UnifiedTrack,
-} from "../providers";
-import { searchYouTubeVideos, videoItemToTrackData } from "../providers/youtube/client";
-import {
   type FullArtist,
   type SimplifiedTrack,
   addToQueue as spotifyAddToQueue,
@@ -20,6 +13,7 @@ import {
 import { createAIModel, getActiveProviderWithKey } from "./aiClient";
 import { type QueuedTrack, useAIQueueStore } from "./aiQueueStore";
 import { readSettings } from "./settingLib";
+import { ownsLocalPlayback } from "./playback/sessionStore";
 
 const AI_QUEUE_SYSTEM_PROMPT = `You are a DJ creating a seamless playlist. Based on the user's recent tracks and taste, suggest exactly 5 NEW tracks that flow well together.
 
@@ -58,16 +52,6 @@ function formatTracksForToon(
     n: t.name,
     a: t.artists.map((a) => a.name).join(", "),
     u: `spotify:track:${t.id}`,
-  }));
-}
-
-function formatUnifiedTracksForToon(
-  tracks: UnifiedTrack[]
-): Array<{ n: string; a: string; u: string }> {
-  return tracks.map((t) => ({
-    n: t.name,
-    a: t.artists.map((a) => a.name).join(", "),
-    u: t.uri,
   }));
 }
 
@@ -114,52 +98,6 @@ async function searchAndGetSpotifyUri(
   }
 }
 
-async function searchAndGetYouTubeUri(
-  trackName: string,
-  artistName: string
-): Promise<string | null> {
-  try {
-    const query = `${trackName} ${artistName} official`;
-    const results = await searchYouTubeVideos(query, 5);
-
-    if (results.length === 0) {
-      return null;
-    }
-
-    const trackLower = trackName.toLowerCase();
-    const artistLower = artistName.toLowerCase();
-
-    for (const video of results) {
-      const data = videoItemToTrackData(video);
-      const titleLower = data.name.toLowerCase();
-      const channelLower = data.artists[0]?.toLowerCase() || "";
-
-      if (
-        titleLower.includes(trackLower) &&
-        (channelLower.includes(artistLower) || titleLower.includes(artistLower))
-      ) {
-        return data.uri;
-      }
-    }
-
-    const firstResult = videoItemToTrackData(results[0]);
-    return firstResult.uri;
-  } catch {
-    return null;
-  }
-}
-
-async function searchAndGetUri(
-  trackName: string,
-  artistName: string,
-  provider: MusicProviderType
-): Promise<string | null> {
-  if (provider === "spotify") {
-    return searchAndGetSpotifyUri(trackName, artistName);
-  }
-  return searchAndGetYouTubeUri(trackName, artistName);
-}
-
 interface AISuggestion {
   n: string;
   a: string;
@@ -188,8 +126,6 @@ export async function fetchNextBatch(): Promise<QueuedTrack[]> {
     throw new Error("No AI provider configured");
   }
 
-  const musicProviderType = await getActiveProviderType();
-
   store.setLoading(true);
 
   try {
@@ -197,30 +133,18 @@ export async function fetchNextBatch(): Promise<QueuedTrack[]> {
     let artistToon: string;
     let recentUris: Set<string>;
 
-    if (musicProviderType === "spotify") {
-      const recentTracks = await spotifyFetchRecentlyPlayed(30);
-      const topArtists = await spotifyFetchTopArtists("short_term", 10);
+    const recentTracks = await spotifyFetchRecentlyPlayed(30);
+    const topArtists = await spotifyFetchTopArtists("short_term", 10);
 
-      const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
-      const recentData = formatTracksForToon(shuffledRecent);
-      recentToon = encode(recentData);
+    const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
+    const recentData = formatTracksForToon(shuffledRecent);
+    recentToon = encode(recentData);
 
-      const shuffledArtists = shuffleArray(topArtists);
-      const artistData = formatArtistsForToon(shuffledArtists);
-      artistToon = encode(artistData);
+    const shuffledArtists = shuffleArray(topArtists);
+    const artistData = formatArtistsForToon(shuffledArtists);
+    artistToon = encode(artistData);
 
-      recentUris = new Set(recentTracks.map((t) => `spotify:track:${t.id}`));
-    } else {
-      const musicProvider = await getActiveProvider();
-      const recentTracks = await musicProvider.getRecentlyPlayed(30);
-
-      const shuffledRecent = shuffleArray(recentTracks).slice(0, 15);
-      const recentData = formatUnifiedTracksForToon(shuffledRecent);
-      recentToon = encode(recentData);
-
-      artistToon = encode([{ n: "Various Artists", g: "mixed" }]);
-      recentUris = new Set(recentTracks.map((t) => t.uri));
-    }
+    recentUris = new Set(recentTracks.map((t) => `spotify:track:${t.id}`));
 
     const model = createAIModel(aiProvider.provider, aiProvider.apiKey);
 
@@ -264,7 +188,7 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
     const shuffledSuggestions = shuffleArray(suggestions);
 
     for (const suggestion of shuffledSuggestions) {
-      const uri = await searchAndGetUri(suggestion.n, suggestion.a, musicProviderType);
+      const uri = await searchAndGetSpotifyUri(suggestion.n, suggestion.a);
       if (uri && !store.hasPlayed(uri) && !recentUris.has(uri)) {
         queuedTracks.push({
           name: suggestion.n,
@@ -286,36 +210,19 @@ Suggest 5 tracks that would flow well. Consider energy, mood, and genre continui
       ]).slice(0, 3);
 
       for (const query of fallbackQueries) {
-        if (musicProviderType === "spotify") {
-          const results = await spotifySearchTracks(query, 20);
-          const shuffledResults = shuffleArray(results);
+        const results = await spotifySearchTracks(query, 20);
+        const shuffledResults = shuffleArray(results);
 
-          for (const track of shuffledResults) {
-            const uri = `spotify:track:${track.id}`;
-            if (!store.hasPlayed(uri) && !recentUris.has(uri)) {
-              queuedTracks.push({
-                name: track.name,
-                artists: track.artists.map((a) => a.name).join(", "),
-                uri,
-              });
-            }
-            if (queuedTracks.length >= 5) break;
+        for (const track of shuffledResults) {
+          const uri = `spotify:track:${track.id}`;
+          if (!store.hasPlayed(uri) && !recentUris.has(uri)) {
+            queuedTracks.push({
+              name: track.name,
+              artists: track.artists.map((a) => a.name).join(", "),
+              uri,
+            });
           }
-        } else {
-          const results = await searchYouTubeVideos(query, 20);
-          const shuffledResults = shuffleArray(results);
-
-          for (const video of shuffledResults) {
-            const data = videoItemToTrackData(video);
-            if (!store.hasPlayed(data.uri) && !recentUris.has(data.uri)) {
-              queuedTracks.push({
-                name: data.name,
-                artists: data.artists.join(", "),
-                uri: data.uri,
-              });
-            }
-            if (queuedTracks.length >= 5) break;
-          }
+          if (queuedTracks.length >= 5) break;
         }
         if (queuedTracks.length > 0) break;
       }
@@ -335,6 +242,7 @@ let monitorInterval: ReturnType<typeof setInterval> | null = null;
 let lastTrackUri: string | null = null;
 
 export async function startAIQueue(mood?: string): Promise<void> {
+  if (ownsLocalPlayback()) throw new Error("Stop the local playlist before starting AI DJ.");
   const store = useAIQueueStore.getState();
 
   if (store.isActive) return;
@@ -350,15 +258,9 @@ export async function startAIQueue(mood?: string): Promise<void> {
     const batch = await fetchNextBatch();
     store.setQueue(batch);
 
-    const musicProviderType = await getActiveProviderType();
-
     if (batch.length > 0) {
-      if (musicProviderType === "spotify") {
-        await spotifyPlayTracks(batch.map((t) => t.uri));
-      } else {
-        const musicProvider = await getActiveProvider();
-        await musicProvider.playTrack(batch[0].uri);
-      }
+      if (ownsLocalPlayback()) return;
+      await spotifyPlayTracks(batch.map((t) => t.uri));
       lastTrackUri = batch[0].uri;
     }
 
@@ -401,46 +303,11 @@ function startMonitoring(): void {
     }
 
     try {
-      const musicProviderType = await getActiveProviderType();
       let currentUri: string | null = null;
-      let isPlaying = false;
 
-      if (musicProviderType === "spotify") {
-        const current = await spotifyFetchCurrentlyPlaying();
-        if (current?.item) {
-          currentUri = `spotify:track:${current.item.id}`;
-          isPlaying = current.is_playing ?? false;
-        }
-      } else {
-        const musicProvider = await getActiveProvider();
-        const playbackState = await musicProvider.getPlaybackState();
-        if (playbackState?.track) {
-          currentUri = playbackState.track.uri;
-          isPlaying = playbackState.isPlaying;
-        }
-
-        // YouTube auto-advance: when track ends (progress >= duration), play next from queue
-        if (lastTrackUri && store.queue.length > 0 && playbackState) {
-          const lastIndex = store.queue.findIndex((t) => t.uri === lastTrackUri);
-          if (lastIndex !== -1) {
-            const currentTrack = playbackState.track;
-            const progressMs = playbackState.progressMs ?? 0;
-            const durationMs = currentTrack?.durationMs ?? 0;
-            const endThreshold = 2000;
-
-            if (durationMs > 0 && progressMs >= durationMs - endThreshold && !isPlaying) {
-              const nextIndex = lastIndex + 1;
-              if (nextIndex < store.queue.length) {
-                const nextTrack = store.queue[nextIndex];
-                await musicProvider.playTrack(nextTrack.uri);
-                store.setCurrentIndex(nextIndex);
-                store.addPlayedUri(nextTrack.uri);
-                lastTrackUri = nextTrack.uri;
-                return;
-              }
-            }
-          }
-        }
+      const current = await spotifyFetchCurrentlyPlaying();
+      if (current?.item) {
+        currentUri = `spotify:track:${current.item.id}`;
       }
 
       if (!currentUri) return;
@@ -466,10 +333,8 @@ function startMonitoring(): void {
               const newBatch = await fetchNextBatch();
               store.addToQueue(newBatch);
 
-              if (musicProviderType === "spotify") {
-                for (const track of newBatch) {
-                  await spotifyAddToQueue(track.uri);
-                }
+              for (const track of newBatch) {
+                if (!ownsLocalPlayback()) await spotifyAddToQueue(track.uri);
               }
             } catch (err) {
               console.error("Failed to fetch next batch:", err);

@@ -110,7 +110,8 @@ export default function NowPlayingPanel({
   const trackId = track?.id ?? null;
   const trackName = track?.name ?? null;
   const leadArtist = track?.artists[0]?.name ?? null;
-  const albumId = track?.album.id ?? null;
+  // A YouTube track's "album" is the video itself, which Spotify does not know.
+  const albumId = track?.provider === "spotify" ? track.album.id : null;
   const albumName = track?.album.name ?? null;
   const durationMs = track?.durationMs ?? 0;
 

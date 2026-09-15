@@ -98,7 +98,7 @@ Rust/Tauri paths:
 - Tauri library: `apps/desktop/src-tauri/src/lib.rs`
 - Settings: `apps/desktop/src-tauri/src/settings.rs`
 - Spotify auth: `apps/desktop/src-tauri/src/spotify_auth.rs`
-- YouTube auth: `apps/desktop/src-tauri/src/youtube_auth.rs`
+- Music video YouTube session: `apps/desktop/src-tauri/src/music_video.rs`
 
 Use Tauri commands for frontend/backend interactions and keep credential access
 in the Rust/keyring layer.

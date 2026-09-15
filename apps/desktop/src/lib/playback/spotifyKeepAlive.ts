@@ -1,4 +1,5 @@
 import { getActiveProviderType } from "../../providers";
+import { ownsLocalPlayback } from "./sessionStore";
 import { getDevices, getPlayerState, transferPlayback } from "../../ui/spotifyClient";
 import { logDiagnostic } from "../diagnostics";
 import { getSpotifyWebPlaybackStatus } from "../spotifyWebPlayback";
@@ -90,6 +91,7 @@ export function stopKeepAlive(): void {
 }
 
 async function performKeepAlivePing(): Promise<void> {
+  if (ownsLocalPlayback()) return;
   if (!state.enabled) return;
   if ((await getActiveProviderType()) !== "spotify") return;
 

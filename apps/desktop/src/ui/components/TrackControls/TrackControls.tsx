@@ -1,7 +1,8 @@
 import { PauseCircle, PlayCircle, SkipBack, SkipForward } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import { getLastPlayedForProvider } from "../../../hooks/useCurrentlyPlaying";
-import { skipToNext } from "../../../lib/playback/spotifyAutoplay";
+import { playbackCommand } from "../../../lib/playback/session";
+import { ownsLocalPlayback } from "../../../lib/playback/sessionStore";
 import { getActiveProvider, getActiveProviderType } from "../../../providers";
 
 type TrackControlsProps = {
@@ -19,6 +20,7 @@ type TrackControlsProps = {
  * throws when the provider refuses.
  */
 export async function setPlayback(playing: boolean): Promise<void> {
+  if (ownsLocalPlayback()) return playbackCommand({ action: "playing", playing });
   const provider = await getActiveProvider();
   if (!playing) {
     await provider.pause();
@@ -45,13 +47,12 @@ export function TrackControls({
   compact = false,
 }: TrackControlsProps) {
   const handlePrev = useCallback(async () => {
-    const provider = await getActiveProvider();
-    provider.previousTrack();
+    await playbackCommand({ action: "previous" }).catch(console.error);
   }, []);
 
   // On the last song this continues into autoplay instead of stopping.
   const handleNext = useCallback(() => {
-    void skipToNext();
+    void playbackCommand({ action: "next" }).catch(console.error);
   }, []);
 
   const handleToggle = useCallback(async () => {

@@ -2,7 +2,6 @@ import { listen } from "@tauri-apps/api/event";
 import { readSettings, SETTINGS_CHANGED_EVENT, type Settings } from "../lib/settingLib";
 import { createSpotifyProvider } from "./spotify";
 import type { MusicProvider, MusicProviderType } from "./types";
-import { createYouTubeProvider } from "./youtube";
 
 type ProviderConstructor = () => MusicProvider;
 
@@ -36,7 +35,7 @@ function followSettings(): void {
   followingSettings = true;
   listen<Settings>(SETTINGS_CHANGED_EVENT, (event) => {
     if (event.payload?.active_music_provider) {
-      activeType = event.payload.active_music_provider;
+      activeType = "spotify";
     }
   }).catch(() => {
     followingSettings = false;
@@ -106,4 +105,3 @@ export async function isProviderAuthenticated(type: MusicProviderType): Promise<
 }
 
 registerProvider("spotify", createSpotifyProvider);
-registerProvider("youtube", createYouTubeProvider);

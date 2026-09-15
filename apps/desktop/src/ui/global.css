@@ -623,20 +623,11 @@ textarea {
   line-height: 1;
 }
 
-.desktop-brand-provider,
 .desktop-kicker,
 .desktop-track-card small,
 .desktop-row-title small,
 .desktop-playlist-grid small {
   color: var(--desktop-muted);
-}
-
-.desktop-brand-provider {
-  margin-top: 3px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .desktop-nav {
@@ -835,11 +826,18 @@ textarea {
 }
 
 .desktop-main {
+  /* Named so sticky headers inside can reach back out to the edges. */
+  --desktop-main-pad-top: 28px;
+  --desktop-main-pad-x: 32px;
   position: relative;
   z-index: 1;
   min-width: 0;
   overflow: auto;
-  padding: 28px 32px 24px;
+  padding: var(--desktop-main-pad-top) var(--desktop-main-pad-x) 24px;
+  /* The now playing panel's resize handle reaches 7px into this column, right
+     over the scrollbar. Scrollbars sit inside the border, so a transparent one
+     moves the scrollbar out from under the handle and both can be grabbed. */
+  border-right: 10px solid transparent;
 }
 
 /* A compact context header. The previous full-bleed poster with a 76px title
@@ -963,20 +961,56 @@ textarea {
 .desktop-back-button {
   display: flex;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 999px;
-  background: var(--desktop-surface);
+  background: var(--desktop-surface-strong);
   color: var(--desktop-text);
   cursor: pointer;
-  transition: background 150ms ease;
+  /* A slight overshoot on hover and a quick press on click, so it feels like
+     a physical button rather than a link. */
+  transition:
+    background 150ms ease,
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.desktop-back-button svg {
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .desktop-back-button:hover {
-  background: var(--desktop-surface-strong);
+  background: color-mix(in srgb, var(--desktop-text) 18%, transparent);
+  transform: scale(1.08);
+}
+
+.desktop-back-button:hover svg {
+  transform: translateX(-2px);
+}
+
+.desktop-back-button:active {
+  transform: scale(0.9);
+  transition-duration: 80ms;
+}
+
+.desktop-back-button:focus-visible {
+  outline: 2px solid var(--desktop-text);
+  outline-offset: 2px;
+}
+
+/* An open playlist's title and Back button stay under the window's top edge
+   while its songs scroll. Sticky offsets count from inside the scroller's
+   padding, so the bar reaches back up over it and out to both edges. */
+.desktop-section-heading.is-sticky {
+  position: sticky;
+  top: calc(-1 * var(--desktop-main-pad-top, 28px));
+  z-index: 5;
+  margin: -12px calc(-1 * var(--desktop-main-pad-x, 32px)) 4px;
+  padding: 12px var(--desktop-main-pad-x, 32px);
+  background: color-mix(in srgb, var(--desktop-bg) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
 }
 
 .desktop-track-grid,
@@ -1392,10 +1426,31 @@ textarea {
 
 .desktop-now-playing {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   min-width: 0;
+}
+
+.desktop-now-add {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--desktop-muted);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.desktop-now-add:hover {
+  color: var(--desktop-text);
+  transform: scale(1.06);
 }
 
 .desktop-now-art {
@@ -1904,6 +1959,8 @@ textarea {
   }
 
   .desktop-main {
+    --desktop-main-pad-top: 22px;
+    --desktop-main-pad-x: 20px;
     padding: 22px 20px;
   }
 

@@ -18,6 +18,7 @@ export interface UnifiedAlbum {
 }
 
 export interface UnifiedTrack {
+  playlistKey?: string;
   id: string;
   name: string;
   durationMs: number;
@@ -44,6 +45,7 @@ export interface UnifiedPlaylistOwner {
 }
 
 export interface UnifiedPlaylist {
+  writable?: boolean;
   id: string;
   name: string;
   description: string | null;
@@ -91,12 +93,12 @@ export interface MusicProvider {
   getPlaybackState(): Promise<PlaybackState | null>;
   getUserProfile(): Promise<UnifiedUserProfile>;
 
-  play(): void;
-  pause(): void;
-  nextTrack(): void;
-  previousTrack(): void;
-  seek(positionMs: number): void;
-  setVolume(volumePercent: number): void;
+  play(): Promise<void>;
+  pause(): Promise<void>;
+  nextTrack(): Promise<void>;
+  previousTrack(): Promise<void>;
+  seek(positionMs: number): Promise<void>;
+  setVolume(volumePercent: number): Promise<void>;
 
   searchTracks(query: string, limit: number): Promise<UnifiedTrack[]>;
   playTrack(uri: string, startPositionMs?: number): Promise<void>;
@@ -131,11 +133,9 @@ export function createUri(provider: MusicProviderType, id: string): string {
 }
 
 export function parseUri(uri: string): { provider: MusicProviderType; id: string } | null {
+  if (/^youtube:video:[\w-]{11}$/.test(uri)) return { provider: "youtube", id: uri.slice(14) };
   if (uri.startsWith("spotify:track:")) {
     return { provider: "spotify", id: uri.replace("spotify:track:", "") };
-  }
-  if (uri.startsWith("youtube:video:")) {
-    return { provider: "youtube", id: uri.replace("youtube:video:", "") };
   }
   return null;
 }

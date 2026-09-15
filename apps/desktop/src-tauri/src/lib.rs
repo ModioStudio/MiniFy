@@ -6,12 +6,13 @@ pub mod custom_themes;
 pub mod debug;
 pub mod discord_rpc;
 pub mod music_video;
+mod youtube_audio;
+mod local_library;
 pub mod resize;
 pub mod settings;
 pub mod spotify_auth;
 pub mod taskbar;
 pub mod titlebar;
-pub mod youtube_auth;
 
 mod clear_all {
     use super::*;
@@ -21,7 +22,6 @@ mod clear_all {
         let settings_cleared = settings::clear_settings(app.clone());
         let themes_cleared = custom_themes::clear_custom_themes(app);
         let spotify_result = spotify_auth::clear_credentials().await;
-        let youtube_result = youtube_auth::clear_youtube_credentials().await;
         let ai_keys_result = ai_keyring::clear_all_ai_keys().await;
 
         if !settings_cleared {
@@ -31,7 +31,6 @@ mod clear_all {
             return Err("Failed to clear custom themes".to_string());
         }
         spotify_result?;
-        youtube_result?;
         ai_keys_result?;
 
         Ok(())
@@ -63,6 +62,9 @@ async fn open_mini_player(app: tauri::AppHandle) -> Result<(), String> {
     .decorations(false)
     .transparent(true)
     .always_on_top(true)
+    // Tauri's file-drop handler swallows HTML5 drag and drop on Windows, which
+    // the playlist reordering relies on.
+    .disable_drag_drop_handler()
     .build()
     .map_err(|err| err.to_string())?;
 
@@ -96,6 +98,14 @@ pub fn run() {
             music_video::youtube_web_sign_in,
             music_video::youtube_web_sign_out,
             music_video::search_music_videos,
+            music_video::search_youtube,
+            youtube_audio::resolve_youtube_audio,
+            youtube_audio::prefetch_youtube_audio,
+            youtube_audio::release_youtube_audio,
+            local_library::read_local_playlist,
+            local_library::local_playlist_counts,
+            local_library::reconcile_local_playlist,
+            local_library::edit_local_playlist,
             settings::read_settings,
             settings::write_settings,
             settings::clear_settings,
@@ -134,16 +144,6 @@ pub fn run() {
             discord_rpc::disable_discord_rpc,
             discord_rpc::update_discord_presence,
             discord_rpc::is_discord_rpc_enabled,
-            youtube_auth::has_youtube_credentials,
-            youtube_auth::has_youtube_client_id,
-            youtube_auth::save_youtube_credentials,
-            youtube_auth::needs_youtube_setup,
-            youtube_auth::get_youtube_tokens,
-            youtube_auth::has_valid_youtube_tokens,
-            youtube_auth::start_youtube_oauth_flow,
-            youtube_auth::cancel_youtube_oauth_flow,
-            youtube_auth::refresh_youtube_access_token,
-            youtube_auth::clear_youtube_credentials
             ];
             // Counted for the watchdog, which logs when calls into Rust flood.
             move |invoke: tauri::ipc::Invoke| {
@@ -161,7 +161,6 @@ pub fn run() {
         .setup(|app| {
             debug::start_watchdog(app.handle().clone());
             spotify_auth::spawn_token_refresh_task(app.handle().clone());
-            youtube_auth::spawn_youtube_token_refresh_task(app.handle().clone());
 
             // The saved switch, not a default: presence used to start up and
             // show on Discord even with the setting turned off.

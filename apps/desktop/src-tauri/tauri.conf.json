@@ -3,11 +3,10 @@
   "productName": "MiniFy",
   "version": "0.1.0",
   "identifier": "com.modiostudio.minify",
-
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm audio:prepare && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "node src-tauri/scripts/inject-pubkey.js && pnpm build",
+    "beforeBuildCommand": "pnpm audio:prepare && node src-tauri/scripts/inject-pubkey.js && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -24,27 +23,40 @@
         "resizable": true,
         "maximized": true,
         "transparent": false,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "dragDropEnabled": false
       }
     ],
     "security": {
       "csp": null,
       "assetProtocol": {
         "enable": false,
-        "scope": ["https://*.spotify.com/*"]
+        "scope": [
+          "https://*.spotify.com/*"
+        ]
       }
     }
   },
   "bundle": {
+    "resources": [
+      "resources/audio/**/*"
+    ],
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true,
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+    "createUpdaterArtifacts": "v1Compatible",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGMzVDRDRGQ0UyRTdEMTgKUldRWWZTN09UODAxZnpvemRYYXc1TTJycERLR3F5cVZXNHBuZ0lTeGpXdXlhR3Ivbjh0ZXNETCsK",
-      "endpoints": ["https://github.com/ModioStudio/MiniFy/releases/latest/download/latest.json"],
+      "endpoints": [
+        "https://github.com/ModioStudio/MiniFy/releases/latest/download/latest.json"
+      ],
       "windows": {
         "installMode": "passive"
       }

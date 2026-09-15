@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getActiveProvider } from "../../../providers";
+import { playbackCommand } from "../../../lib/playback/session";
 
 type PlaybackBarProps = {
   durationMs: number;
@@ -24,8 +24,7 @@ function msToTime(ms: number): string {
 
 async function seekToPosition(ms: number): Promise<void> {
   try {
-    const provider = await getActiveProvider();
-    await provider.seek(ms);
+    await playbackCommand({ action: "seek", positionMs: ms });
   } catch (error) {
     console.error("Failed to seek to position:", ms, error);
   }

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./global.css";
+import "./library.css";
 
 import { LogicalPosition } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
@@ -16,11 +17,10 @@ import {
   writeSettings,
 } from "../lib/settingLib";
 import { applyCustomThemeFromJson, applyThemeByName } from "../loader/themeLoader";
-import { getActiveProvider, getActiveProviderType } from "../providers";
-import { setYouTubePlayerRef, updateCurrentYouTubeTrack } from "../providers/youtube";
+import { getActiveProvider } from "../providers";
+import type { UnifiedTrack } from "../providers/types";
 import AppUpdater from "./components/AppUpdater";
 import MusicVisualizer from "./components/MusicVisualizer";
-import { YouTubePlayer, type YouTubePlayerRef } from "./components/YouTubePlayer";
 import DesktopShell from "./DesktopShell";
 import LayoutA from "./layouts/LayoutA";
 import LayoutB from "./layouts/LayoutB";
@@ -39,12 +39,9 @@ import VolumeView from "./views/VolumeView";
 
 type AppView = "app" | "settings" | "search" | "aidj" | "playlist" | "addToPlaylist" | "volume";
 
-type AddToPlaylistTrack = {
-  id: string;
-  name: string;
-} | null;
+type AddToPlaylistTrack = UnifiedTrack | null;
 
-type BootInitialStep = "provider" | "spotify-setup" | "youtube-setup";
+type BootInitialStep = "provider" | "spotify-setup";
 
 function MiniPlayerApp() {
   const [firstBootDone, setFirstBootDone] = useState<boolean | null>(null);
@@ -59,8 +56,6 @@ function MiniPlayerApp() {
   const [musicVisualizerIntensity, setMusicVisualizerIntensity] = useState<number>(100);
   const [windowOpacity, setWindowOpacity] = useState<number>(100);
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState<AddToPlaylistTrack>(null);
-  const [_isYouTubeActive, setIsYouTubeActive] = useState<boolean>(false);
-  const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
 
   const aiQueueActive = useAIQueueStore((s) => s.isActive);
   const showBorder = aiQueueActive && showAIQueueBorder;
@@ -76,9 +71,6 @@ function MiniPlayerApp() {
       setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
       setMusicVisualizerIntensity(settings.music_visualizer_intensity ?? 100);
       setWindowOpacity(settings.window_opacity ?? 100);
-
-      const providerType = await getActiveProviderType();
-      setIsYouTubeActive(providerType === "youtube");
 
       // Check if the provider is actually authenticated
       if (settings.first_boot_done) {
@@ -298,10 +290,9 @@ function MiniPlayerApp() {
           initialStep={bootStep}
           skipAuthCheck={isReconnect}
           onComplete={async () => {
-            const providerType = await getActiveProviderType();
-            setIsYouTubeActive(providerType === "youtube");
             await writeSettings({
               first_boot_done: true,
+              active_music_provider: "spotify",
               layout,
               theme,
             });
@@ -314,8 +305,8 @@ function MiniPlayerApp() {
     );
   }
 
-  const handleOpenAddToPlaylist = (trackId: string, trackName: string) => {
-    setAddToPlaylistTrack({ id: trackId, name: trackName });
+  const handleOpenAddToPlaylist = (track: UnifiedTrack) => {
+    setAddToPlaylistTrack(track);
     setView("addToPlaylist");
   };
 
@@ -337,11 +328,9 @@ function MiniPlayerApp() {
           onBack={() => setView("app")}
           onUpdateLayout={setLayout}
           onUpdateTheme={setTheme}
-          onResetAuth={(provider?: "spotify" | "youtube") => {
+          onResetAuth={(provider?: "spotify") => {
             setIsReconnect(true);
-            if (provider === "youtube") {
-              setBootStep("youtube-setup");
-            } else if (provider === "spotify") {
+            if (provider === "spotify") {
               setBootStep("spotify-setup");
             } else {
               setBootStep("provider");
@@ -354,9 +343,6 @@ function MiniPlayerApp() {
           onUpdateMusicVisualizerColor={setMusicVisualizerColor}
           onUpdateMusicVisualizerIntensity={setMusicVisualizerIntensity}
           onUpdateWindowOpacity={setWindowOpacity}
-          onMusicProviderChange={(provider) => {
-            setIsYouTubeActive(provider === "youtube");
-          }}
         />
       );
     }
@@ -375,8 +361,7 @@ function MiniPlayerApp() {
     if (view === "addToPlaylist") {
       return (
         <AddToPlaylistView
-          trackId={addToPlaylistTrack?.id ?? null}
-          trackName={addToPlaylistTrack?.name ?? null}
+          track={addToPlaylistTrack}
           onBack={() => {
             setView("app");
             setAddToPlaylistTrack(null);
@@ -385,39 +370,6 @@ function MiniPlayerApp() {
       );
     }
     return renderLayout();
-  };
-
-  const handleYouTubeReady = async () => {
-    if (youtubePlayerRef.current) {
-      setYouTubePlayerRef(youtubePlayerRef.current);
-
-      // Apply saved volume
-      const settings = await readSettings();
-      const savedVolume = settings.youtube_volume ?? 50;
-      youtubePlayerRef.current.setVolume(savedVolume);
-    }
-  };
-
-  const handleYouTubeVideoChange = (data: {
-    videoId: string;
-    title: string;
-    author: string;
-    duration: number;
-  }) => {
-    updateCurrentYouTubeTrack(data);
-  };
-
-  const handleYouTubeVideoEnded = async () => {
-    const { usePlaybackQueueStore } = await import("../lib/playback/playbackQueueStore");
-    const { getActiveProvider } = await import("../providers");
-
-    const store = usePlaybackQueueStore.getState();
-    const nextTrack = store.advanceToNext();
-
-    if (nextTrack) {
-      const provider = await getActiveProvider();
-      await provider.playTrack(nextTrack.uri);
-    }
   };
 
   return (
@@ -438,13 +390,6 @@ function MiniPlayerApp() {
           }}
         />
       )}
-      {/* Always mount YouTube player so it's ready when needed */}
-      <YouTubePlayer
-        playerRef={youtubePlayerRef}
-        onReady={handleYouTubeReady}
-        onVideoChange={handleYouTubeVideoChange}
-        onVideoEnded={handleYouTubeVideoEnded}
-      />
     </div>
   );
 }
@@ -454,7 +399,6 @@ function DesktopApp() {
   const [isReconnect, setIsReconnect] = useState(false);
   const [bootStep, setBootStep] = useState<BootInitialStep>("provider");
   const [theme, setTheme] = useState("dark");
-  const youtubePlayerRef = useRef<YouTubePlayerRef | null>(null);
 
   useEffect(() => {
     document.body.classList.add("desktop-window");
@@ -504,10 +448,9 @@ function DesktopApp() {
   }, [theme]);
 
   const handleComplete = async () => {
-    const providerType = await getActiveProviderType();
     await writeSettings({
       first_boot_done: true,
-      active_music_provider: providerType,
+      active_music_provider: "spotify",
       theme,
     });
     setFirstBootDone(true);
@@ -515,46 +458,14 @@ function DesktopApp() {
     setBootStep("provider");
   };
 
-  const handleResetAuth = (provider?: "spotify" | "youtube") => {
+  const handleResetAuth = (provider?: "spotify") => {
     setIsReconnect(true);
-    if (provider === "youtube") {
-      setBootStep("youtube-setup");
-    } else if (provider === "spotify") {
+    if (provider === "spotify") {
       setBootStep("spotify-setup");
     } else {
       setBootStep("provider");
     }
     setFirstBootDone(false);
-  };
-
-  const handleYouTubeReady = async () => {
-    if (!youtubePlayerRef.current) return;
-    setYouTubePlayerRef(youtubePlayerRef.current);
-
-    const settings = await readSettings();
-    youtubePlayerRef.current.setVolume(settings.youtube_volume ?? 50);
-  };
-
-  const handleYouTubeVideoChange = (data: {
-    videoId: string;
-    title: string;
-    author: string;
-    duration: number;
-  }) => {
-    updateCurrentYouTubeTrack(data);
-  };
-
-  const handleYouTubeVideoEnded = async () => {
-    const { usePlaybackQueueStore } = await import("../lib/playback/playbackQueueStore");
-    const { getActiveProvider } = await import("../providers");
-
-    const store = usePlaybackQueueStore.getState();
-    const nextTrack = store.advanceToNext();
-
-    if (nextTrack) {
-      const provider = await getActiveProvider();
-      await provider.playTrack(nextTrack.uri);
-    }
   };
 
   if (firstBootDone === null) {
@@ -572,12 +483,6 @@ function DesktopApp() {
   return (
     <div className="h-full w-full theme-scope">
       <DesktopShell onResetAuth={handleResetAuth} onUpdateTheme={setTheme} />
-      <YouTubePlayer
-        playerRef={youtubePlayerRef}
-        onReady={handleYouTubeReady}
-        onVideoChange={handleYouTubeVideoChange}
-        onVideoEnded={handleYouTubeVideoEnded}
-      />
       <AppUpdater />
     </div>
   );

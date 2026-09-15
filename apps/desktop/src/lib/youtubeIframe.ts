@@ -2,18 +2,27 @@ const SCRIPT_ID = "youtube-iframe-api";
 
 let loading: Promise<void> | null = null;
 
+type YouTubeWindow = Window &
+  typeof globalThis & {
+    YT?: {
+      Player?: unknown;
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  };
+
 /**
- * Loads YouTube's IFrame API once per window. The YouTube Music player and the
- * music videos both wait on it, and the API announces itself through a single
- * global callback, so that callback is chained rather than overwritten.
+ * Loads YouTube's IFrame API once per window. Music videos wait on it, and the
+ * API announces itself through a single global callback, so that callback is
+ * chained rather than overwritten.
  */
 export function loadYouTubeIframeApi(): Promise<void> {
-  if (window.YT?.Player) return Promise.resolve();
+  const youtubeWindow = window as YouTubeWindow;
+  if (youtubeWindow.YT?.Player) return Promise.resolve();
   if (loading) return loading;
 
   loading = new Promise<void>((resolve, reject) => {
-    const previous = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
+    const previous = youtubeWindow.onYouTubeIframeAPIReady;
+    youtubeWindow.onYouTubeIframeAPIReady = () => {
       previous?.();
       resolve();
     };

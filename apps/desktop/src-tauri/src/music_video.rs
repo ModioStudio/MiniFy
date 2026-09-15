@@ -156,8 +156,10 @@ pub async fn youtube_web_sign_in(app: AppHandle) -> Result<(), String> {
             if let Some(window) = handle.get_webview_window(LOGIN_WINDOW) {
                 let _ = window.close();
             }
-            // The next search reads the new session instead of a cached one.
+            // The next search and audio resolve read the new session instead
+            // of a cached one.
             forget_cookies();
+            crate::youtube_audio::forget_session();
             let _ = handle.emit("youtube-web-sign-in", json!({ "signedIn": signed_in }));
             break;
         }
@@ -170,6 +172,7 @@ pub async fn youtube_web_sign_in(app: AppHandle) -> Result<(), String> {
 /// browser the user normally uses is not touched.
 #[tauri::command]
 pub async fn youtube_web_sign_out(app: AppHandle) -> Result<(), String> {
+    crate::youtube_audio::invalidate_session().await;
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
@@ -192,7 +195,29 @@ pub async fn youtube_web_sign_out(app: AppHandle) -> Result<(), String> {
     .map_err(|err| err.to_string())?;
 
     forget_cookies();
+    let _ = app.emit("youtube-web-sign-in", json!({ "signedIn": false }));
     result
+}
+
+pub(crate) async fn audio_session(app: &AppHandle) -> Result<String, String> {
+    let window = app.get_webview_window("main").ok_or("Main window unavailable")?;
+    let cookies = tokio::time::timeout(COOKIE_READ_TIMEOUT, tauri::async_runtime::spawn_blocking(move || {
+        window.cookies_for_url(tauri::Url::parse(ORIGIN).unwrap())
+    })).await.map_err(|_| "YouTube session timed out")?
+        .map_err(|_| "YouTube session unavailable")?.map_err(|_| "YouTube session unavailable")?;
+    if !cookies.iter().any(|c| ["SAPISID", "__Secure-3PAPISID"].contains(&c.name())) {
+        return Err("Sign in to YouTube in Connections first".into());
+    }
+    let mut text = String::from("# Netscape HTTP Cookie File\n");
+    for cookie in cookies {
+        let domain = cookie.domain().unwrap_or(".youtube.com");
+        if ![domain, cookie.path().unwrap_or("/"), cookie.name(), cookie.value()].iter().all(|s| !s.contains(['\n', '\r', '\t'])) { continue; }
+        text.push_str(&format!("{}\t{}\t{}\t{}\t{}\t{}\t{}\n", domain,
+            if domain.starts_with('.') { "TRUE" } else { "FALSE" }, cookie.path().unwrap_or("/"),
+            if cookie.secure().unwrap_or(false) { "TRUE" } else { "FALSE" },
+            cookie.expires_datetime().map(|t| t.unix_timestamp()).unwrap_or(0), cookie.name(), cookie.value()));
+    }
+    Ok(text)
 }
 
 #[derive(Serialize)]
@@ -239,11 +264,23 @@ async fn search(
     query: &str,
     jar: Option<&CookieJar>,
 ) -> Result<Vec<VideoCandidate>, String> {
-    let body = json!({
+    let data = search_data(client, query, jar, None).await?;
+    let mut found = Vec::new();
+    collect_videos(&data, &mut found);
+    Ok(found)
+}
+
+async fn search_data(client: &reqwest::Client, query: &str, jar: Option<&CookieJar>, continuation: Option<&str>) -> Result<Value, String> {
+    let mut body = json!({
         "context": { "client": { "clientName": "WEB", "clientVersion": CLIENT_VERSION, "hl": "en" } },
         "query": query,
         "params": VIDEOS_ONLY,
     });
+    if let Some(token) = continuation {
+        body.as_object_mut().unwrap().remove("query");
+        body.as_object_mut().unwrap().remove("params");
+        body["continuation"] = json!(token);
+    }
 
     let mut request = client
         .post(SEARCH_URL)
@@ -273,10 +310,41 @@ async fn search(
         return Err(format!("YouTube search answered {}", response.status()));
     }
 
-    let data: Value = response.json().await.map_err(|err| err.to_string())?;
-    let mut found = Vec::new();
-    collect_videos(&data, &mut found);
-    Ok(found)
+    response.json().await.map_err(|_| "YouTube returned an invalid response".into())
+}
+
+#[tauri::command]
+pub async fn search_youtube(app: AppHandle, query: String, continuation: Option<String>) -> Result<Value, String> {
+    if query.trim().is_empty() || query.len() > 500 || continuation.as_ref().is_some_and(|s| s.len() > 20000) { return Err("Invalid search".into()); }
+    let jar = session_cookies(&app).await;
+    if !is_signed_in(&jar) { return Err("Sign in to YouTube in Connections first".into()); }
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).timeout(SEARCH_TIMEOUT).connect_timeout(CONNECT_TIMEOUT).build().map_err(|e| e.to_string())?;
+    let data = search_data(&client, &query, Some(&jar), continuation.as_deref()).await?;
+    let mut tracks = Vec::new();
+    let mut next = None;
+    collect_search(&data, &mut tracks, &mut next);
+    Ok(json!({ "tracks": tracks, "continuation": next }))
+}
+
+fn collect_search(node: &Value, tracks: &mut Vec<Value>, next: &mut Option<String>) {
+    match node {
+        Value::Object(map) => {
+            if let Some(video) = map.get("videoRenderer") {
+                if let Some(candidate) = parse_video(video) {
+                    if candidate.duration_s.is_none() { return; }
+                    let thumbnail = video.pointer("/thumbnail/thumbnails").and_then(Value::as_array).and_then(|a| a.last()).and_then(|v| v["url"].as_str()).unwrap_or("");
+                    tracks.push(json!({ "id":candidate.video_id, "name":candidate.title, "provider":"youtube", "uri":format!("youtube:video:{}",candidate.video_id),
+                        "durationMs":candidate.duration_s.unwrap_or(0) as u64 * 1000, "artists":[{"id":"", "name":candidate.channel}],
+                        "album":{"id":candidate.video_id,"name":"YouTube","images":[{"url":thumbnail,"width":480,"height":270}]} }));
+                }
+                return;
+            }
+            if let Some(token) = node.pointer("/continuationItemRenderer/continuationEndpoint/continuationCommand/token").and_then(Value::as_str) { *next = Some(token.into()); }
+            for value in map.values() { collect_search(value, tracks, next); }
+        }
+        Value::Array(items) => for item in items { collect_search(item, tracks, next); },
+        _ => {}
+    }
 }
 
 /// How youtube.com proves a request comes from the signed-in session.

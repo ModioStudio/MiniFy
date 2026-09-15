@@ -1,5 +1,4 @@
 import {
-  AppleLogo,
   ArrowClockwise,
   ArrowLeft,
   Brain,
@@ -40,7 +39,6 @@ import {
   exportCustomTheme,
   hasAIApiKey,
   loadCustomThemes,
-  type MusicProviderType,
   readSettings,
   SETTINGS_CHANGED_EVENT,
   saveAIApiKey,
@@ -49,9 +47,6 @@ import {
 } from "../../lib/settingLib";
 import { useUpdaterStore } from "../../lib/updaterStore";
 import { applyCustomThemeFromJson, validateThemeJsonFormat } from "../../loader/themeLoader";
-import { clearProviderCache } from "../../providers";
-import { clearYouTubeState } from "../../providers/youtube";
-import { clearSpotifyTokenCache } from "../spotifyClient";
 
 const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: string }[] = [
   { id: "openai", name: "OpenAI", model: "GPT-4o Mini", color: "#10A37F" },
@@ -61,16 +56,11 @@ const AI_PROVIDERS: { id: AIProviderType; name: string; model: string; color: st
 ];
 
 const MUSIC_PROVIDERS: {
-  id: MusicProviderType | "apple";
+  id: "spotify";
   name: string;
   color: string;
   iconColor: string;
-  available: boolean;
-}[] = [
-  { id: "spotify", name: "Spotify", color: "#1DB954", iconColor: "#000", available: true },
-  { id: "youtube", name: "YouTube Music", color: "#FF0000", iconColor: "#fff", available: true },
-  { id: "apple", name: "Apple Music", color: "#FC3C44", iconColor: "#fff", available: false },
-];
+}[] = [{ id: "spotify", name: "Spotify", color: "#1DB954", iconColor: "#000" }];
 
 async function validateAIApiKey(provider: AIProviderType, apiKey: string): Promise<boolean> {
   try {
@@ -147,13 +137,12 @@ type SettingsProps = {
   onBack: () => void;
   onUpdateLayout?: (layout: string) => void;
   onUpdateTheme?: (theme: string) => void;
-  onResetAuth?: (provider?: "spotify" | "youtube") => void;
+  onResetAuth?: (provider?: "spotify") => void;
   onUpdateAIQueueBorder?: (show: boolean) => void;
   onUpdateMusicVisualizer?: (show: boolean) => void;
   onUpdateMusicVisualizerColor?: (color: string) => void;
   onUpdateMusicVisualizerIntensity?: (intensity: number) => void;
   onUpdateWindowOpacity?: (opacity: number) => void;
-  onMusicProviderChange?: (provider: MusicProviderType) => void;
   /**
    * Which window is rendering this. The mini player is a 400px floating panel,
    * the desktop shell is a full window with its own navigation — they need
@@ -257,7 +246,6 @@ export default function Settings({
   onUpdateMusicVisualizerColor,
   onUpdateMusicVisualizerIntensity,
   onUpdateWindowOpacity,
-  onMusicProviderChange,
   surface = "mini",
 }: SettingsProps) {
   const isDesktop = surface === "desktop";
@@ -282,12 +270,9 @@ export default function Settings({
 
   const [spotifyConnected, setSpotifyConnected] = useState<boolean>(false);
   const [spotifyLoading, setSpotifyLoading] = useState<boolean>(false);
-  const [youtubeConnected, setYoutubeConnected] = useState<boolean>(false);
-  const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
 
   const [aiProviders, setAiProviders] = useState<AIProviderConfig[]>([]);
   const [activeAIProvider, setActiveAIProvider] = useState<AIProviderType | null>(null);
-  const [activeMusicProvider, setActiveMusicProvider] = useState<MusicProviderType>("spotify");
   const [aiKeyInputs, setAiKeyInputs] = useState<Record<AIProviderType, string>>({
     openai: "",
     anthropic: "",
@@ -327,33 +312,6 @@ export default function Settings({
     return hasTokens;
   }, []);
 
-  const checkYouTubeConnection = useCallback(async () => {
-    const hasTokens = await invoke<boolean>("has_valid_youtube_tokens");
-    setYoutubeConnected(hasTokens);
-    return hasTokens;
-  }, []);
-
-  const autoActivateSingleProvider = useCallback(async () => {
-    const spotifyOk = await invoke<boolean>("has_valid_tokens");
-    const youtubeOk = await invoke<boolean>("has_valid_youtube_tokens");
-
-    if (spotifyOk && !youtubeOk && activeMusicProvider !== "spotify") {
-      clearYouTubeState();
-      clearSpotifyTokenCache();
-      clearProviderCache();
-      setActiveMusicProvider("spotify");
-      await writeSettings({ active_music_provider: "spotify" });
-      onMusicProviderChange?.("spotify");
-    } else if (!spotifyOk && youtubeOk && activeMusicProvider !== "youtube") {
-      clearYouTubeState();
-      clearSpotifyTokenCache();
-      clearProviderCache();
-      setActiveMusicProvider("youtube");
-      await writeSettings({ active_music_provider: "youtube" });
-      onMusicProviderChange?.("youtube");
-    }
-  }, [activeMusicProvider, onMusicProviderChange]);
-
   useEffect(() => {
     getVersion()
       .then(setAppVersion)
@@ -386,9 +344,6 @@ export default function Settings({
       if (settings.active_ai_provider) {
         setActiveAIProvider(settings.active_ai_provider);
       }
-      if (settings.active_music_provider) {
-        setActiveMusicProvider(settings.active_music_provider);
-      }
       setShowAIQueueBorder(settings.show_ai_queue_border ?? true);
       setShowMusicVisualizer(settings.show_music_visualizer ?? false);
       setMusicVisualizerColor(settings.music_visualizer_color ?? "theme");
@@ -399,16 +354,8 @@ export default function Settings({
       setMusicVideoBackground(settings.music_video_background);
       await refreshCustomThemes();
       await checkSpotifyConnection();
-      await checkYouTubeConnection();
-      await autoActivateSingleProvider();
     })();
-  }, [
-    setLayout,
-    refreshCustomThemes,
-    checkSpotifyConnection,
-    checkYouTubeConnection,
-    autoActivateSingleProvider,
-  ]);
+  }, [setLayout, refreshCustomThemes, checkSpotifyConnection]);
 
   useEffect(() => {
     const setupOAuthListener = async () => {
@@ -419,19 +366,9 @@ export default function Settings({
       const unlistenFailed = await listen("oauth-failed", () => {
         setSpotifyLoading(false);
       });
-      const unlistenYTSuccess = await listen("youtube-oauth-success", async () => {
-        setYoutubeLoading(false);
-        await checkYouTubeConnection();
-      });
-      const unlistenYTFailed = await listen("youtube-oauth-failed", () => {
-        setYoutubeLoading(false);
-      });
-
       return () => {
         unlistenSuccess();
         unlistenFailed();
-        unlistenYTSuccess();
-        unlistenYTFailed();
       };
     };
 
@@ -439,7 +376,7 @@ export default function Settings({
     return () => {
       cleanup.then((c) => c());
     };
-  }, [checkSpotifyConnection, checkYouTubeConnection]);
+  }, [checkSpotifyConnection]);
 
   // The mini player and the desktop window each render these settings. A
   // switch flipped in one has to show in the other, not only after a restart.
@@ -459,12 +396,9 @@ export default function Settings({
     };
   }, []);
 
-  // Desktop only: the YouTube sign-in behind the music videos. It is a
-  // youtube.com session inside MiniFy, separate from the YouTube Music
-  // connection above.
+  // The youtube.com session inside MiniFy. It backs YouTube search and audio
+  // in both windows, and the desktop music videos.
   useEffect(() => {
-    if (!isDesktop) return;
-
     invoke<{ signedIn: boolean }>("youtube_web_status")
       .then((status) => setYoutubeWebSignedIn(status.signedIn))
       .catch(() => {});
@@ -476,7 +410,7 @@ export default function Settings({
     return () => {
       unlisten.then((off) => off());
     };
-  }, [isDesktop]);
+  }, []);
 
   const handleSpotifyLogout = async () => {
     setSpotifyLoading(true);
@@ -488,17 +422,6 @@ export default function Settings({
 
   const handleSpotifyConnect = async () => {
     onResetAuth?.("spotify");
-  };
-
-  const handleYouTubeConnect = async () => {
-    onResetAuth?.("youtube");
-  };
-
-  const handleYouTubeLogout = async () => {
-    setYoutubeLoading(true);
-    await invoke("clear_youtube_credentials");
-    setYoutubeConnected(false);
-    setYoutubeLoading(false);
   };
 
   const handleClearEverything = async () => {
@@ -569,15 +492,6 @@ export default function Settings({
   const handleSetActiveAIProvider = async (provider: AIProviderType) => {
     setActiveAIProvider(provider);
     await writeSettings({ active_ai_provider: provider });
-  };
-
-  const handleSetActiveMusicProvider = async (provider: MusicProviderType) => {
-    clearYouTubeState();
-    clearSpotifyTokenCache();
-    clearProviderCache();
-    setActiveMusicProvider(provider);
-    await writeSettings({ active_music_provider: provider });
-    onMusicProviderChange?.(provider);
   };
 
   const handleToggleAIQueueBorder = async () => {
@@ -820,27 +734,16 @@ export default function Settings({
                 Connect your music streaming accounts to control playback
               </p>
 
-              {MUSIC_PROVIDERS.map(({ id, name, color, iconColor, available }) => {
-                const isConnected =
-                  (id === "spotify" && spotifyConnected) || (id === "youtube" && youtubeConnected);
-                const isActive = activeMusicProvider === id;
-                const isLoading =
-                  (id === "spotify" && spotifyLoading) || (id === "youtube" && youtubeLoading);
-                const IconComponent =
-                  id === "spotify" ? SpotifyLogo : id === "apple" ? AppleLogo : YoutubeLogo;
+              {MUSIC_PROVIDERS.map(({ id, name, color, iconColor }) => {
+                const isConnected = spotifyConnected;
 
                 return (
                   <div
                     key={id}
-                    className={`settings-connection-row flex items-center justify-between p-4 rounded-xl border ${!available ? "opacity-50" : ""}`}
+                    className="settings-connection-row flex items-center justify-between p-4 rounded-xl border"
                     style={{
                       background: "var(--settings-card-bg)",
-                      borderColor:
-                        isConnected && isActive
-                          ? `${color}50`
-                          : isConnected
-                            ? `${color}30`
-                            : "rgba(255, 255, 255, 0.1)",
+                      borderColor: isConnected ? `${color}50` : "rgba(255, 255, 255, 0.1)",
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -848,7 +751,7 @@ export default function Settings({
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
                         style={{ background: color }}
                       >
-                        <IconComponent size={24} weight="fill" color={iconColor} />
+                        <SpotifyLogo size={24} weight="fill" color={iconColor} />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-medium">{name}</span>
@@ -858,15 +761,13 @@ export default function Settings({
                             color: isConnected ? color : "var(--settings-text-muted)",
                           }}
                         >
-                          {!available ? (
-                            "Coming soon"
-                          ) : isConnected ? (
+                          {isConnected ? (
                             <>
                               <span
                                 className="w-2 h-2 rounded-full"
                                 style={{ background: color }}
                               />
-                              {isActive ? "Active" : "Connected"}
+                              Active
                             </>
                           ) : (
                             "Not connected"
@@ -875,76 +776,92 @@ export default function Settings({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {isConnected && !isActive && (
-                        <button
-                          type="button"
-                          onClick={() => handleSetActiveMusicProvider(id)}
-                          className="text-xs px-2 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
-                        >
-                          Set Active
-                        </button>
-                      )}
-
-                      {id === "spotify" && spotifyConnected ? (
-                        <button
-                          type="button"
-                          onClick={handleSpotifyLogout}
-                          disabled={spotifyLoading}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <SignOut size={16} />
-                          <span className="text-sm">Disconnect</span>
-                        </button>
-                      ) : id === "spotify" && available ? (
-                        <button
-                          type="button"
-                          onClick={handleSpotifyConnect}
-                          disabled={spotifyLoading}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-black font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: color }}
-                        >
-                          {spotifyLoading ? (
-                            <span className="text-sm">Connecting...</span>
-                          ) : (
-                            <>
-                              <SpotifyLogo size={16} weight="fill" />
-                              <span className="text-sm">Connect</span>
-                            </>
-                          )}
-                        </button>
-                      ) : id === "youtube" && youtubeConnected ? (
-                        <button
-                          type="button"
-                          onClick={handleYouTubeLogout}
-                          disabled={youtubeLoading}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <SignOut size={16} />
-                          <span className="text-sm">Disconnect</span>
-                        </button>
-                      ) : id === "youtube" && available ? (
-                        <button
-                          type="button"
-                          onClick={handleYouTubeConnect}
-                          disabled={isLoading}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: color }}
-                        >
-                          {isLoading ? (
-                            <span className="text-sm">Connecting...</span>
-                          ) : (
-                            <>
-                              <YoutubeLogo size={16} weight="fill" />
-                              <span className="text-sm">Connect</span>
-                            </>
-                          )}
-                        </button>
-                      ) : null}
-                    </div>
+                    {spotifyConnected ? (
+                      <button
+                        type="button"
+                        onClick={handleSpotifyLogout}
+                        disabled={spotifyLoading}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <SignOut size={16} />
+                        <span className="text-sm">Disconnect</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSpotifyConnect}
+                        disabled={spotifyLoading}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-black font-medium hover:opacity-90 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ background: color }}
+                      >
+                        {spotifyLoading ? (
+                          <span className="text-sm">Connecting...</span>
+                        ) : (
+                          <>
+                            <SpotifyLogo size={16} weight="fill" />
+                            <span className="text-sm">Connect</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}
+
+              <div
+                className="settings-connection-row flex items-center justify-between gap-4 p-4 rounded-xl border"
+                style={{
+                  background: "var(--settings-card-bg)",
+                  borderColor: youtubeWebSignedIn ? "#FF000050" : "rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#FF0000" }}
+                  >
+                    <YoutubeLogo size={24} weight="fill" color="#fff" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium">YouTube</span>
+                    <span className="text-xs" style={{ color: "var(--settings-text-muted)" }}>
+                      {youtubeWebSignedIn
+                        ? "Search YouTube and play its audio. Also used for music videos."
+                        : "Sign in to search YouTube and play its audio next to Spotify."}
+                    </span>
+                  </div>
+                </div>
+                {youtubeWebSignedIn ? (
+                  <button
+                    type="button"
+                    onClick={handleYouTubeWebSignOut}
+                    disabled={youtubeWebBusy}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-200 cursor-pointer flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {youtubeWebBusy ? (
+                      <CircleNotch size={16} weight="bold" className="animate-spin" />
+                    ) : (
+                      <SignOut size={16} />
+                    )}
+                    <span className="text-sm">Sign out</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleYouTubeWebSignIn}
+                    disabled={youtubeWebBusy}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 cursor-pointer flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: "#FF0000" }}
+                  >
+                    {youtubeWebBusy ? (
+                      <CircleNotch size={16} weight="bold" className="animate-spin" />
+                    ) : (
+                      <YoutubeLogo size={16} weight="fill" />
+                    )}
+                    <span className="text-sm">Sign in</span>
+                  </button>
+                )}
+              </div>
 
               <div className="border-t border-white/10 my-2" />
 
@@ -1333,43 +1250,6 @@ export default function Settings({
                       label="Music video behind the app"
                       onClick={() => handleToggleMusicVideo("background")}
                     />
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <YoutubeLogo size={18} weight="fill" className="flex-shrink-0" />
-                      <div className="min-w-0">
-                        <div className="text-sm">
-                          {youtubeWebSignedIn ? "Signed in to YouTube" : "YouTube account"}
-                        </div>
-                        <p className="text-xs text-[--settings-text-muted] mt-0.5">
-                          {youtubeWebSignedIn
-                            ? "Videos play as your account; with YouTube Premium, without ads."
-                            : "Optional. Signed in, videos play as your account and YouTube Premium removes the ads. Without it, ads stay hidden behind the cover."}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={
-                        youtubeWebSignedIn ? handleYouTubeWebSignOut : handleYouTubeWebSignIn
-                      }
-                      disabled={youtubeWebBusy}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 cursor-pointer transition-opacity disabled:opacity-60 disabled:cursor-default"
-                      style={{
-                        background: "var(--settings-item-hover)",
-                        color: "var(--settings-text)",
-                      }}
-                    >
-                      {youtubeWebBusy ? (
-                        <CircleNotch size={14} weight="bold" className="animate-spin" />
-                      ) : youtubeWebSignedIn ? (
-                        <SignOut size={14} weight="bold" />
-                      ) : (
-                        <YoutubeLogo size={14} weight="fill" />
-                      )}
-                      {youtubeWebSignedIn ? "Sign out" : "Sign in"}
-                    </button>
                   </div>
                 </div>
               )}

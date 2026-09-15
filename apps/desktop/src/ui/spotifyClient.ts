@@ -17,6 +17,8 @@ export interface SimplifiedAlbum {
 }
 
 export interface SimplifiedTrack {
+  uri?: string;
+  playlistKey?: string;
   id: string;
   name: string;
   duration_ms: number;
@@ -149,7 +151,11 @@ async function request<T>(url: string, init?: FetchOptions): Promise<T> {
 
   if (!init?.method || init.method === "GET") {
     pendingRequests.set(cacheKey, promise);
-    promise.finally(() => pendingRequests.delete(cacheKey));
+    // Not `finally`: its derived promise rejects with nobody listening, so every
+    // failed GET was logged as an unhandled rejection even when the caller
+    // handled the error.
+    const forget = () => pendingRequests.delete(cacheKey);
+    promise.then(forget, forget);
   }
 
   return promise;
@@ -527,6 +533,7 @@ export async function playTracks(trackUris: string[]): Promise<void> {
 }
 
 export interface SimplifiedPlaylist {
+  collaborative?: boolean;
   id: string;
   name: string;
   description: string | null;
@@ -587,6 +594,16 @@ interface PlaylistTracksResponse {
   offset: number;
 }
 
+/**
+ * A playlist's version. Spotify changes it with every edit, so an unchanged
+ * one means a stored copy of the songs is still current.
+ */
+export async function fetchPlaylistSnapshot(playlistId: string): Promise<string> {
+  const url = `https://api.spotify.com/v1/playlists/${playlistId}?fields=snapshot_id`;
+  const data = await request<{ snapshot_id: string }>(url);
+  return data.snapshot_id;
+}
+
 export async function fetchPlaylistTracks(
   playlistId: string,
   limit: number,
@@ -596,8 +613,18 @@ export async function fetchPlaylistTracks(
   const url = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=${limit}&offset=${offset}`;
   const data = await request<PlaylistTracksResponse>(url);
   const tracks = data.items
-    .map((entry) => entry.item ?? entry.track ?? null)
-    .filter((track): track is PlaylistEntryItem => track !== null && track.type !== "episode");
+    .map((entry) => {
+      const track = entry.item ?? entry.track ?? null;
+      return track
+        ? {
+            ...track,
+            playlistKey: `${track.uri || `spotify:track:${track.id}`}|${entry.added_at ?? ""}`,
+          }
+        : null;
+    })
+    .filter(
+      (track): track is NonNullable<typeof track> => track !== null && track.type !== "episode"
+    );
   return { tracks, total: data.total };
 }
 

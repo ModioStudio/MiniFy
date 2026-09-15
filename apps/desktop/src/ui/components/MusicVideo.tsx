@@ -280,7 +280,8 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     loadYouTubeIframeApi()
       .then(() => {
         if (cancelled) return;
-        const Player = window.YT.Player as unknown as VideoPlayerConstructor;
+        const Player = (window as Window & typeof globalThis & { YT: { Player: unknown } }).YT
+          .Player as unknown as VideoPlayerConstructor;
         playerRef.current = new Player(mount, {
           width: "100%",
           height: "100%",

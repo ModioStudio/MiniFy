@@ -41,7 +41,8 @@ export function TrackInfoLayout({ track, variant, size, maxLength }: Props) {
       return <p className="text-sm text-white/60 line-clamp-2">{track.album.name}</p>;
 
     case "actions":
-      if (!track) return null;
+      // Liked Songs are Spotify's; a YouTube track has no place there.
+      if (!track || track.provider !== "spotify") return null;
       return <TrackActions onSave={() => saveTrackToLibrary(track.id)} />;
   }
 }

@@ -1,5 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { create } from "zustand";
+import { ownsLocalPlayback } from "./sessionStore";
 import { getActiveProvider, getActiveProviderType } from "../../providers";
 import { convertToUnifiedTrack } from "../../providers/spotify";
 import type { UnifiedTrack } from "../../providers/types";
@@ -230,6 +231,7 @@ function handle(sample: Sample | null): void {
 }
 
 async function tick(): Promise<void> {
+  if (ownsLocalPlayback()) { last = null; prepared = null; retry = null; return; }
   if ((await getActiveProviderType()) !== "spotify") {
     last = null;
     return;

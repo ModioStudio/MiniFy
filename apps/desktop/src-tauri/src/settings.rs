@@ -75,9 +75,6 @@ pub struct Settings {
     pub last_played_track: Option<LastPlayedTrack>,
     // Every field the frontend persists has to be listed here: serde drops
     // unknown keys, so a missing one is silently lost on the next write.
-    #[serde(default)]
-    pub youtube_volume: Option<u8>,
-    #[serde(default)]
     pub spotify_volume: Option<u8>,
     #[serde(default)]
     pub spotify_device: Option<SavedSpotifyDevice>,
@@ -158,7 +155,6 @@ impl Default for Settings {
             music_visualizer_color: "theme".into(),
             music_visualizer_intensity: 100,
             last_played_track: None,
-            youtube_volume: None,
             spotify_volume: None,
             spotify_device: None,
             music_video_sidebar: false,
