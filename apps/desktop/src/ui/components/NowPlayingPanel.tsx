@@ -188,7 +188,7 @@ export default function NowPlayingPanel({
       ) : (
         <div className="desktop-now-panel-body">
           {/* With the video on, the slot turns 16:9. The cover stays underneath
-              for the moments the video is not showing: loading, an ad, paused. */}
+              for the moments the video is not showing: loading, an ad, ended. */}
           <div className={`desktop-now-panel-art ${showVideo ? "has-video" : ""}`}>
             {showVideo && artwork && (
               <img src={artwork} alt="" className="desktop-now-panel-art-backdrop" />

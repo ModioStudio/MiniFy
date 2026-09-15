@@ -398,9 +398,8 @@ textarea {
 
 /* Music video ------------------------------------------------------------ */
 
-/* Invisible until MusicVideo marks the video itself as playing. No pointer
-   events: YouTube never sees a hover, so its title bar, controls and logo
-   stay away. */
+/* Invisible until MusicVideo reveals playback; song pauses retain that frame.
+   No pointer events, so YouTube never sees a hover. */
 .music-video {
   position: absolute;
   inset: 0;
@@ -409,8 +408,7 @@ textarea {
   pointer-events: none;
 }
 
-/* Fades in, but hides at once: a fade-out would leave YouTube's own overlays
-   on screen for its length when a song changes or pauses. */
+/* Fades in, but hides at once so track changes and buffering do not linger. */
 .music-video.is-visible {
   opacity: 1;
   transition: opacity 450ms ease;

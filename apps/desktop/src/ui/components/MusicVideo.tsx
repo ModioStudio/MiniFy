@@ -52,6 +52,7 @@ type VideoPlayerConstructor = new (
 
 const ENDED = 0;
 const PLAYING = 1;
+const PAUSED = 2;
 const BUFFERING = 3;
 const SYNC_MS = 500;
 /** Further apart than this, the video is moved to where the song is. */
@@ -59,9 +60,8 @@ const DRIFT_S = 2.5;
 /** Every move is a fresh buffer; never more often than this. */
 const SEEK_RETRY_MS = 4000;
 /**
- * Whenever playback starts or resumes, YouTube draws its title bar and a
- * play animation for a few seconds, even with controls off. The video only
- * shows once they are gone.
+ * Hide YouTube's title bar and play animation on the first start. Resuming
+ * an already visible video keeps its frame, even if YouTube adds overlays.
  */
 const REVEAL_AFTER_START_MS = 3500;
 /** A stall only adds a spinner, which is gone as soon as frames move again. */
@@ -110,9 +110,8 @@ const isOff = () => offForSession;
 
 /**
  * The song's music video, muted, following Spotify's position, play and
- * pause. It is only visible while the video itself plays cleanly — never the
- * loading spinner, YouTube's title bar, captions, an ad or the end screen —
- * and the pointer never reaches it, so none of YouTube's controls appear.
+ * pause. Once visible, its frame stays on screen during song pauses. Loading,
+ * ads and end screens stay hidden, and the pointer never reaches the player.
  */
 export default function MusicVideo(props: MusicVideoProps) {
   const off = useSyncExternalStore(subscribeOff, isOff);
@@ -147,6 +146,7 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
   live.current = { candidate, track };
 
   const shown = useRef(false);
+  const hasShown = useRef(false);
   const lastPlayRequest = useRef(0);
   const lastSeek = useRef(0);
   const churn = useRef<number[]>([]);
@@ -163,6 +163,12 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
   const hide = () => {
     playingSince.current = null;
     setShown(false);
+  };
+
+  const resetVideo = () => {
+    hasShown.current = false;
+    revealDelay.current = REVEAL_AFTER_START_MS;
+    hide();
   };
 
   const songSeconds = () => {
@@ -192,10 +198,10 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     const duration = player.getDuration();
     const target = songSeconds();
 
-    // Song paused, or MiniFy out of sight: nothing to show, nothing to decode.
-    if (!clock.current.isPlaying || document.hidden) {
+    // An unseen window can stop decoding without discarding the loaded video.
+    if (document.hidden) {
       hide();
-      if (state === PLAYING) player.pauseVideo();
+      if (state === PLAYING || state === BUFFERING) player.pauseVideo();
       revealDelay.current = REVEAL_AFTER_START_MS;
       return;
     }
@@ -203,7 +209,18 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     // The song outlasts the video: hold on the cover, not the end screen.
     if (duration > 0 && target >= duration - END_GUARD_S) {
       hide();
-      if (state === PLAYING) player.pauseVideo();
+      if (state === PLAYING || state === BUFFERING) player.pauseVideo();
+      return;
+    }
+
+    const isAd =
+      current.durationS !== null && Math.abs(duration - current.durationS) > AD_TOLERANCE_S;
+
+    // Keep an existing frame while paused; never reveal a hidden loading or ad frame.
+    if (!clock.current.isPlaying) {
+      playingSince.current = null;
+      if (state === BUFFERING || state === ENDED || isAd) hide();
+      if (state === PLAYING || state === BUFFERING) player.pauseVideo();
       return;
     }
 
@@ -213,8 +230,8 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     }
 
     if (state !== PLAYING) {
-      hide();
-      revealDelay.current = REVEAL_AFTER_START_MS;
+      if (state !== PAUSED || isAd) hide();
+      revealDelay.current = hasShown.current ? REVEAL_AFTER_STALL_MS : REVEAL_AFTER_START_MS;
       if (performance.now() - lastPlayRequest.current < PLAY_RETRY_MS) return;
       lastPlayRequest.current = performance.now();
       if (state === ENDED) player.seekTo(target, true);
@@ -222,8 +239,6 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
       return;
     }
 
-    const isAd =
-      current.durationS !== null && Math.abs(duration - current.durationS) > AD_TOLERANCE_S;
     if (isAd) {
       hide();
       return;
@@ -242,6 +257,7 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
 
     playingSince.current ??= performance.now();
     if (!shown.current && performance.now() - playingSince.current >= revealDelay.current) {
+      hasShown.current = true;
       setShown(true);
     }
   };
@@ -258,13 +274,13 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
       "video",
       `player changed state over ${CHURN_LIMIT} times in ${CHURN_WINDOW_MS / 1000}s on ${live.current.candidate?.videoId}; skipping that video`
     );
-    hide();
+    resetVideo();
     setChoice((index) => index + 1);
     return true;
   };
 
-  const handlers = useRef({ sync, hide, songSeconds, silenceCaptions, tooBusy });
-  handlers.current = { sync, hide, songSeconds, silenceCaptions, tooBusy };
+  const handlers = useRef({ sync, hide, resetVideo, songSeconds, silenceCaptions, tooBusy });
+  handlers.current = { sync, hide, resetVideo, songSeconds, silenceCaptions, tooBusy };
 
   // One player for the component's lifetime; tracks swap videos inside it.
   useEffect(() => {
@@ -320,7 +336,7 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
               handlers.current.sync();
             },
             onError: (event) => {
-              handlers.current.hide();
+              handlers.current.resetVideo();
               if (UNPLAYABLE.has(event.data)) setChoice((index) => index + 1);
             },
             onApiChange: () => handlers.current.silenceCaptions(),
@@ -359,7 +375,7 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     let current = true;
     setCandidates(null);
     setChoice(0);
-    handlers.current.hide();
+    handlers.current.resetVideo();
 
     const timer = window.setTimeout(() => {
       findMusicVideos(live.current.track)
@@ -380,7 +396,7 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
 
   useEffect(() => {
     const player = playerRef.current;
-    handlers.current.hide();
+    handlers.current.resetVideo();
     if (!ready || !player) return;
     if (!videoId) {
       player.stopVideo();
@@ -388,7 +404,6 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
     }
 
     // Starts where the song is, so a video switched on mid-song lines up.
-    revealDelay.current = REVEAL_AFTER_START_MS;
     lastSeek.current = performance.now();
     const options = { videoId, startSeconds: handlers.current.songSeconds() };
     if (clock.current.isPlaying && !document.hidden) player.loadVideoById(options);
@@ -409,7 +424,10 @@ function MusicVideoPlayer({ track, progressMs, isPlaying, lowRes = false }: Musi
 
   // Play and pause land at once, not on the next sync tick.
   useEffect(() => {
-    if (ready && isPlaying !== undefined) handlers.current.sync();
+    if (!ready) return;
+    // A user's resume must not be delayed by the automatic retry throttle.
+    if (isPlaying) lastPlayRequest.current = -Infinity;
+    handlers.current.sync();
   }, [ready, isPlaying]);
 
   return (
